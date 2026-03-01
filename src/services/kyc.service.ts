@@ -10,6 +10,7 @@ export interface KYCData {
         aadhar_back: string;
         pan_card: string;
         selfie: string;
+        shop_photo: string;
     };
 }
 

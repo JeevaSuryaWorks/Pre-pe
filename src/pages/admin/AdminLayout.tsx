@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -18,7 +18,6 @@ const AdminLayout = () => {
 
     const checkAdmin = async () => {
         try {
-            // @ts-ignore - Supabase types might be mismatching in this env
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 navigate("/auth");
@@ -48,7 +47,6 @@ const AdminLayout = () => {
     };
 
     const handleLogout = async () => {
-        // @ts-ignore
         await supabase.auth.signOut();
         navigate("/auth");
     };
@@ -62,6 +60,7 @@ const AdminLayout = () => {
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
         { icon: Shield, label: "KYC Requests", path: "/admin/kyc" },
+        { icon: Banknote, label: "Fund Requests", path: "/admin/fund-requests" },
         { icon: Users, label: "User Management", path: "/admin/users" },
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },

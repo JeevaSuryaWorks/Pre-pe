@@ -28,6 +28,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import CommissionManager from "./pages/admin/CommissionManager";
 import TransactionsAdmin from "./pages/admin/TransactionsAdmin";
+import AdminFundRequests from "./pages/admin/AdminFundRequests";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
@@ -45,6 +46,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import MagicLinkPage from "./pages/auth/MagicLinkPage";
+import CompleteProfilePage from "./pages/auth/CompleteProfilePage";
 import CashbackOffers from "./pages/settings/CashbackOffers";
 import LegalPage from "./pages/settings/LegalPage";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -69,6 +71,7 @@ const App = () => (
           <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
           <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
           <Route path="/auth/magic-link" element={<MagicLinkPage />} />
+          <Route path="/auth/complete-profile" element={<CompleteProfilePage />} />
           <Route path="/kyc" element={<KYCPage />} />
           <Route path="/legal/terms" element={<LegalPage title="Terms & Conditions" type="terms" />} />
           <Route path="/legal/privacy" element={<LegalPage title="Privacy Policy" type="privacy" />} />
@@ -121,6 +124,7 @@ const App = () => (
               <Route path="users" element={<UserManagement />} />
               <Route path="transactions" element={<TransactionsAdmin />} />
               <Route path="commissions" element={<CommissionManager />} />
+              <Route path="fund-requests" element={<AdminFundRequests />} />
             </Route>
           </Route>
 

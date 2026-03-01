@@ -25,6 +25,21 @@ export const ProtectedRoute = () => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    if (user.email === 'connect.prepe@gmail.com') {
+        return <Navigate to="/admin" replace />;
+    }
+
+    // Capture phone numbers missing from OAuth signups
+    const hasPhone = user.phone || user.user_metadata?.phone;
+    if (!hasPhone && location.pathname !== '/auth/complete-profile') {
+        return <Navigate to="/auth/complete-profile" replace />;
+    }
+
+    // Force KYC submission. If status is null, it means no record exists.
+    if (kycStatus === null && location.pathname !== '/kyc') {
+        return <Navigate to="/kyc" replace />;
+    }
+
     return <Outlet />;
 }
 

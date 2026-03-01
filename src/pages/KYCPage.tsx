@@ -26,13 +26,16 @@ import { submitKYC, uploadKYCDocument } from '@/services/kyc.service';
 import { useKYC } from '@/hooks/useKYC';
 import { encryptSensitiveData } from '@/lib/crypto';
 import { Separator } from '@/components/ui/separator';
+import { ImageCropperModal } from '@/components/ui/ImageCropperModal';
 
 export const KYCPage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const { toast } = useToast();
-    const { status: kycStatusFromHook, kycData: hookData, isLoading: hookLoading } = useKYC();
+    const { status: kycStatusFromHook, kycData: hookData, isLoading: hookLoading } = useKYC({
+        onApproved: () => navigate('/home', { replace: true })
+    });
 
     // Local state for UI
     const [step, setStep] = useState(1);
@@ -54,6 +57,7 @@ export const KYCPage = () => {
     const [aadharBack, setAadharBack] = useState<File | null>(null);
     const [panCard, setPanCard] = useState<File | null>(null);
     const [selfie, setSelfie] = useState<File | null>(null);
+    const [shopPhoto, setShopPhoto] = useState<File | null>(null);
 
     // Effect to check email and handle redirection based on status
     useEffect(() => {
@@ -100,7 +104,7 @@ export const KYCPage = () => {
                 toast({ title: "Invalid details", description: "Please provide valid PAN and 12-digit Aadhaar number", variant: "destructive" });
                 return;
             }
-            if (!aadharFront || !aadharBack || !panCard || !selfie) {
+            if (!aadharFront || !aadharBack || !panCard || !selfie || !shopPhoto) {
                 toast({ title: "Documents Missing", description: "Please upload all required photos", variant: "destructive" });
                 return;
             }
@@ -131,6 +135,7 @@ export const KYCPage = () => {
             const abPath = await uploadKYCDocument(user.id, aadharBack!, 'aadhar_back');
             const panPath = await uploadKYCDocument(user.id, panCard!, 'pan_card');
             const selfiePath = await uploadKYCDocument(user.id, selfie!, 'selfie');
+            const shopPath = await uploadKYCDocument(user.id, shopPhoto!, 'shop_photo');
 
             // 2. Securely Encrypt Sensitive Numbers
             const encryptedPan = await encryptSensitiveData(panNumber);
@@ -146,7 +151,8 @@ export const KYCPage = () => {
                     aadhar_front: afPath,
                     aadhar_back: abPath,
                     pan_card: panPath,
-                    selfie: selfiePath
+                    selfie: selfiePath,
+                    shop_photo: shopPath
                 }
             });
 
@@ -157,7 +163,7 @@ export const KYCPage = () => {
             localStorage.removeItem('kyc_draft');
             // Invalidate cache so ProtectedRoute sees the new status
             await queryClient.invalidateQueries({ queryKey: ['kycStatus', user.id] });
-            navigate('/home');
+            navigate('/home', { replace: true });
         } catch (error: any) {
             console.error("KYC Submission Error:", error);
             toast({
@@ -183,6 +189,7 @@ export const KYCPage = () => {
         captureMode?: "user" | "environment"
     }) => {
         const inputRef = useRef<HTMLInputElement>(null);
+        const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
         const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             if (e.target.files && e.target.files[0]) {
@@ -192,8 +199,18 @@ export const KYCPage = () => {
                     toast({ title: "File too large", description: "Max 5MB allowed", variant: "destructive" });
                     return;
                 }
-                setFile(selectedFile);
+                const imgUrl = URL.createObjectURL(selectedFile);
+                setImageToCrop(imgUrl);
             }
+        };
+
+        const onCropComplete = (croppedFile: File) => {
+            setFile(croppedFile);
+            if (imageToCrop) {
+                URL.revokeObjectURL(imageToCrop);
+            }
+            setImageToCrop(null);
+            if (inputRef.current) inputRef.current.value = '';
         };
 
         const triggerUpload = (mode: 'camera' | 'gallery') => {
@@ -251,6 +268,19 @@ export const KYCPage = () => {
                             onChange={handleFileChange}
                         />
                     </div>
+                )}
+                {imageToCrop && (
+                    <ImageCropperModal
+                        imageSrc={imageToCrop}
+                        isOpen={!!imageToCrop}
+                        onClose={() => {
+                            if (imageToCrop) URL.revokeObjectURL(imageToCrop);
+                            setImageToCrop(null);
+                            if (inputRef.current) inputRef.current.value = '';
+                        }}
+                        onCropComplete={onCropComplete}
+                        aspect={label.includes('Selfie') ? 1 : 1.6}
+                    />
                 )}
             </div>
         );
@@ -334,6 +364,12 @@ export const KYCPage = () => {
                 <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-8 px-4">
                     <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                         <div className="p-4 border-b border-gray-50 flex items-center gap-3">
+                            <button
+                                onClick={() => navigate('/home', { replace: true })}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
                             <h1 className="text-lg font-bold text-slate-800">KYC Verification</h1>
                         </div>
 
@@ -369,7 +405,7 @@ export const KYCPage = () => {
                                 </Button>
                                 <Button
                                     className="w-full"
-                                    onClick={() => navigate('/home')}
+                                    onClick={() => navigate('/home', { replace: true })}
                                 >
                                     Go to Dashboard
                                 </Button>
@@ -524,6 +560,14 @@ export const KYCPage = () => {
                                             captureMode="user"
                                         />
                                     </div>
+                                    <div className="pt-2 border-t border-slate-100">
+                                        <DocumentUpload
+                                            label="Shop Photo"
+                                            file={shopPhoto}
+                                            setFile={setShopPhoto}
+                                            captureMode="environment"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -550,8 +594,8 @@ export const KYCPage = () => {
                                         <span className="text-slate-500">Aadhaar</span>
                                         <span className="font-mono font-medium">XXXX-XXXX-{aadharNumber.slice(-4)}</span>
                                     </div>
-                                    <div className="grid grid-cols-4 gap-2 pt-1">
-                                        {[aadharFront, aadharBack, panCard, selfie].map((f, i) => (
+                                    <div className="grid grid-cols-5 gap-2 pt-1">
+                                        {[aadharFront, aadharBack, panCard, selfie, shopPhoto].map((f, i) => (
                                             <div key={i} className={`aspect-square rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 ${f ? 'bg-white' : 'bg-red-50'}`}>
                                                 {f ? (
                                                     <img

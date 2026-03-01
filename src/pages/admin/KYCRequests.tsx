@@ -23,10 +23,12 @@ import {
     AlertTriangle,
     Check,
     X,
-    Maximize2
+    Maximize2,
+    ChevronLeft
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { decryptSensitiveData, maskAadhaar } from '@/lib/crypto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,17 @@ export const KYCRequests = () => {
     const [decryptedData, setDecryptedData] = useState<{ pan: string, aadhar: string } | null>(null);
     const [rejectReason, setRejectReason] = useState("");
     const [showRejectDialog, setShowRejectDialog] = useState(false);
+
+    // Approval Checklist
+    const [showApproveDialog, setShowApproveDialog] = useState(false);
+    const [approveChecklist, setApproveChecklist] = useState({
+        numbersMatch: false,
+        photosClear: false,
+        selfieMatches: false,
+        notExpired: false,
+        shopAuthentic: false
+    });
+    const isApproveEnabled = Object.values(approveChecklist).every(Boolean);
 
     // Fetch Pending Requests
     const { data: requests, isLoading } = useQuery<any[]>({
@@ -110,7 +123,7 @@ export const KYCRequests = () => {
             }
 
             const urls: Record<string, string> = {};
-            const keys = ['aadhar_front', 'aadhar_back', 'pan_card', 'selfie'];
+            const keys = ['aadhar_front', 'aadhar_back', 'pan_card', 'selfie', 'shop_photo'];
 
             try {
                 await Promise.all(keys.map(async (key) => {
@@ -141,29 +154,38 @@ export const KYCRequests = () => {
     // Approve/Reject Mutation
     const updateStatus = useMutation({
         mutationFn: async ({ id, status, userId, reason }: { id: string, status: 'APPROVED' | 'REJECTED', userId: string, reason?: string }) => {
-            const { error: updateError } = await supabase
+            const { error: updateError, data: updatedRecords } = await supabase
                 .from('kyc_verifications' as any)
                 .update({ status, updated_at: new Date().toISOString() })
-                .eq('id', id);
+                .eq('id', id)
+                .select();
 
             if (updateError) throw updateError;
+            if (!updatedRecords || updatedRecords.length === 0) {
+                throw new Error("Update blocked by database security. You may not have administrative privileges.");
+            }
 
             // Log Audit
             const { data: { user: adminUser } } = await supabase.auth.getUser();
             if (adminUser) {
-                await (supabase as any).from('admin_audit_logs').insert({
+                const { error: auditError } = await (supabase as any).from('admin_audit_logs').insert({
                     admin_id: adminUser.id,
                     action_type: `KYC_${status}`,
                     target_id: userId,
                     details: { kyc_id: id, reason: reason || null }
                 });
+                if (auditError) {
+                    console.warn("Audit Log Warning: Could not write to admin_audit_logs table. Check RLS policies.", auditError);
+                }
             }
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['admin_kyc_requests'] });
             setSelectedRequest(null);
             setShowRejectDialog(false);
+            setShowApproveDialog(false);
             setRejectReason("");
+            setApproveChecklist({ numbersMatch: false, photosClear: false, selfieMatches: false, notExpired: false, shopAuthentic: false });
             toast({
                 title: variables.status === 'APPROVED' ? "Application Approved" : "Application Rejected",
                 description: `Successfully processed the KYC for ${selectedRequest?.profiles?.full_name || 'the user'}.`,
@@ -174,8 +196,8 @@ export const KYCRequests = () => {
         }
     });
 
-    const handleApprove = () => {
-        if (!selectedRequest) return;
+    const handleExecuteApprove = () => {
+        if (!selectedRequest || !isApproveEnabled) return;
         updateStatus.mutate({
             id: selectedRequest.id,
             status: 'APPROVED',
@@ -204,131 +226,157 @@ export const KYCRequests = () => {
     );
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto px-4 pb-12">
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="p-2 bg-blue-600 rounded-lg">
-                            <Shield className="w-5 h-5 text-white" />
-                        </div>
-                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">KYC Queue</h1>
-                    </div>
-                    <p className="text-slate-500 font-medium">Manage and verify new applicant identities.</p>
-                </div>
-                <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
-                    <Clock className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-semibold text-slate-700">{requests?.length || 0} Pending Requests</span>
-                </div>
-            </header>
-
-            <div className="grid grid-cols-1 gap-4">
-                {requests?.length === 0 ? (
-                    <Card className="p-20 text-center border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-3xl">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
-                            <CheckCircle className="w-10 h-10 text-green-500" />
-                        </div>
-                        <h3 className="font-bold text-2xl text-slate-800 mb-2">Queue is Clear</h3>
-                        <p className="text-slate-500 max-w-md mx-auto">All pending KYC applications have been processed. You'll be notified when new ones arrive.</p>
-                    </Card>
-                ) : (
-                    requests?.map((req) => (
-                        <Card key={req.id} className="overflow-hidden border border-slate-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 group rounded-3xl bg-white">
-                            <div className="flex flex-col md:flex-row items-stretch p-2">
-                                <div className="p-6 flex-1 flex flex-col md:flex-row items-center gap-8">
-                                    <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-600 transition-colors duration-300">
-                                        <User className="w-8 h-8 text-slate-400 group-hover:text-white transition-colors duration-300" />
-                                    </div>
-
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Applicant</p>
-                                            <h3 className="text-lg font-bold text-slate-900 truncate">
-                                                {req.profiles?.full_name || 'Anonymous User'}
-                                            </h3>
-                                            <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-500 mt-1">
-                                                <Mail className="w-3.5 h-3.5" />
-                                                <span className="truncate">{req.profiles?.email || 'No email associated'}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col justify-center">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Documents Submitted</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">PAN</Badge>
-                                                <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">AADHAAR</Badge>
-                                                <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">SELFIE</Badge>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col justify-center">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date Submitted</p>
-                                            <div className="flex items-center gap-2 text-slate-700">
-                                                <Calendar className="w-4 h-4 text-slate-400" />
-                                                <span className="text-sm font-semibold">{new Date(req.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+        <div className="max-w-7xl mx-auto px-4 pb-12">
+            {!selectedRequest ? (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="p-2 bg-blue-600 rounded-lg">
+                                    <Shield className="w-5 h-5 text-white" />
                                 </div>
-
-                                <div className="p-4 md:border-l border-slate-100 bg-slate-50/50 flex items-center justify-center">
-                                    <Button
-                                        onClick={() => setSelectedRequest(req)}
-                                        className="w-full md:w-auto px-8 h-12 rounded-2xl bg-slate-900 text-white hover:bg-blue-600 border-none transition-all duration-300 font-bold shadow-lg shadow-slate-900/10 hover:shadow-blue-600/20"
-                                    >
-                                        Review <ChevronRight className="w-4 h-4 ml-1" />
-                                    </Button>
-                                </div>
+                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">KYC Queue</h1>
                             </div>
-                        </Card>
-                    ))
-                )}
-            </div>
+                            <p className="text-slate-500 font-medium">Manage and verify new applicant identities.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-semibold text-slate-700">{requests?.length || 0} Pending Requests</span>
+                        </div>
+                    </header>
 
-            {/* Premium Review Dialog */}
-            <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-                <DialogContent className="max-w-[95vw] md:max-w-6xl h-[95vh] md:h-[90vh] p-0 gap-0 overflow-hidden flex flex-col bg-slate-50 border-none shadow-2xl rounded-[32px]">
-                    <DialogDescription className="sr-only">Verify Identity for {selectedRequest?.profiles?.full_name}</DialogDescription>
+                    <div className="grid grid-cols-1 gap-4">
+                        {requests?.length === 0 ? (
+                            <Card className="p-20 text-center border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-3xl">
+                                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
+                                    <CheckCircle className="w-10 h-10 text-green-500" />
+                                </div>
+                                <h3 className="font-bold text-2xl text-slate-800 mb-2">Queue is Clear</h3>
+                                <p className="text-slate-500 max-w-md mx-auto">All pending KYC applications have been processed. You'll be notified when new ones arrive.</p>
+                            </Card>
+                        ) : (
+                            requests?.map((req) => (
+                                <Card key={req.id} className="overflow-hidden border border-slate-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 group rounded-3xl bg-white">
+                                    <div className="flex flex-col md:flex-row items-stretch p-2">
+                                        <div className="p-6 flex-1 flex flex-col md:flex-row items-center gap-8">
+                                            <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-600 transition-colors duration-300">
+                                                <User className="w-8 h-8 text-slate-400 group-hover:text-white transition-colors duration-300" />
+                                            </div>
 
+                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Applicant</p>
+                                                    <h3 className="text-lg font-bold text-slate-900 truncate">
+                                                        {req.profiles?.full_name || 'Anonymous User'}
+                                                    </h3>
+                                                    <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-500 mt-1">
+                                                        <Mail className="w-3.5 h-3.5" />
+                                                        <span className="truncate">{req.profiles?.email || 'No email associated'}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col justify-center">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Documents Submitted</p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">PAN</Badge>
+                                                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">AADHAAR</Badge>
+                                                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">SELFIE</Badge>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col justify-center">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date Submitted</p>
+                                                    <div className="flex items-center gap-2 text-slate-700">
+                                                        <Calendar className="w-4 h-4 text-slate-400" />
+                                                        <span className="text-sm font-semibold">{new Date(req.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 md:border-l border-slate-100 bg-slate-50/50 flex items-center justify-center">
+                                            <Button
+                                                onClick={() => setSelectedRequest(req)}
+                                                className="w-full md:w-auto px-8 h-12 rounded-2xl bg-slate-900 text-white hover:bg-blue-600 border-none transition-all duration-300 font-bold shadow-lg shadow-slate-900/10 hover:shadow-blue-600/20"
+                                            >
+                                                Review <ChevronRight className="w-4 h-4 ml-1" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+
+                </div>
+            ) : (
+                <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
                     {/* Header */}
-                    <div className="p-6 md:p-8 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <div className="p-6 md:p-8 bg-white border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between shrink-0 gap-4 sticky top-0 z-20">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold hidden md:flex" onClick={() => setSelectedRequest(null)}>
+                                <ChevronLeft className="w-4 h-4 mr-2" /> Back
+                            </Button>
+                            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
                                 <ShieldCheck className="w-7 h-7 text-blue-600" />
                             </div>
                             <div>
-                                <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                                     Identity Verification
-                                </DialogTitle>
+                                </h2>
                                 <p className="text-sm font-medium text-slate-400 mt-0.5 flex items-center gap-1.5">
                                     Application <span className="font-mono text-slate-700 font-bold bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{selectedRequest?.id.slice(0, 8)}</span>
                                 </p>
                             </div>
                         </div>
-                        <div className="hidden md:flex items-center gap-3">
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold md:hidden" onClick={() => setSelectedRequest(null)}>
+                                <ChevronLeft className="w-4 h-4 mr-2" /> Back
+                            </Button>
                             <Badge className="bg-amber-50 text-amber-600 border-amber-100 px-4 py-1.5 rounded-full text-xs font-bold flex gap-2 items-center">
                                 <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                                MANUAL REVIEW REQUIRED
+                                MANUAL REVIEW
                             </Badge>
                         </div>
                     </div>
 
                     {/* Content Section */}
-                    <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-                        {/* Sidebar: Details */}
-                        <div className="w-full md:w-80 border-r border-slate-200 bg-white/50 backdrop-blur-xl p-6 md:p-8 overflow-y-auto space-y-8 shrink-0">
+                    <div className="max-w-screen-2xl mx-auto w-full flex-1 overflow-hidden flex flex-col md:flex-row bg-white/50 border-x border-slate-200/60 shadow-2xl min-h-screen">
+                        {/* Sidebar: Details & Profile Photo */}
+                        <div className="w-full md:w-80 lg:w-96 border-r border-slate-200 bg-white/80 backdrop-blur-xl p-6 md:p-8 overflow-y-auto space-y-8 shrink-0">
+                            <section className="flex flex-col items-center text-center pb-6 border-b border-slate-100">
+                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden mb-4 bg-slate-100 relative group flex items-center justify-center">
+                                    {loadingImages ? (
+                                        <Skeleton className="w-full h-full" />
+                                    ) : imageUrls['selfie'] ? (
+                                        <>
+                                            <img
+                                                src={imageUrls['selfie']}
+                                                alt="Profile Photo"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <a
+                                                href={imageUrls['selfie']}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-sm"
+                                            >
+                                                <Maximize2 className="w-6 h-6" />
+                                            </a>
+                                        </>
+                                    ) : (
+                                        <User className="w-12 h-12 text-slate-300" />
+                                    )}
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900">{selectedRequest?.profiles?.full_name || 'N/A'}</h3>
+                                <p className="text-xs text-slate-500 font-medium mt-1">{selectedRequest?.profiles?.email}</p>
+                            </section>
+
                             <section>
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5 flex items-center gap-2">
                                     <User className="w-3 h-3" /> Basic Info
                                 </h4>
-                                <div className="space-y-6">
-                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Applicant Name</p>
-                                        <p className="text-sm font-black text-slate-800">{selectedRequest?.profiles?.full_name || 'N/A'}</p>
-                                    </div>
-                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Email Address</p>
-                                        <p className="text-sm font-bold text-slate-800 break-all">{selectedRequest?.profiles?.email || 'N/A'}</p>
-                                    </div>
+                                <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Gender</p>
@@ -380,10 +428,10 @@ export const KYCRequests = () => {
                         </div>
 
                         {/* Main Stage: Documents */}
-                        <div className="flex-1 bg-slate-100/50 p-6 md:p-8 overflow-y-auto">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5 md:ml-1">Proof Verification</h4>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {['aadhar_front', 'aadhar_back', 'pan_card', 'selfie'].map((key) => (
+                        <div className="flex-1 bg-slate-50/50 p-6 md:p-10 overflow-y-auto">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 md:ml-1">Proof Verification</h4>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                {['aadhar_front', 'aadhar_back', 'pan_card', 'shop_photo'].map((key) => (
                                     <div key={key} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200/60 group/card relative flex flex-col">
                                         <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
                                             <div className="flex items-center gap-2">
@@ -473,7 +521,7 @@ export const KYCRequests = () => {
                         </Button>
                         <Button
                             className="h-14 md:w-64 rounded-2xl bg-slate-900 text-white hover:bg-emerald-600 border-none font-black shadow-2xl shadow-slate-900/20 transition-all duration-300 text-base"
-                            onClick={handleApprove}
+                            onClick={() => setShowApproveDialog(true)}
                             disabled={updateStatus.isPending || loadingImages}
                         >
                             {updateStatus.isPending ? (
@@ -501,8 +549,8 @@ export const KYCRequests = () => {
                             </div>
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
+                </div>
+            )}
 
             {/* Rejection Dialog */}
             <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
@@ -533,6 +581,82 @@ export const KYCRequests = () => {
                             disabled={updateStatus.isPending || !rejectReason.trim()}
                         >
                             {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Rejection"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Approval Checklist Dialog */}
+            <Dialog open={showApproveDialog} onOpenChange={(open) => {
+                setShowApproveDialog(open);
+                if (!open) {
+                    setApproveChecklist({ numbersMatch: false, photosClear: false, selfieMatches: false, notExpired: false, shopAuthentic: false });
+                }
+            }}>
+                <DialogContent className="max-w-3xl rounded-[32px] p-10 border-none shadow-2xl bg-slate-50">
+                    <DialogHeader className="mb-6 flex flex-row items-start gap-5 space-y-0">
+                        <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-200">
+                            <ShieldCheck className="w-8 h-8 text-emerald-600" />
+                        </div>
+                        <div className="text-left mt-1">
+                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight mb-2">Final Verification Checklist</DialogTitle>
+                            <DialogDescription className="text-slate-500 text-sm max-w-lg leading-relaxed">
+                                Please confirm that you have manually verified the following details before officially approving this account.
+                            </DialogDescription>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                        {[
+                            { key: 'numbersMatch', label: "Numbers on documents match the digital entry" },
+                            { key: 'photosClear', label: "Photos are clear and text is readable" },
+                            { key: 'selfieMatches', label: "Selfie matches the photo on ID proofs" },
+                            { key: 'notExpired', label: "Documents are not expired or damaged" },
+                            { key: 'shopAuthentic', label: "Shop photo appears authentic and corresponds to the applicant" }
+                        ].map(({ key, label }) => (
+                            <div key={key} className={cn(
+                                "flex items-start space-x-4 bg-white p-5 rounded-2xl shadow-sm border transition-all cursor-pointer duration-300",
+                                approveChecklist[key as keyof typeof approveChecklist] ? "border-emerald-500/30 bg-emerald-50/20" : "border-slate-100 hover:border-emerald-200"
+                            )} onClick={() => setApproveChecklist(prev => ({ ...prev, [key]: !prev[key as keyof typeof approveChecklist] }))}>
+                                <Checkbox
+                                    id={key}
+                                    checked={approveChecklist[key as keyof typeof approveChecklist]}
+                                    className="mt-0.5 w-6 h-6 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-none text-white pointer-events-none transition-all duration-300"
+                                />
+                                <div className="leading-tight flex-1">
+                                    <label
+                                        htmlFor={key}
+                                        className={cn(
+                                            "text-sm font-bold leading-snug cursor-pointer transition-all duration-300 select-none block",
+                                            approveChecklist[key as keyof typeof approveChecklist] ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700"
+                                        )}
+                                    >
+                                        {label}
+                                    </label>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <DialogFooter className="mt-8 flex flex-col sm:flex-row gap-4 border-t border-slate-200/60 pt-6">
+                        <Button variant="outline" className="h-12 flex-1 rounded-xl border-slate-200 text-slate-600 font-bold" onClick={() => setShowApproveDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className={cn(
+                                "h-12 flex-1 rounded-xl font-black shadow-lg transition-all duration-300",
+                                isApproveEnabled
+                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30"
+                                    : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                            )}
+                            onClick={handleExecuteApprove}
+                            disabled={!isApproveEnabled || updateStatus.isPending}
+                        >
+                            {updateStatus.isPending ? (
+                                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...</>
+                            ) : (
+                                "Approve & Unlock"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

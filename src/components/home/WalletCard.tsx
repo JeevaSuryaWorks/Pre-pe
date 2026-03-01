@@ -41,10 +41,15 @@ export const WalletCard = () => {
                     </div>
                 </div>
 
-                <Link to="/fund-request">
+                <Link to={isApproved ? "/fund-request" : "#"} onClick={(e) => {
+                    if (!isApproved) {
+                        e.preventDefault();
+                    }
+                }}>
                     <Button
                         variant="outline"
-                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-none rounded-lg px-4 gap-2 font-semibold h-10"
+                        className={`border-none rounded-lg px-4 gap-2 font-semibold h-10 ${!isApproved ? 'bg-slate-100 text-slate-400 opacity-60 cursor-not-allowed hover:bg-slate-100' : 'bg-blue-50 hover:bg-blue-100 text-blue-700'}`}
+                        disabled={!isApproved}
                     >
                         <Plus className="w-4 h-4" />
                         ADD MONEY

@@ -25,13 +25,26 @@ interface ServiceItemProps {
 }
 
 const ServiceItem = ({ icon: Icon, label, path }: ServiceItemProps) => {
+  const { isApproved } = useKYC();
+  const { toast } = useToast();
+
   return (
     <Link
-      to={path}
-      className="flex flex-col items-center gap-2 group"
+      to={isApproved ? path : "#"}
+      onClick={(e) => {
+        if (!isApproved) {
+          e.preventDefault();
+          toast({
+            title: "KYC Required",
+            description: "Please wait for your KYC to be approved to use this service.",
+            variant: "destructive"
+          });
+        }
+      }}
+      className={`flex flex-col items-center gap-2 group ${!isApproved ? 'opacity-50 grayscale cursor-not-allowed hover:bg-transparent' : ''}`}
     >
-      <div className="w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-sm border bg-green-50/50 group-hover:bg-green-100 group-hover:scale-105 active:scale-95 border-green-100/50">
-        <Icon className="w-7 h-7 text-green-700" strokeWidth={1.5} />
+      <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all shadow-sm border ${!isApproved ? 'bg-slate-50 border-slate-100' : 'bg-green-50/50 group-hover:bg-green-100 group-hover:scale-105 active:scale-95 border-green-100/50'}`}>
+        <Icon className={`w-7 h-7 ${!isApproved ? 'text-slate-400' : 'text-green-700'}`} strokeWidth={1.5} />
       </div>
       <span className="text-[11px] font-medium text-gray-700 text-center leading-tight tracking-tight mt-1">{label}</span>
     </Link>

@@ -6,7 +6,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { decryptSensitiveData } from '@/lib/crypto';
 import { useToast } from './use-toast';
 
-export const useKYC = () => {
+let activeSubscribers = 0;
+let channelInstance: any = null;
+
+interface UseKYCOptions {
+    onApproved?: () => void;
+}
+
+export const useKYC = (options?: UseKYCOptions) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const prevStatusRef = useRef<string | null>(null);
@@ -36,40 +43,52 @@ export const useKYC = () => {
 
     const status = kycData?.status || null; // 'APPROVED' | 'PENDING' | 'REJECTED' | null
 
-    // Notify on approval
+    // Notify on approval and navigate
     useEffect(() => {
         if (prevStatusRef.current === 'PENDING' && status === 'APPROVED') {
             toast({
                 title: "KYC Approved! 🎉",
-                description: "Your account is now verified. You can now add up to ₹5,000 to your wallet and access full services.",
+                description: "Your account is now verified. You can now add up to ₹6,000 to your wallet and access full services.",
             });
+            // Fire callback if provided (used for navigation)
+            if (options?.onApproved) {
+                options.onApproved();
+            }
         }
         prevStatusRef.current = status;
-    }, [status, toast]);
+    }, [status, toast, options?.onApproved]);
 
     // REAL-TIME: Listen for changes to current user's KYC record
     useEffect(() => {
         if (!user) return;
 
-        const channel = supabase
-            .channel(`kyc_status_${user.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'kyc_verifications',
-                    filter: `user_id=eq.${user.id}`
-                },
-                () => {
-                    console.log('[useKYC] State change detected, refetching...');
-                    refetch();
-                }
-            )
-            .subscribe();
+        activeSubscribers++;
+
+        if (!channelInstance) {
+            channelInstance = supabase
+                .channel(`kyc_status_${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'kyc_verifications',
+                        filter: `user_id=eq.${user.id}`
+                    },
+                    () => {
+                        console.log('[useKYC] State change detected, refetching...');
+                        refetch();
+                    }
+                )
+                .subscribe();
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            activeSubscribers--;
+            if (activeSubscribers === 0 && channelInstance) {
+                supabase.removeChannel(channelInstance);
+                channelInstance = null;
+            }
         };
     }, [user?.id, refetch]);
 
@@ -87,8 +106,8 @@ export const useKYC = () => {
         isRejected,
         // Consolidate loading state:
         // If user exists, but we don't have data or error, consider it loading.
-        // This prevents early redirects before the query fires or returns.
-        isLoading: !!user && (isLoading || (kycData === undefined && !error)),
+        // Wait for active refetches directly following a submit invalidation when status hits null in cache.
+        isLoading: !!user && (isLoading || (status === null && isFetching) || (kycData === undefined && !error)),
         error,
         refetch
     };

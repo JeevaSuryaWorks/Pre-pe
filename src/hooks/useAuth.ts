@@ -15,33 +15,33 @@ export function useAuth() {
     loading: true,
   });
 
+  const refreshSession = useCallback(async () => {
+    console.log("[useAuth] Refreshing session...");
+    try {
+      setAuthState(prev => ({ ...prev, loading: true }));
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          await supabase.auth.signOut();
+          setAuthState({ user: null, session: null, loading: false });
+          return;
+        }
+        setAuthState({ user, session, loading: false });
+      } else {
+        setAuthState({ user: null, session: null, loading: false });
+      }
+    } catch (err) {
+      console.error("[useAuth] Refresh error:", err);
+      setAuthState({ user: null, session: null, loading: false });
+    }
+  }, []);
+
   useEffect(() => {
     const initializeAuth = async () => {
       console.log("[useAuth] Initializing...");
-      try {
-        // 1. Get initial session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("[useAuth] getSession result:", session ? "Session found" : "No session");
-
-        // 2. Validate session with server if it exists
-        if (session) {
-          console.log("[useAuth] Validating user with server...");
-          const { data: { user }, error } = await supabase.auth.getUser();
-          if (error || !user) {
-            console.log("[useAuth] getUser failed or no user:", error);
-            await supabase.auth.signOut();
-            setAuthState({ user: null, session: null, loading: false });
-            return;
-          }
-          console.log("[useAuth] getUser success for:", user.id);
-          setAuthState({ user, session, loading: false });
-        } else {
-          setAuthState({ user: null, session: null, loading: false });
-        }
-      } catch (err) {
-        console.error("[useAuth] Initialization error:", err);
-        setAuthState({ user: null, session: null, loading: false });
-      }
+      await refreshSession();
     };
 
     initializeAuth();
@@ -61,7 +61,7 @@ export function useAuth() {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [refreshSession]);
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string) => {
     const redirectUrl = `${window.location.origin}/home`;
@@ -95,12 +95,25 @@ export function useAuth() {
     return { error };
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/home`,
+      },
+    });
+
+    return { data, error };
+  }, []);
+
   return {
     user: authState.user,
     session: authState.session,
     loading: authState.loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
+    refreshSession,
   };
 }

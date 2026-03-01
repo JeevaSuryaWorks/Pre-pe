@@ -104,7 +104,7 @@ export const adminService = {
         // 4. Log Audit
         const user = await supabase.auth.getUser();
         await supabase.from('admin_audit_logs').insert({
-            admin_id: user.data.user?.id!,
+            admin_id: user.data.user?.id || '',
             action_type: 'WALLET_ADJUSTMENT',
             target_id: userId,
             details: { type, amount, reason, previous_balance: wallet.balance }
@@ -158,7 +158,7 @@ export const adminService = {
         // 5. Audit Log
         const user = await supabase.auth.getUser();
         await supabase.from('admin_audit_logs').insert({
-            admin_id: user.data.user?.id!,
+            admin_id: user.data.user?.id || '',
             action_type: 'REFUND',
             target_id: transactionId,
             details: { amount: refundAmount, reason }
