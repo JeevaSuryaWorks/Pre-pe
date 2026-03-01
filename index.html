@@ -3,15 +3,25 @@
 
 <head>
   <meta charset="UTF-8" />
+  <!-- Basic Meta Tags -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PrePe India - Fast & Secure Mobile Recharges</title>
-
-  <link rel="icon" type="image/png" href="/icon.png" />
   <meta name="description"
     content="India's fastest platform for mobile recharges, DTH payments, and utility bill payments. Secure, reliable, and rewarding." />
   <meta name="keywords"
     content="mobile recharge, dth recharge, bill payment, upi, prepe, india payments, fast recharge" />
   <meta name="author" content="PrePe India" />
+  <meta name="theme-color" content="#ffffff" />
+
+  <!-- Resource Hints (Preconnect) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://www.googletagmanager.com" />
+  <link rel="preconnect" href="https://connect.facebook.net" />
+
+  <!-- Favicon and App Icons -->
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link rel="apple-touch-icon" href="/icon.png" />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
@@ -21,14 +31,51 @@
   <meta property="og:image" content="/icon.png" />
 
   <!-- Twitter -->
-  <meta property="twitter:card" content="summary" />
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://prepe.in/" />
   <meta property="twitter:title" content="PrePe India" />
   <meta property="twitter:description" content="Fast and secure way to recharge and pay bills in India." />
   <meta property="twitter:image" content="/icon.png" />
+
+  <!-- External Scripts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/auth-helpers-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/auth-helpers-svelte@2"></script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-888K72673P"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-888K72673P');
+  </script>
+
+  <!-- Meta Pixel Code Setup -->
+  <script>
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments) };
+      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = true; n.version = '2.0'; n.queue = [];
+      t = b.createElement(e); t.async = true; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s)
+    }(window, document, 'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1004716207595442');
+    fbq('track', 'PageView');
+  </script>
 </head>
 
 <body>
+  <!-- Meta Pixel Fallback -->
+  <noscript>
+    <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1004716207595442&ev=PageView&noscript=1" />
+  </noscript>
+
   <div id="root"></div>
+
   <script type="module" src="/src/main.tsx"></script>
 </body>
 
