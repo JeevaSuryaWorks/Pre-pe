@@ -6,8 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { decryptSensitiveData } from '@/lib/crypto';
 import { useToast } from './use-toast';
 
-let activeSubscribers = 0;
-let channelInstance: any = null;
+// No module-level state needed for channels.
 
 interface UseKYCOptions {
     onApproved?: () => void;
@@ -60,35 +59,35 @@ export const useKYC = (options?: UseKYCOptions) => {
 
     // REAL-TIME: Listen for changes to current user's KYC record
     useEffect(() => {
-        if (!user) return;
+        if (!user?.id) return;
 
-        activeSubscribers++;
+        // Use a unique channel name per component instance to avoid unmount clashes
+        const uniqueTopic = `kyc_status_${user.id}_${Math.random().toString(36).substring(7)}`;
 
-        if (!channelInstance) {
-            channelInstance = supabase
-                .channel(`kyc_status_${user.id}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'kyc_verifications',
-                        filter: `user_id=eq.${user.id}`
-                    },
-                    () => {
-                        console.log('[useKYC] State change detected, refetching...');
-                        refetch();
-                    }
-                )
-                .subscribe();
-        }
+        const channel = supabase
+            .channel(uniqueTopic)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'kyc_verifications',
+                    filter: `user_id=eq.${user.id}`
+                },
+                () => {
+                    console.log('[useKYC] State change detected, refetching...');
+                    refetch();
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`[useKYC] Successfully subscribed to ${uniqueTopic}`);
+                }
+            });
 
         return () => {
-            activeSubscribers--;
-            if (activeSubscribers === 0 && channelInstance) {
-                supabase.removeChannel(channelInstance);
-                channelInstance = null;
-            }
+            // Let Supabase handle the channel cleanup safely without crashing the WebSocket
+            supabase.removeChannel(channel);
         };
     }, [user?.id, refetch]);
 

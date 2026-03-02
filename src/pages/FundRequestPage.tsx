@@ -18,7 +18,7 @@ export const FundRequestPage = () => {
     const location = useLocation();
     const { status: kycStatus, isApproved, isLoading: kycLoading } = useKYC();
     const { user } = useAuth(); // New: Get user from useAuth
-    const [amount, setAmount] = useState(location.state?.amount?.toString() || "");
+    const [amount, setAmount] = useState(location.state?.amount?.toString() || "0");
     const [loading, setLoading] = useState(false);
     const [showKYCNudge, setShowKYCNudge] = useState(false);
     const [isFallback, setIsFallback] = useState(false);
@@ -26,13 +26,10 @@ export const FundRequestPage = () => {
     const [showManualModal, setShowManualModal] = useState(false);
 
     // Limit Logic
-    const LIMIT = isApproved ? 5000 : 2000;
+    const LIMIT = isApproved ? 6000 : 2000;
 
-    // Calculate Charges
     const baseAmount = Number(amount) || 0;
-    const chargePercentage = 2.5; // 2.5% charge
-    const charges = Math.ceil((baseAmount * chargePercentage) / 100);
-    const totalPayable = baseAmount + charges;
+    const totalPayable = baseAmount; // No processing charges
 
     // New: Razorpay script loader
     const loadRazorpay = () => {
@@ -266,25 +263,18 @@ export const FundRequestPage = () => {
                                         </p>
                                     )}
 
-                                    <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100 text-sm">
-                                        <div className="flex justify-between items-center text-slate-600">
-                                            <span>Wallet Amount</span>
-                                            <span className="font-medium">₹{baseAmount}</span>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
+                                        <div className="flex justify-between items-center font-bold text-lg text-slate-900">
+                                            <span>Amount to Add</span>
+                                            <span className="text-green-700">₹{baseAmount}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-red-500">
-                                            <span>Processing Charges (2.5%)</span>
-                                            <span className="font-medium">+ ₹{charges}</span>
-                                        </div>
-                                        <div className="pt-2 border-t border-slate-200 flex justify-between items-center font-bold text-lg text-slate-900">
-                                            <span>Total Payable</span>
-                                            <span>₹{totalPayable}</span>
-                                        </div>
+                                        <p className="text-xs text-slate-400 mt-1">No processing charges — what you pay is what gets added.</p>
                                     </div>
                                 </div>
 
                                 {/* Quick Select */}
                                 <div className="flex gap-2">
-                                    {[1000, 2000, 5000].map(amt => (
+                                    {[1000, 2000, 6000].map(amt => (
                                         <Button
                                             key={amt}
                                             variant="outline"

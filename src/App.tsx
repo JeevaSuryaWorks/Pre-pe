@@ -29,6 +29,8 @@ import UserManagement from "./pages/admin/UserManagement";
 import CommissionManager from "./pages/admin/CommissionManager";
 import TransactionsAdmin from "./pages/admin/TransactionsAdmin";
 import AdminFundRequests from "./pages/admin/AdminFundRequests";
+import AdminBanners from "./pages/admin/AdminBanners";
+import AdminBannerEditor from "./pages/admin/AdminBannerEditor";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
@@ -125,6 +127,9 @@ const App = () => (
               <Route path="transactions" element={<TransactionsAdmin />} />
               <Route path="commissions" element={<CommissionManager />} />
               <Route path="fund-requests" element={<AdminFundRequests />} />
+              <Route path="banners" element={<AdminBanners />} />
+              <Route path="banners/new" element={<AdminBannerEditor />} />
+              <Route path="banners/:id" element={<AdminBannerEditor />} />
             </Route>
           </Route>
 

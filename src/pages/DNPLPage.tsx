@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useKYC } from "@/hooks/useKYC";
+import { getWalletBalance, creditWallet } from "@/services/wallet.service";
+import { useActiveLoan } from "@/hooks/useActiveLoan";
 
 const DNPLPage = () => {
     const [amount, setAmount] = useState<string>("");
@@ -17,6 +19,7 @@ const DNPLPage = () => {
 
     const { isApproved } = useKYC();
     const [showKYCNudge, setShowKYCNudge] = useState(false);
+    const { data: activeLoan, isLoading: isLoanLoading } = useActiveLoan();
 
     const borrowAmount = parseInt(amount) || 0;
 
@@ -24,35 +27,34 @@ const DNPLPage = () => {
     repaymentDate.setDate(repaymentDate.getDate() + 15);
     const bounceCharges = 50;
 
-    const { data: balance } = useQuery({
+    const { data: balanceObj } = useQuery({
         queryKey: ["wallet-balance"],
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/wallet`, {
-                headers: {
-                    Authorization: `Bearer ${session?.access_token}`,
-                },
-            });
-            return response.json();
+            if (!session?.user?.id) throw new Error("Not logged in");
+            return await getWalletBalance(session.user.id);
         },
     });
 
     const borrowMutation = useMutation({
         mutationFn: async (amt: number) => {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/loans/request`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${session?.access_token}`,
-                },
-                body: JSON.stringify({ amount: amt }),
+            if (!session?.user?.id) throw new Error("Not logged in");
+
+            const success = await creditWallet(session.user.id, amt, "DNPL Loan Disbursal");
+            if (!success) throw new Error("Failed to disburse loan funds to wallet");
+
+            // Log the 'LOAN' transaction
+            await supabase.from("transactions").insert({
+                user_id: session.user.id,
+                type: "LOAN",
+                service_type: "WALLET_TOPUP",
+                amount: amt,
+                status: "SUCCESS",
+                metadata: { repayment_date: repaymentDate.toISOString(), bounce_charges: bounceCharges }
             });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to borrow funds");
-            }
-            return response.json();
+
+            return { success: true, amount: amt };
         },
         onSuccess: () => {
             toast({
@@ -113,39 +115,41 @@ const DNPLPage = () => {
                         <HandCoins className="absolute -bottom-4 -right-4 w-32 h-32 opacity-15 rotate-12" />
                     </div>
 
-                    {/* Input Section */}
-                    <div className="space-y-4">
-                        <label className="text-sm font-semibold text-slate-700 block ml-1">Enter Borrow Amount</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">₹</span>
-                            <Input
-                                type="number"
-                                placeholder="0.00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="pl-10 h-16 text-2xl font-bold border-2 border-slate-100 rounded-2xl focus-visible:ring-indigo-500 focus-visible:border-indigo-500"
-                                max={1000}
-                                min={1}
-                            />
+                    {/* Input Section (Hidden if Active Loan) */}
+                    {!activeLoan && !isLoanLoading && (
+                        <div className="space-y-4">
+                            <label className="text-sm font-semibold text-slate-700 block ml-1">Enter Borrow Amount</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400">₹</span>
+                                <Input
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="pl-10 h-16 text-2xl font-bold border-2 border-slate-100 rounded-2xl focus-visible:ring-indigo-500 focus-visible:border-indigo-500"
+                                    max={1000}
+                                    min={1}
+                                />
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                                {[100, 200, 500, 1000].map((val) => (
+                                    <button
+                                        key={val}
+                                        onClick={() => setAmount(val.toString())}
+                                        className={`px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-all ${amount === val.toString()
+                                            ? "bg-indigo-600 border-indigo-600 text-white"
+                                            : "bg-white border-slate-200 text-slate-600 hover:border-indigo-300"
+                                            }`}
+                                    >
+                                        ₹{val}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                            {[100, 200, 500, 1000].map((val) => (
-                                <button
-                                    key={val}
-                                    onClick={() => setAmount(val.toString())}
-                                    className={`px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-all ${amount === val.toString()
-                                        ? "bg-indigo-600 border-indigo-600 text-white"
-                                        : "bg-white border-slate-200 text-slate-600 hover:border-indigo-300"
-                                        }`}
-                                >
-                                    ₹{val}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    )}
 
-                    {/* Summary Card */}
-                    {borrowAmount > 0 && (
+                    {/* Preview Summary Card (Hidden if Active Loan) */}
+                    {!activeLoan && borrowAmount > 0 && (
                         <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
                                 <Info className="w-4 h-4 text-indigo-500" />
@@ -176,17 +180,74 @@ const DNPLPage = () => {
                             </p>
                         </div>
                     )}
+
+                    {/* Active Loan Display */}
+                    {activeLoan && (
+                        <div className={`rounded-2xl p-5 border shadow-sm space-y-4 animate-in fade-in zoom-in-95 duration-500 ${activeLoan.is_overdue ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className={`font-bold flex flex-col gap-1 ${activeLoan.is_overdue ? 'text-red-800' : 'text-slate-800'}`}>
+                                    <span className="flex items-center gap-2">
+                                        <Info className={`w-5 h-5 ${activeLoan.is_overdue ? 'text-red-500' : 'text-indigo-500'}`} />
+                                        Current Active Loan
+                                    </span>
+                                    {activeLoan.is_overdue && <span className="text-xs font-black text-red-600 bg-red-100 px-2 py-0.5 rounded-full w-fit">PAYMENT OVERDUE</span>}
+                                </h3>
+                                <div className={`text-right ${activeLoan.is_overdue ? 'text-red-600' : 'text-indigo-600'}`}>
+                                    <div className="text-2xl font-black leading-none">₹{activeLoan.amount + (activeLoan.is_overdue ? activeLoan.bounce_charges : 0)}.00</div>
+                                    <div className="text-[10px] font-bold opacity-70 mt-1 uppercase tracking-widest">Total Dues</div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 bg-white/50 rounded-xl p-4 border border-white/40">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-600 flex items-center gap-2">
+                                        <Calendar className="w-4 h-4" /> Due Date
+                                    </span>
+                                    <span className="font-semibold text-slate-900">{activeLoan.repayment_date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                </div>
+
+                                {activeLoan.is_overdue && (
+                                    <div className="flex justify-between items-center text-sm border-t border-red-100 pt-3">
+                                        <span className="text-red-600 flex items-center gap-2 font-medium">
+                                            <AlertCircle className="w-4 h-4" /> Added Penalty
+                                        </span>
+                                        <span className="font-bold text-red-700">₹{activeLoan.bounce_charges}.00</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <p className="text-[11px] text-slate-500 text-center font-medium mt-2">
+                                You cannot borrow more funds until your current loan is cleared.
+                            </p>
+
+                            <Button
+                                className={`w-full h-12 rounded-xl font-bold shadow ${activeLoan.is_overdue ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900 hover:bg-slate-800'}`}
+                                onClick={() => navigate('/home')}
+                            >
+                                Pay Now
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
-                {/* Bottom Action */}
                 <div className="p-6 bg-white border-t mt-auto">
-                    <Button
-                        onClick={handleBorrow}
-                        disabled={borrowMutation.isPending || borrowAmount <= 0}
-                        className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg shadow-lg shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50"
-                    >
-                        {borrowMutation.isPending ? "Connecting to Bank..." : "Connect & Borrow Now"}
-                    </Button>
+                    {!activeLoan ? (
+                        <Button
+                            onClick={handleBorrow}
+                            disabled={borrowMutation.isPending || borrowAmount <= 0}
+                            className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg shadow-lg shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                            {borrowMutation.isPending ? "Connecting to Bank..." : "Connect & Borrow Now"}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate('/home')}
+                            className="w-full h-14 rounded-2xl font-bold text-lg border-2 border-slate-200 text-slate-500"
+                        >
+                            Return to Home
+                        </Button>
+                    )}
                 </div>
             </div>
 

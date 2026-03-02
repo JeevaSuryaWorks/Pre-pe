@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote } from 'lucide-react';
+import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ export const AdminLayout = () => {
         { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/admin/kyc', icon: Shield, label: 'KYC Requests' },
         { path: '/admin/fund-requests', icon: Banknote, label: 'Fund Requests' },
+        { path: '/admin/banners', icon: Megaphone, label: 'Banner Manager' },
         { path: '/admin/users', icon: Users, label: 'User Management' },
         { path: '/admin/transactions', icon: History, label: 'Transactions' },
         { path: '/admin/commissions', icon: Percent, label: 'Commissions' },

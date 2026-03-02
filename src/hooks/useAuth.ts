@@ -39,12 +39,7 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      console.log("[useAuth] Initializing...");
-      await refreshSession();
-    };
-
-    initializeAuth();
+    // Removed manual `initializeAuth` / `refreshSession` since onAuthStateChange automatically fires `INITIAL_SESSION` on mount.
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
