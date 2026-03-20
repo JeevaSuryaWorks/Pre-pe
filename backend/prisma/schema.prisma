@@ -110,7 +110,7 @@ model transactions {
   type               String
   service_type       String
   amount             Decimal  @db.Decimal
-  status             String
+  status             RechargeStatus @default(PENDING)
   operator_id        String?
   operator_name      String?
   mobile_number      String?

@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
-import { RechargeStatus } from '@prisma/client';
+import { RechargeStatus } from '../prisma/prisma.service';
 
 @Injectable()
 export class RechargeService {
@@ -22,21 +22,25 @@ export class RechargeService {
         }
 
         // 2. Create Recharge Transaction (PENDING)
-        const transaction = await this.prisma.rechargeTransaction.create({
+        const transaction = await this.prisma.transactions.create({
             data: {
-                userId,
+                user_id: userId,
                 amount,
-                mobileNumber,
-                operator,
+                mobile_number: mobileNumber,
+                operator_id: operator,
                 status: RechargeStatus.PENDING,
+                type: 'DEBIT',
+                service_type: 'RECHARGE',
+                created_at: new Date(),
+                updated_at: new Date(),
             },
         });
 
-        // 3. Call Vendor API (Mock)
-        this.mockVendorApiCall(transaction.id).then(async (success) => {
+        // 3. Call Vendor API (KwikAPI)
+        this.callKwikApi(amount, mobileNumber, operator, transaction.id).then(async (success) => {
             const status = success ? RechargeStatus.SUCCESS : RechargeStatus.FAILED;
-
-            await this.prisma.rechargeTransaction.update({
+            
+            await this.prisma.transactions.update({
                 where: { id: transaction.id },
                 data: { status }
             });
@@ -50,13 +54,27 @@ export class RechargeService {
         return transaction;
     }
 
-    // Mimic an async 3rd party API call
-    private async mockVendorApiCall(txId: string): Promise<boolean> {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                // Random success/failure
-                resolve(Math.random() > 0.2);
-            }, 2000);
-        });
+    // Real KwikAPI call
+    private async callKwikApi(amount: number, mobileNumber: string, operator: string, orderId: string): Promise<boolean> {
+        const apiKey = process.env.KWIK_API_KEY;
+        const baseUrl = process.env.KWIK_API_BASE_URL || 'https://www.kwikapi.com/api/v2';
+        
+        try {
+            const params = new URLSearchParams({
+                api_key: apiKey,
+                number: mobileNumber,
+                amount: amount.toString(),
+                opid: operator, // Assuming operator is passed as ID
+                order_id: orderId,
+            });
+
+            const response = await fetch(`${baseUrl}/recharge.php?${params.toString()}`);
+            const data = await response.json();
+            
+            return data.status === 'SUCCESS';
+        } catch (error) {
+            console.error('KwikAPI call failed:', error);
+            return false;
+        }
     }
 }
