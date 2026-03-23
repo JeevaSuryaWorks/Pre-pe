@@ -35,6 +35,8 @@ import AdminBannerEditor from "./pages/admin/AdminBannerEditor";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
+import Recharge from "./pages/Recharge";
+import RechargeStatus from "./pages/RechargeStatus";
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
 import LedgerPage from "./pages/LedgerPage";
@@ -94,6 +96,8 @@ const App = () => (
             <Route path="/profile/offers" element={<CashbackOffers />} />
 
             <Route path="/mobile-recharge" element={<MobileRecharge />} />
+            <Route path="/recharge" element={<Recharge />} />
+            <Route path="/recharge/status" element={<RechargeStatus />} />
             <Route path="/offers" element={<CashbackOffers />} />
 
             <Route path="/dth-recharge" element={<DTHSelectProvider />} />

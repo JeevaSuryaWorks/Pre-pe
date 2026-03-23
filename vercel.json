@@ -9,6 +9,18 @@
             "destination": "/api/payment/test.js"
         },
         {
+            "source": "/api/recharge",
+            "destination": "/api/recharge/index.js"
+        },
+        {
+            "source": "/api/recharge/detect-operator",
+            "destination": "/api/recharge/detect-operator.js"
+        },
+        {
+            "source": "/api/recharge/status",
+            "destination": "/api/recharge/status.js"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
