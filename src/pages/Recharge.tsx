@@ -65,9 +65,24 @@ export default function Recharge() {
         body: JSON.stringify({ number: mobileNumber })
       });
       const data = await res.json();
-      if (data.success && data.data && data.data.opid) {
-        setMobileOperator(data.data.opid.toString());
-        toast.success(`Operator detected: ${data.data.operator_name || 'Success'}`);
+      const kwikData = data.data;
+      if (data.success && kwikData) {
+        const opString = (kwikData.operator || kwikData.operator_name || kwikData.opid || '').toString().toLowerCase();
+        let matchedId = '';
+        
+        if (opString.includes('airtel')) matchedId = '1';
+        else if (opString.includes('bsnl')) matchedId = '2';
+        else if (opString.includes('jio') || opString.includes('reliance')) matchedId = '3';
+        else if (opString.includes('vi') || opString.includes('vodafon') || opString.includes('idea')) matchedId = '4';
+
+        if (!matchedId && kwikData.opid) matchedId = kwikData.opid.toString();
+
+        if (matchedId) {
+          setMobileOperator(matchedId);
+          toast.success(`Operator detected: ${kwikData.operator || kwikData.operator_name || 'Success'}`);
+        } else {
+          toast.error("Could not map operator automatically. Please select manually.");
+        }
       } else {
         toast.error("Could not auto-detect operator");
       }
@@ -230,9 +245,9 @@ export default function Recharge() {
                     <SelectContent>
                       {/* Note: Update values to actual KWIK operator IDs in production */}
                       <SelectItem value="1">Airtel</SelectItem>
-                      <SelectItem value="2">Jio</SelectItem>
-                      <SelectItem value="3">Vi</SelectItem>
-                      <SelectItem value="4">BSNL</SelectItem>
+                      <SelectItem value="2">BSNL</SelectItem>
+                      <SelectItem value="3">Jio</SelectItem>
+                      <SelectItem value="4">Vi (Vodafone Idea)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
