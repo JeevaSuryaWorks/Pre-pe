@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       .from('transactions')
       .insert({
         user_id,
-        type: 'DEBIT',
+        type: 'RECHARGE',
         service_type,
         amount: parseFloat(amount),
         status: 'PENDING',
