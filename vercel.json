@@ -21,6 +21,10 @@
             "destination": "/api/recharge/status.js"
         },
         {
+            "source": "/api/kwik-proxy",
+            "destination": "/api/kwik-proxy.js"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
