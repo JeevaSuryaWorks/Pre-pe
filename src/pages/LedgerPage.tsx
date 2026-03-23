@@ -154,11 +154,11 @@ const LedgerPage = () => {
 
                 {/* Ledger List - New Clean Design */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="hidden md:grid grid-cols-12 gap-4 border-b border-slate-100 bg-slate-50/50 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider px-6">
-                        <div className="col-span-5">Description</div>
-                        <div className="col-span-2">Type</div>
-                        <div className="col-span-3">Date</div>
-                        <div className="col-span-2 text-right">Amount</div>
+                    <div className="hidden md:grid grid-cols-[2.5fr_1fr_1.5fr_1.5fr] gap-4 border-b border-slate-100 bg-slate-50/50 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider px-6">
+                        <div>Description</div>
+                        <div>Type</div>
+                        <div>Date</div>
+                        <div className="text-right">Amount</div>
                     </div>
 
                     <div className="divide-y divide-slate-100">
@@ -173,14 +173,14 @@ const LedgerPage = () => {
                             </div>
                         ) : (
                             filteredLedger.map((entry) => (
-                                <div key={entry.id} className="group flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-center p-4 md:px-6 hover:bg-slate-50 transition-colors">
+                                <div key={entry.id} className="group flex flex-col md:grid md:grid-cols-[2.5fr_1fr_1.5fr_1.5fr] gap-3 md:gap-4 items-center p-4 md:px-6 hover:bg-slate-50 transition-colors">
                                     {/* Description Mobile/Desktop */}
-                                    <div className="col-span-5 w-full flex items-center gap-3">
-                                        <div className={`p-2.5 rounded-xl ${entry.type === 'CREDIT' || entry.type === 'REFUND' ? 'bg-emerald-100/50 text-emerald-600' : 'bg-red-100/50 text-red-600'}`}>
+                                    <div className="w-full flex items-center gap-3 min-w-0">
+                                        <div className={`shrink-0 p-2.5 rounded-xl ${entry.type === 'CREDIT' || entry.type === 'REFUND' ? 'bg-emerald-100/50 text-emerald-600' : 'bg-red-100/50 text-red-600'}`}>
                                             {getTypeIcon(entry.type)}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold text-slate-900 truncate">{entry.description}</p>
+                                            <p className="font-semibold text-slate-900 line-clamp-2 leading-tight" title={entry.description}>{entry.description}</p>
                                             <p className="text-xs text-slate-400 font-mono visible md:hidden mt-0.5">
                                                 {format(new Date(entry.created_at), 'MMM d, yyyy h:mm a')}
                                             </p>
@@ -188,23 +188,24 @@ const LedgerPage = () => {
                                     </div>
 
                                     {/* Type Badge */}
-                                    <div className="col-span-2 w-full flex md:block pl-12 md:pl-0 -mt-2 md:mt-0">
+                                    <div className="w-full flex md:block pl-12 md:pl-0 -mt-2 md:mt-0">
                                         <div className="w-fit scale-90 origin-left md:scale-100">
                                             {getTypeBadge(entry.type)}
                                         </div>
                                     </div>
 
                                     {/* Date Desktop */}
-                                    <div className="col-span-3 hidden md:block text-sm text-slate-500 font-medium">
-                                        {format(new Date(entry.created_at), 'MMM d, yyyy • h:mm a')}
+                                    <div className="hidden md:block text-sm text-slate-500 font-medium whitespace-nowrap">
+                                        {format(new Date(entry.created_at), 'MMM d, yyyy')}
+                                        <span className="block text-xs text-slate-400 mt-0.5">{format(new Date(entry.created_at), 'h:mm a')}</span>
                                     </div>
 
                                     {/* Amount & Balance */}
-                                    <div className="col-span-2 w-full text-right pl-12 md:pl-0 -mt-2 md:mt-0">
+                                    <div className="w-full text-right pl-12 md:pl-0 -mt-2 md:mt-0">
                                         <p className={`font-bold text-base ${entry.type === 'CREDIT' || entry.type === 'REFUND' ? 'text-emerald-600' : 'text-slate-900'}`}>
                                             {entry.type === 'CREDIT' || entry.type === 'REFUND' ? '+' : '-'}₹{entry.amount.toFixed(2)}
                                         </p>
-                                        <p className="text-xs text-slate-400 font-medium">
+                                        <p className="text-xs text-slate-400 font-medium mt-0.5">
                                             Bal: ₹{entry.balance_after.toFixed(2)}
                                         </p>
                                     </div>
