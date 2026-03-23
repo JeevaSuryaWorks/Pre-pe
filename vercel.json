@@ -1,6 +1,14 @@
 {
     "rewrites": [
         {
+            "source": "/api/payment/callback",
+            "destination": "/api/payment/callback.js"
+        },
+        {
+            "source": "/api/payment/test",
+            "destination": "/api/payment/test.js"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
