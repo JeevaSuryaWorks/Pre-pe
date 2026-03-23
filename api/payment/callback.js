@@ -1,6 +1,6 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // KWIK sends GET requests for callbacks
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -53,4 +53,4 @@ module.exports = async (req, res) => {
     // Always return 200 to KWIK even on internal errors
     return res.status(200).json({ error: 'Internal server error', details: error.message });
   }
-};
+}
