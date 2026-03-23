@@ -67,7 +67,9 @@ export default function Recharge() {
       const data = await res.json();
       const kwikData = data.data;
       if (data.success && kwikData) {
-        const opString = (kwikData.operator || kwikData.operator_name || kwikData.opid || '').toString().toLowerCase();
+        console.log("Operator Detection Payload:", kwikData); // For debugging in console
+        const nested = kwikData.response || kwikData;
+        const opString = (nested.operator || nested.operator_name || nested.opid || kwikData.operator || '').toString().toLowerCase();
         let matchedId = '';
         
         if (opString.includes('airtel')) matchedId = '1';
@@ -75,11 +77,13 @@ export default function Recharge() {
         else if (opString.includes('jio') || opString.includes('reliance')) matchedId = '3';
         else if (opString.includes('vi') || opString.includes('vodafon') || opString.includes('idea')) matchedId = '4';
 
-        if (!matchedId && kwikData.opid) matchedId = kwikData.opid.toString();
+        if (!matchedId && (nested.opid || kwikData.opid)) {
+           matchedId = (nested.opid || kwikData.opid).toString();
+        }
 
         if (matchedId) {
           setMobileOperator(matchedId);
-          toast.success(`Operator detected: ${kwikData.operator || kwikData.operator_name || 'Success'}`);
+          toast.success(`Operator detected: ${nested.operator || nested.operator_name || opString.toUpperCase() || 'Success'}`);
         } else {
           toast.error("Could not map operator automatically. Please select manually.");
         }
