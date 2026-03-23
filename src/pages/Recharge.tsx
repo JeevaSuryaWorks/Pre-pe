@@ -98,9 +98,9 @@ export default function Recharge() {
           number: mobileNumber,
           opid: mobileOperator,
           amount: mobileAmount,
-          service_type: 'MOBILE_RECHARGE',
+          service_type: 'MOBILE_PREPAID',
           user_id: userId,
-          operator_name: mobileOperator, // Mapping needed based on KWIK lookup tables
+          operator_name: mobileOperator, // Map as needed
         })
       });
       const data = await res.json();
@@ -142,7 +142,7 @@ export default function Recharge() {
           number: dthNumber,
           opid: dthOperator,
           amount: dthAmount,
-          service_type: 'DTH_RECHARGE',
+          service_type: 'DTH',
           user_id: userId,
           operator_name: dthOperator,
         })

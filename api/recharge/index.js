@@ -51,8 +51,8 @@ export default async function handler(req, res) {
         status: 'PENDING',
         operator_id: opid,
         operator_name,
-        mobile_number: service_type === 'MOBILE_RECHARGE' ? number : null,
-        dth_id: service_type === 'DTH_RECHARGE' ? number : null,
+        mobile_number: service_type === 'MOBILE_PREPAID' ? number : null,
+        dth_id: service_type === 'DTH' ? number : null,
         reference_id: order_id,
         description: `${service_type} Recharge for ${number}`
       })
