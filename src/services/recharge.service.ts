@@ -27,126 +27,53 @@ interface TransactionRow {
   updated_at: string;
 }
 
-/**
- * Process a recharge request
- */
 export async function processRecharge(
   userId: string,
   request: RechargeRequest
 ): Promise<ApiResponse<Transaction | null>> {
-  // Step 1: Validate input
   if (!request.operator_id || !request.amount) {
-    return {
-      status: 'FAILED',
-      transaction_id: '',
-      message: 'Invalid request: operator and amount are required',
-      data: null,
-    };
+    return { status: 'FAILED', transaction_id: '', message: 'Invalid request: operator and amount are required', data: null };
   }
-
   if (!request.mobile_number && !request.dth_id) {
+    return { status: 'FAILED', transaction_id: '', message: 'Mobile number or DTH ID is required', data: null };
+  }
+
+  try {
+    const res = await fetch('/api/recharge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        number: request.mobile_number || request.dth_id,
+        opid: request.operator_id,
+        amount: request.amount,
+        service_type: request.dth_id ? 'DTH' : 'MOBILE_PREPAID',
+        user_id: userId,
+        operator_name: request.operator_id // Server handles correct naming lookup or just passes ID
+      })
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      return {
+        status: 'SUCCESS',
+        transaction_id: data.data.transaction_id,
+        message: data.data.message || 'Recharge successful',
+        data: null
+      };
+    } else {
+      return {
+        status: data.status === 'PENDING' ? 'PENDING' : 'FAILED',
+        transaction_id: '',
+        message: data.error || 'Recharge failed',
+        data: null
+      };
+    }
+  } catch (error: any) {
     return {
       status: 'FAILED',
       transaction_id: '',
-      message: 'Mobile number or DTH ID is required',
-      data: null,
-    };
-  }
-
-  // Step 2: Check wallet balance
-  const wallet = await walletService.getWalletBalance(userId);
-  if (!wallet) {
-    return {
-      status: 'FAILED',
-      transaction_id: '',
-      message: 'Wallet not found',
-      data: null,
-    };
-  }
-
-  const availableBalance = wallet.balance - wallet.locked_balance;
-  if (availableBalance < request.amount) {
-    return {
-      status: 'FAILED',
-      transaction_id: '',
-      message: 'Insufficient wallet balance',
-      data: null,
-    };
-  }
-
-  // Create transaction record
-  const { data: transaction, error: txError } = await supabase
-    .from('transactions' as never)
-    .insert({
-      user_id: userId,
-      type: 'RECHARGE',
-      service_type: request.dth_id ? 'DTH' : 'MOBILE_PREPAID',
-      amount: request.amount,
-      status: 'PENDING',
-      operator_id: request.operator_id,
-      mobile_number: request.mobile_number,
-      dth_id: request.dth_id,
-      metadata: { plan_id: request.plan_id, offer_code: request.offer_code },
-    } as never)
-    .select()
-    .single();
-
-  if (txError || !transaction) {
-    console.error('Error creating transaction:', txError);
-    return {
-      status: 'FAILED',
-      transaction_id: '',
-      message: 'Failed to create transaction',
-      data: null,
-    };
-  }
-
-  const txRow = transaction as unknown as TransactionRow;
-
-  // Step 3: Lock amount in wallet
-  const locked = await walletService.lockAmount(userId, request.amount, txRow.id);
-  if (!locked) {
-    await updateTransactionStatus(txRow.id, 'FAILED', 'Failed to lock wallet amount');
-    return {
-      status: 'FAILED',
-      transaction_id: txRow.id,
-      message: 'Failed to lock wallet amount',
-      data: null,
-    };
-  }
-
-  // Step 4: Call Recharge API (placeholder)
-  const apiResponse = await processRechargeApi(request, txRow.id);
-
-  // Step 5: Handle response
-  if (apiResponse.status === 'SUCCESS') {
-    await walletService.confirmDebit(userId, request.amount, txRow.id);
-    await updateTransactionStatus(txRow.id, 'SUCCESS', apiResponse.message, apiResponse.transaction_id);
-
-    return {
-      status: 'SUCCESS',
-      transaction_id: txRow.id,
-      message: 'Recharge successful',
-      data: { ...txRow, status: 'SUCCESS' } as unknown as Transaction,
-    };
-  } else if (apiResponse.status === 'PENDING') {
-    await updateTransactionStatus(txRow.id, 'PENDING', 'Recharge is being processed', apiResponse.transaction_id);
-
-    return {
-      status: 'PENDING',
-      transaction_id: txRow.id,
-      message: 'Recharge is being processed. Please check status later.',
-      data: { ...txRow, status: 'PENDING' } as unknown as Transaction,
-    };
-  } else {
-    await walletService.refundAmount(userId, request.amount, txRow.id);
-    await updateTransactionStatus(txRow.id, 'FAILED', apiResponse.message);
-
-    return {
-      status: 'FAILED',
-      transaction_id: txRow.id,
-      message: apiResponse.message || 'Recharge failed',
-      data: null,
+      message: error.message || 'Network error occurred',
+      data: null
     };
   }
 }

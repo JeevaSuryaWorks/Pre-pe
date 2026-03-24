@@ -10,7 +10,7 @@ export const BottomNav = () => {
 
     const navItems = [
         { icon: Home, label: "Home", path: "/home" },
-        { icon: Wallet, label: "Services", path: "/recharge" }, // Using Wallet/Services icon leading to recharge or general services
+        { icon: Wallet, label: "Services", path: "/mobile-recharge" },
         { icon: FileText, label: "History", path: "/transactions" },
         { icon: User, label: "Profile", path: "/profile" },
     ];
