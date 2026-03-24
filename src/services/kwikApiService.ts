@@ -32,6 +32,7 @@ export const fetchKwikOperators = async (): Promise<KwikOperator[]> => {
         { operator_name: "Tata Play", operator_id: "13", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
         { operator_name: "Airtel DTH", operator_id: "11", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
         { operator_name: "Dish TV", operator_id: "12", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
+        { operator_name: "Videocon D2H", operator_id: "28", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
         { operator_name: "Sun Direct", operator_id: "16", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" }
     ];
 };

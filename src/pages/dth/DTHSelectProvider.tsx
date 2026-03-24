@@ -35,7 +35,14 @@ export const DTHSelectProvider = () => {
     return (
         <Layout title="Select Provider" showBack>
             <div className="bg-slate-50 min-h-screen pb-20">
-                {/* Bharat Connect Header Logic removed due to 307 infinite redirect loop */}
+                {/* Bharat Connect Header */}
+                <div className="absolute top-3 right-4 z-50">
+                    <img
+                        src="https://upload.wikimedia.org/wikipedia/commons/2/23/Bharat_BillPay_logo.svg"
+                        alt="Bharat Connect"
+                        className="h-8 w-auto object-contain opacity-80"
+                    />
+                </div>
 
                 <div className="p-4 space-y-6">
                     {/* Search Bar */}
@@ -60,9 +67,9 @@ export const DTHSelectProvider = () => {
                                         className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
                                         onClick={() => handleProviderClick(provider)}
                                     >
-                                        <Avatar className="h-10 w-10 p-1 bg-white border rounded-full">
+                                        <Avatar className="h-10 w-10 p-1 bg-slate-100 border border-slate-200 rounded-full">
                                             <AvatarImage src={provider.logo || ''} className="object-contain" />
-                                            <AvatarFallback>{provider.name[0]}</AvatarFallback>
+                                            <AvatarFallback className="bg-slate-200 text-slate-600 text-xs font-semibold">{provider.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                                         </Avatar>
                                         <span className="text-sm font-medium text-slate-700">{provider.name}</span>
                                     </div>
@@ -81,9 +88,9 @@ export const DTHSelectProvider = () => {
                                     className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
                                     onClick={() => handleProviderClick(provider)}
                                 >
-                                    <Avatar className="h-10 w-10 p-1 bg-white border rounded-full">
+                                    <Avatar className="h-10 w-10 p-1 bg-slate-100 border border-slate-200 rounded-full">
                                         <AvatarImage src={provider.logo || ''} className="object-contain" />
-                                        <AvatarFallback>{provider.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                        <AvatarFallback className="bg-slate-200 text-slate-600 text-xs font-semibold">{provider.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <span className="text-sm font-medium text-slate-700">{provider.name}</span>
                                 </div>

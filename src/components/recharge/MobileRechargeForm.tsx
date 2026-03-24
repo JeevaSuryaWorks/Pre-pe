@@ -75,6 +75,16 @@ export function MobileRechargeForm() {
         if (result.status === 'SUCCESS' && result.data) {
           setSelectedOperator(result.data.operator.id);
           setSelectedCircle(result.data.circle.id);
+          toast({
+            title: 'Operator Detected',
+            description: `${result.data.operator.name} - ${result.data.circle.name}`,
+          });
+        } else {
+          toast({
+            title: 'Detection Failed',
+            description: 'Could not auto-detect operator. Please select manually.',
+            variant: 'destructive',
+          });
         }
         setDetecting(false);
       }
