@@ -16,14 +16,14 @@ import { fetchKwikOperators, fetchOperatorDetails, KwikOperator } from './kwikAp
 
 // Mock operators data - Replace with real API call
 const MOCK_OPERATORS: Operator[] = [
-  { id: '1', name: 'Airtel', code: 'AIRTEL', type: 'prepaid' },
-  { id: '2', name: 'Jio', code: 'JIO', type: 'prepaid' },
-  { id: '3', name: 'Vi', code: 'VI', type: 'prepaid' },
-  { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid' },
-  { id: '5', name: 'Airtel Postpaid', code: 'AIRTEL_POST', type: 'postpaid' },
-  { id: '6', name: 'Jio Postpaid', code: 'JIO_POST', type: 'postpaid' },
+  { id: '1', name: 'Airtel', code: 'AIRTEL', type: 'prepaid', logo: '/operators/airtel.svg' },
+  { id: '2', name: 'Jio', code: 'JIO', type: 'prepaid', logo: '/operators/jio.svg' },
+  { id: '3', name: 'Vi', code: 'VI', type: 'prepaid', logo: '/operators/vi.svg' },
+  { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid', logo: '/operators/bsnl.svg' },
+  { id: '5', name: 'Airtel Postpaid', code: 'AIRTEL_POST', type: 'postpaid', logo: '/operators/airtel.svg' },
+  { id: '6', name: 'Jio Postpaid', code: 'JIO_POST', type: 'postpaid', logo: '/operators/jio.svg' },
   { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth' },
-  { id: '8', name: 'Airtel DTH', code: 'AIRTEL_DTH', type: 'dth' },
+  { id: '8', name: 'Airtel DTH', code: 'AIRTEL_DTH', type: 'dth', logo: '/operators/airtel.svg' },
   { id: '9', name: 'Dish TV', code: 'DISH', type: 'dth' },
   { id: '10', name: 'Videocon D2H', code: 'D2H', type: 'dth' },
 ];
@@ -56,12 +56,19 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
                        : rawType.includes('postpaid') ? 'postpaid' 
                        : rawType.includes('dth') ? 'dth' 
                        : rawType as any;
+      const rawName = op.operator_name.toLowerCase();
+      const logoFile = rawName.includes('airtel') ? 'airtel.svg'
+                     : rawName.includes('jio') ? 'jio.svg'
+                     : rawName.includes('vi') || rawName.includes('vodafone') ? 'vi.svg'
+                     : rawName.includes('bsnl') ? 'bsnl.svg'
+                     : undefined;
+
       return {
         id: op.operator_id,
         name: op.operator_name,
         code: op.operator_id, // Using ID as unique code
         type: mappedType,
-        logo: undefined // No actual images exist, fallback to character avatar
+        logo: logoFile ? `/operators/${logoFile}` : undefined
       };
     });
 
