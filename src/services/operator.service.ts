@@ -22,10 +22,11 @@ const MOCK_OPERATORS: Operator[] = [
   { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid', logo: '/operators/bsnl.svg' },
   { id: '5', name: 'Airtel Postpaid', code: 'AIRTEL_POST', type: 'postpaid', logo: '/operators/airtel.svg' },
   { id: '6', name: 'Jio Postpaid', code: 'JIO_POST', type: 'postpaid', logo: '/operators/jio.svg' },
-  { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth' },
-  { id: '8', name: 'Airtel DTH', code: 'AIRTEL_DTH', type: 'dth', logo: '/operators/airtel.svg' },
-  { id: '9', name: 'Dish TV', code: 'DISH', type: 'dth' },
-  { id: '10', name: 'Videocon D2H', code: 'D2H', type: 'dth' },
+  { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth', logo: '/operators/tataplay.png' },
+  { id: '8', name: 'Airtel DTH', code: 'AIRTEL_DTH', type: 'dth', logo: '/operators/airtel-dth.jpg' },
+  { id: '9', name: 'Dish TV', code: 'DISH', type: 'dth', logo: '/operators/dishtv.png' },
+  { id: '10', name: 'Videocon D2H', code: 'D2H', type: 'dth', logo: '/operators/videocon-d2h.png' },
+  { id: '11', name: 'Sun Direct', code: 'SUN', type: 'dth', logo: '/operators/sun-direct.png' },
 ];
 
 // Mock circles data - Replace with real API call
@@ -57,11 +58,20 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
                        : rawType.includes('dth') ? 'dth' 
                        : rawType as any;
       const rawName = op.operator_name.toLowerCase();
-      const logoFile = rawName.includes('airtel') ? 'airtel.svg'
-                     : rawName.includes('jio') ? 'jio.svg'
-                     : rawName.includes('vi') || rawName.includes('vodafone') ? 'vi.svg'
-                     : rawName.includes('bsnl') ? 'bsnl.svg'
-                     : undefined;
+      let logoFile: string | undefined = undefined;
+
+      if (mappedType === 'dth') {
+        if (rawName.includes('tata')) logoFile = 'tataplay.png';
+        else if (rawName.includes('airtel')) logoFile = 'airtel-dth.jpg';
+        else if (rawName.includes('dish')) logoFile = 'dishtv.png';
+        else if (rawName.includes('sun')) logoFile = 'sun-direct.png';
+        else if (rawName.includes('videocon') || rawName.includes('d2h')) logoFile = 'videocon-d2h.png';
+      } else {
+        if (rawName.includes('airtel')) logoFile = 'airtel.svg';
+        else if (rawName.includes('jio')) logoFile = 'jio.svg';
+        else if (rawName.includes('vi') || rawName.includes('vodafone')) logoFile = 'vi.svg';
+        else if (rawName.includes('bsnl')) logoFile = 'bsnl.svg';
+      }
 
       return {
         id: op.operator_id,
