@@ -35,14 +35,7 @@ export const DTHSelectProvider = () => {
     return (
         <Layout title="Select Provider" showBack>
             <div className="bg-slate-50 min-h-screen pb-20">
-                {/* Bharat Connect Header Logic if needed */}
-                <div className="absolute top-3 right-4 z-50">
-                    <img
-                        src="https://www.bharat-connect.com/assets/images/vectors/icon_logo.svg"
-                        alt="Bharat Connect"
-                        className="h-8 w-auto object-contain"
-                    />
-                </div>
+                {/* Bharat Connect Header Logic removed due to 307 infinite redirect loop */}
 
                 <div className="p-4 space-y-6">
                     {/* Search Bar */}
