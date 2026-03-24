@@ -147,10 +147,10 @@ export const fetchRecentTransactions = async (): Promise<KwikTransaction[]> => {
 export interface KwikOperatorFetchResponse {
     success: boolean;
     message: string;
-    response?: {
-        operator: string;
-        circle: string;
-        operator_code?: string;
+    details?: {
+        provider: string;
+        opid: string;
+        circle_name: string;
         circle_code?: string;
     };
 }

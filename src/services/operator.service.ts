@@ -106,11 +106,11 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
 
   try {
     // 1. Try Kwik API
-    const details = await fetchOperatorDetails(mobileNumber);
+    const kwikResult = await fetchOperatorDetails(mobileNumber);
 
-    if (details.success && details.response) {
-      const apiOpName = details.response.operator;
-      const apiCircleName = details.response.circle;
+    if (kwikResult.success && kwikResult.details) {
+      const apiOpName = kwikResult.details.provider;
+      const apiCircleName = kwikResult.details.circle_name;
 
       // Fetch latest operators to match against
       const operators = await getOperators('prepaid');
