@@ -16,10 +16,10 @@ import { fetchKwikOperators, fetchOperatorDetails, KwikOperator } from './kwikAp
 
 // Mock operators data - Replace with real API call
 const MOCK_OPERATORS: Operator[] = [
-  { id: '1', name: 'Airtel', code: 'AIRTEL', type: 'prepaid', logo: '/operators/airtel.png' },
-  { id: '2', name: 'Jio', code: 'JIO', type: 'prepaid', logo: '/operators/jio.png' },
-  { id: '3', name: 'Vi', code: 'VI', type: 'prepaid', logo: '/operators/vi.png' },
-  { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid', logo: '/operators/bsnl.png' },
+  { id: '1', name: 'Airtel', code: 'AIRTEL', type: 'prepaid' },
+  { id: '2', name: 'Jio', code: 'JIO', type: 'prepaid' },
+  { id: '3', name: 'Vi', code: 'VI', type: 'prepaid' },
+  { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid' },
   { id: '5', name: 'Airtel Postpaid', code: 'AIRTEL_POST', type: 'postpaid' },
   { id: '6', name: 'Jio Postpaid', code: 'JIO_POST', type: 'postpaid' },
   { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth' },
@@ -61,7 +61,7 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
         name: op.operator_name,
         code: op.operator_id, // Using ID as unique code
         type: mappedType,
-        logo: `/operators/${op.operator_name.toLowerCase().replace(/\s+/g, '-')}.png` // Placeholder logo path logic
+        logo: undefined // No actual images exist, fallback to character avatar
       };
     });
 
