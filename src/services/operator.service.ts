@@ -50,13 +50,20 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
     const kwikOperators = await fetchKwikOperators();
 
     // Map Kwik operators to app Operator type
-    const operators: Operator[] = kwikOperators.map((op) => ({
-      id: op.operator_id,
-      name: op.operator_name,
-      code: op.operator_id, // Using ID as unique code
-      type: op.service_type.toLowerCase() as 'prepaid' | 'postpaid' | 'dth',
-      logo: `/operators/${op.operator_name.toLowerCase().replace(/\s+/g, '-')}.png` // Placeholder logo path logic
-    }));
+    const operators: Operator[] = kwikOperators.map((op) => {
+      const rawType = op.service_type.toLowerCase();
+      const mappedType = rawType.includes('prepaid') ? 'prepaid' 
+                       : rawType.includes('postpaid') ? 'postpaid' 
+                       : rawType.includes('dth') ? 'dth' 
+                       : rawType as any;
+      return {
+        id: op.operator_id,
+        name: op.operator_name,
+        code: op.operator_id, // Using ID as unique code
+        type: mappedType,
+        logo: `/operators/${op.operator_name.toLowerCase().replace(/\s+/g, '-')}.png` // Placeholder logo path logic
+      };
+    });
 
     // If API returns empty (e.g. invalid key or other issue)
     if (operators.length === 0) {
