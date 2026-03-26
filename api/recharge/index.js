@@ -65,8 +65,8 @@ export default async function handler(req, res) {
     }
 
     // 4. Call KWIK API (UAT for now)
-    const kwikUrl = `https://uat.kwikapi.com/api/v2/recharge.php?api_key=${kwikApiKey}&number=${number}&amount=${amount}&opid=${opid}&order_id=${order_id}&format=JSON`;
-    
+    const kwikUrl = `https://www.kwikapi.com/api/v2/recharge.php?api_key=${kwikApiKey}&number=${number}&amount=${amount}&opid=${opid}&order_id=${order_id}&format=JSON`;
+
     let kwikResponse;
     try {
       const response = await fetch(kwikUrl);
