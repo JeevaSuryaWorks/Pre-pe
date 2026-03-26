@@ -8,8 +8,17 @@ export default async function handler(req, res) {
   try {
     const { number, opid, amount, service_type, user_id, operator_name } = req.body;
 
-    if (!number || !opid || !amount || !service_type || !user_id) {
-      return res.status(400).json({ success: false, error: 'Missing required parameters' });
+    // ── Validate all required fields and log what is missing ──
+    const missing = [];
+    if (!number) missing.push('number');
+    if (!opid)   missing.push('opid');
+    if (!amount) missing.push('amount');
+    if (!service_type) missing.push('service_type');
+    if (!user_id) missing.push('user_id');
+
+    if (missing.length > 0) {
+      console.error('[recharge] Missing params:', missing, '| body:', req.body);
+      return res.status(400).json({ success: false, error: `Missing required parameters: ${missing.join(', ')}` });
     }
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -17,6 +26,7 @@ export default async function handler(req, res) {
     const kwikApiKey = process.env.KWIK_API_KEY;
 
     if (!supabaseUrl || !supabaseKey || !kwikApiKey) {
+      console.error('[recharge] Server config missing. SUPABASE_URL?', !!supabaseUrl, 'SERVICE_KEY?', !!supabaseKey, 'KWIK?', !!kwikApiKey);
       return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
@@ -33,11 +43,12 @@ export default async function handler(req, res) {
       .single();
 
     if (walletError || !wallet) {
-      return res.status(400).json({ success: false, error: 'Wallet not found' });
+      console.error('[recharge] Wallet lookup failed for user:', user_id, walletError);
+      return res.status(400).json({ success: false, error: 'Wallet not found for this user' });
     }
 
     if (parseFloat(wallet.balance) < parseFloat(amount)) {
-      return res.status(400).json({ success: false, error: 'Insufficient balance' });
+      return res.status(400).json({ success: false, error: `Insufficient balance. Available: \u20b9${wallet.balance}, Requested: \u20b9${amount}` });
     }
 
     // 3. Create PENDING transaction
@@ -50,7 +61,7 @@ export default async function handler(req, res) {
         amount: parseFloat(amount),
         status: 'PENDING',
         operator_id: opid,
-        operator_name,
+        operator_name: operator_name || opid,
         mobile_number: service_type === 'MOBILE_PREPAID' ? number : null,
         dth_id: service_type === 'DTH' ? number : null,
         reference_id: order_id,
@@ -60,32 +71,50 @@ export default async function handler(req, res) {
       .single();
 
     if (txnError) {
-      console.error('Transaction creation error:', txnError);
-      return res.status(500).json({ success: false, error: 'Failed to create transaction record' });
+      console.error('[recharge] Transaction creation error:', txnError);
+      return res.status(500).json({ success: false, error: 'Failed to create transaction record', detail: txnError.message });
     }
 
-    // 4. Call KWIK API (UAT for now)
-    const kwikUrl = `https://www.kwikapi.com/api/v2/recharge.php?api_key=${kwikApiKey}&number=${number}&amount=${amount}&opid=${opid}&order_id=${order_id}&format=JSON`;
+    // 4. Call KWIK API
+    const kwikUrl = `https://www.kwikapi.com/api/v2/recharge.php`;
+    const kwikParams = new URLSearchParams({
+      api_key: kwikApiKey,
+      number: String(number),
+      amount: String(amount),
+      opid: String(opid),
+      order_id: String(order_id),
+      format: 'JSON'
+    });
+
+    console.log('[recharge] Calling KWIK | opid:', opid, 'number:', number, 'amount:', amount, 'order_id:', order_id);
 
     let kwikResponse;
     try {
-      const response = await fetch(kwikUrl);
-      kwikResponse = await response.json();
+      const response = await fetch(`${kwikUrl}?${kwikParams.toString()}`);
+      const rawText = await response.text();
+      console.log('[recharge] KWIK raw response:', rawText.substring(0, 500));
+      try {
+        kwikResponse = JSON.parse(rawText);
+      } catch (e) {
+        console.error('[recharge] KWIK response is not JSON:', rawText);
+        await supabase.from('transactions').update({ status: 'FAILED', description: 'Invalid API response' }).eq('id', transaction.id);
+        return res.status(502).json({ success: false, error: 'Payment gateway returned invalid response' });
+      }
     } catch (apiError) {
-      console.error('KWIK API unreachable:', apiError);
+      console.error('[recharge] KWIK API unreachable:', apiError);
       await supabase.from('transactions').update({ status: 'FAILED', description: 'API Error' }).eq('id', transaction.id);
       return res.status(502).json({ success: false, error: 'Payment gateway timeout' });
     }
 
-    // 5. Success/Failure parsing
+    console.log('[recharge] KWIK parsed status:', kwikResponse.status, '| message:', kwikResponse.message);
+
+    // 5. Handle KWIK response
     if (kwikResponse.status === 'SUCCESS') {
-      // Deduct balance
       const newBalance = parseFloat(wallet.balance) - parseFloat(amount);
       await supabase.from('wallets')
         .update({ balance: newBalance, updated_at: new Date().toISOString() })
         .eq('id', wallet.id);
 
-      // Ledger entry
       await supabase.from('wallet_ledger').insert({
         wallet_id: wallet.id,
         transaction_id: transaction.id,
@@ -95,7 +124,6 @@ export default async function handler(req, res) {
         description: `Deduction for ${service_type} recharge ${order_id}`
       });
 
-      // Update Txn
       await supabase.from('transactions').update({
         status: 'SUCCESS',
         api_transaction_id: kwikResponse.opr_id,
@@ -111,10 +139,41 @@ export default async function handler(req, res) {
           message: kwikResponse.message || 'Recharge Successful'
         }
       });
-    } else {
-      const failedStatus = kwikResponse.status === 'PENDING' ? 'PENDING' : 'FAILED';
+    } else if (kwikResponse.status === 'PENDING') {
+      // PENDING: deduct balance optimistically, will reconcile later
+      const newBalance = parseFloat(wallet.balance) - parseFloat(amount);
+      await supabase.from('wallets')
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
+        .eq('id', wallet.id);
+
+      await supabase.from('wallet_ledger').insert({
+        wallet_id: wallet.id,
+        transaction_id: transaction.id,
+        type: 'DEBIT',
+        amount: parseFloat(amount),
+        balance_after: newBalance,
+        description: `Pending deduction for ${service_type} recharge ${order_id}`
+      });
+
       await supabase.from('transactions').update({
-        status: failedStatus,
+        status: 'PENDING',
+        api_transaction_id: kwikResponse.opr_id || null,
+        updated_at: new Date().toISOString()
+      }).eq('id', transaction.id);
+
+      return res.status(202).json({
+        success: true,
+        status: 'PENDING',
+        data: {
+          transaction_id: transaction.id,
+          message: kwikResponse.message || 'Recharge is being processed'
+        }
+      });
+    } else {
+      // FAILED
+      console.warn('[recharge] KWIK returned FAILED. message:', kwikResponse.message, '| opid:', opid, '| number:', number);
+      await supabase.from('transactions').update({
+        status: 'FAILED',
         api_transaction_id: kwikResponse.opr_id || null,
         description: kwikResponse.message || 'Transaction Failed',
         updated_at: new Date().toISOString()
@@ -122,13 +181,13 @@ export default async function handler(req, res) {
 
       return res.status(400).json({
         success: false,
-        status: failedStatus,
+        status: 'FAILED',
         error: kwikResponse.message || 'Recharge failed'
       });
     }
 
   } catch (error) {
-    console.error('Recharge Error:', error);
+    console.error('[recharge] Unexpected Error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }

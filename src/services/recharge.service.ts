@@ -54,10 +54,12 @@ export async function processRecharge(
     const data = await res.json();
     
     if (data.success) {
+      // HTTP 202 = PENDING (wallet deducted, API is processing)
+      const effectiveStatus = (data.status === 'PENDING' || res.status === 202) ? 'PENDING' : 'SUCCESS';
       return {
-        status: 'SUCCESS',
-        transaction_id: data.data.transaction_id,
-        message: data.data.message || 'Recharge successful',
+        status: effectiveStatus,
+        transaction_id: data.data?.transaction_id || '',
+        message: data.data?.message || (effectiveStatus === 'PENDING' ? 'Recharge is being processed' : 'Recharge successful'),
         data: null
       };
     } else {
