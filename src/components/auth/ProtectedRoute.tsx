@@ -6,12 +6,22 @@ import { Layout } from '@/components/layout/Layout';
 
 export const ProtectedRoute = () => {
     const { user, loading: authLoading } = useAuth();
-    const { status: kycStatus, isLoading: kycLoading } = useKYC();
+    const { status: kycStatus, isInitialLoading, isLoading: kycLoading } = useKYC();
     const location = useLocation();
 
+    console.log('[ProtectedRoute] Rendering:', { 
+        path: location.pathname, 
+        authLoading, 
+        isInitialLoading, 
+        kycLoading,
+        kycStatus,
+        user: user?.email 
+    });
+
     // If data is still loading (or user exists but data undefined), show loader
-    // derived from useKYC's hardened isLoading
-    if (authLoading || kycLoading) {
+    // derived from useKYC's hardened logic.
+    // Use isInitialLoading here to prevent flickering on background updates.
+    if (authLoading || isInitialLoading) {
         return (
             <Layout hideHeader>
                 <div className="min-h-screen flex items-center justify-center">
@@ -36,7 +46,9 @@ export const ProtectedRoute = () => {
     }
 
     // Force KYC submission. If status is null, it means no record exists.
-    if (kycStatus === null && location.pathname !== '/kyc') {
+    // Ensure we don't redirect if we are still loading or fetching data.
+    if (!kycLoading && kycStatus === null && location.pathname !== '/kyc') {
+        console.log('[ProtectedRoute] Redirecting to /kyc (No kyc status found)');
         return <Navigate to="/kyc" replace />;
     }
 

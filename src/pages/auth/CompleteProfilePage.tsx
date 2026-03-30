@@ -8,10 +8,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/layout/Layout';
+import { useKYC } from '@/hooks/useKYC';
 
 export default function CompleteProfilePage() {
     const navigate = useNavigate();
     const { user, refreshSession } = useAuth();
+    const { status: kycStatus } = useKYC();
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(false);
@@ -53,8 +55,9 @@ export default function CompleteProfilePage() {
                 description: 'Phone number added successfully. Proceeding to KYC.',
             });
 
-            // Post-update, redirect to KYC explicitly
-            navigate('/kyc', { replace: true });
+            // Post-update, redirect to KYC if new or rejected, otherwise home
+            const isNeedKYC = kycStatus === null || kycStatus === 'REJECTED';
+            navigate(isNeedKYC ? '/kyc' : '/home', { replace: true });
 
         } catch (err: any) {
             console.error(err);

@@ -58,6 +58,8 @@ export const KYCPage = () => {
     const [panCard, setPanCard] = useState<File | null>(null);
     const [selfie, setSelfie] = useState<File | null>(null);
     const [shopPhoto, setShopPhoto] = useState<File | null>(null);
+    const [isInitialRedirectDone, setIsInitialRedirectDone] = useState(false);
+
 
     // Effect to check email and handle redirection based on status
     useEffect(() => {
@@ -78,8 +80,15 @@ export const KYCPage = () => {
         if (!hookLoading) {
             setKycStatus(kycStatusFromHook);
             setKycData(hookData);
+
+            // 3. Auto-redirect if already approved
+            if (kycStatusFromHook === 'APPROVED' && !isInitialRedirectDone) {
+                console.log("[KYCPage] User already approved, redirecting to home...");
+                setIsInitialRedirectDone(true);
+                navigate('/home', { replace: true });
+            }
         }
-    }, [user, navigate, toast, kycStatusFromHook, hookData, hookLoading]);
+    }, [user, navigate, toast, kycStatusFromHook, hookData, hookLoading, isInitialRedirectDone]);
 
     const handleNext = () => {
         if (step === 1) {

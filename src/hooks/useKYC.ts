@@ -103,10 +103,11 @@ export const useKYC = (options?: UseKYCOptions) => {
         isApproved,
         isPending,
         isRejected,
-        // Consolidate loading state:
-        // If user exists, but we don't have data or error, consider it loading.
-        // Wait for active refetches directly following a submit invalidation when status hits null in cache.
-        isLoading: !!user && (isLoading || (status === null && isFetching) || (kycData === undefined && !error)),
+        // isInitialLoading: ONLY true when we are literally waiting for the first piece of data.
+        // It stays true if we have a user but haven't fetched their specific record yet.
+        isInitialLoading: !!user && (isLoading || (kycData === undefined && !isFetching && !error)),
+        // isLoading: broader status including background refetches
+        isLoading: !!user && (isLoading || isFetching || (kycData === undefined && !error)),
         error,
         refetch
     };
