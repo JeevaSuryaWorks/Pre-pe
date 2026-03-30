@@ -6,7 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Contact, ChevronRight } from 'lucide-react';
+import { Loader2, Contact, ChevronRight, FlaskConical } from 'lucide-react';
+
+// [DEMO MODE] — Remove this line when KWIK is activated
+const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 import { getOperators, getCircles, detectOperator } from '@/services/operator.service';
 import { getPlans } from '@/services/plans.service';
 import { processRecharge } from '@/services/recharge.service';
@@ -199,9 +202,12 @@ export function MobileRechargeForm() {
     setProcessing(false);
 
     if (result.status === 'SUCCESS') {
+      // [DEMO MODE] — Update title when KWIK is activated (remove IS_DEMO_MODE check)
       toast({
-        title: 'Recharge Successful!',
-        description: `₹${rechargeAmount} recharge done for ${mobileNumber}`,
+        title: IS_DEMO_MODE ? '✅ Demo Recharge Done!' : 'Recharge Successful!',
+        description: IS_DEMO_MODE
+          ? `₹${rechargeAmount} demo recharge for ${mobileNumber} (no real transaction)`
+          : `₹${rechargeAmount} recharge done for ${mobileNumber}`,
       });
       refetchWallet();
       setMobileNumber('');
@@ -232,6 +238,15 @@ export function MobileRechargeForm() {
 
   return (
     <div className="space-y-6">
+      {/* [DEMO MODE] — Remove this entire block when KWIK is activated */}
+      {IS_DEMO_MODE && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-2.5 text-sm font-medium">
+          <FlaskConical className="h-4 w-4 text-amber-600 shrink-0" />
+          <span><strong>Demo Mode</strong> — Recharges are simulated. No real money is spent.</span>
+        </div>
+      )}
+      {/* [DEMO MODE] ── End banner ── */}
+
       {/* Mobile Number Input Section */}
       <div className="relative">
         <Label htmlFor="mobile" className="absolute -top-2.5 left-4 bg-white px-1 text-xs text-slate-500 z-10">Mobile Number</Label>

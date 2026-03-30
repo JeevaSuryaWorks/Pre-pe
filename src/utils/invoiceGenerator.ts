@@ -32,7 +32,7 @@ export const generateInvoice = (transaction: any) => {
     </head>
     <body>
         <div class="header">
-            <div class="logo">Pre Pe</div>
+            <div class="logo">Prepe</div>
             <div class="invoice-title">INVOICE</div>
         </div>
 
@@ -73,7 +73,7 @@ export const generateInvoice = (transaction: any) => {
         </table>
 
         <div class="footer">
-            <p>Thank you for using Pre Pe!</p>
+            <p>Thank you for using Prepe!</p>
             <p>This is a computer generated invoice and does not require signature.</p>
         </div>
         <script>

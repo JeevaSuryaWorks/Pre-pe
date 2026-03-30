@@ -40,12 +40,12 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
                         {type === 'terms' && (
                             <div className="space-y-4">
                                 <p>
-                                    Welcome to Pre Pe powered by <strong>Pre Pe India</strong>! By using our app, you agree to comply with and be bound by the following terms and conditions. Please review them carefully.
+                                    Welcome to <strong>Prepe</strong>! By using our app, you agree to comply with and be bound by the following terms and conditions. Please review them carefully.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">1. Acceptance of Terms</h3>
                                 <p>
-                                    By accessing and using the Pre Pe powered by <strong>Pre Pe India</strong>, you accept and agree to be bound by these terms. If you do not agree, please refrain from using the app.
+                                    By accessing and using <strong>Prepe</strong>, you accept and agree to be bound by these terms. If you do not agree, please refrain from using the app.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">2. Use of Cookies</h3>
@@ -55,12 +55,12 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
 
                                 <h3 className="font-bold text-slate-800 mt-4">3. Intellectual Property Rights</h3>
                                 <p>
-                                    Unless otherwise stated, Pre Pe powered by <strong>Pre Pe India</strong> and/or its licensors own the intellectual property rights for all material in the app. All rights are reserved. You may access this material for personal use, subject to restrictions outlined in these terms.
+                                    Unless otherwise stated, <strong>Prepe</strong> and/or its licensors own the intellectual property rights for all material in the app. All rights are reserved. You may access this material for personal use, subject to restrictions outlined in these terms.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">4. User Comments and Content</h3>
                                 <p>
-                                    Users may post and exchange opinions and information in certain areas of the app. Pre Pe powered by <strong>Pre Pe India</strong> does not filter, edit, publish, or review Comments prior to their presence in the app. Comments reflect the views of the person who posts them. To the extent permitted by applicable laws, Pre Pe powered by <strong>Pre Pe India</strong> shall not be liable for the Comments or any liability caused by the use of and/or posting of and/or appearance of the Comments in the app.
+                                    Users may post and exchange opinions and information in certain areas of the app. <strong>Prepe</strong> does not filter, edit, publish, or review Comments prior to their presence in the app. Comments reflect the views of the person who posts them. To the extent permitted by applicable laws, <strong>Prepe</strong> shall not be liable for the Comments or any liability caused by the use of and/or posting of and/or appearance of the Comments in the app.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">5. Hyperlinking to Our Content</h3>
@@ -110,7 +110,7 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
                         {type === 'privacy' && (
                             <div className="space-y-4">
                                 <p>
-                                    At Pre Pe powered by <strong>Pre Pe India</strong>, accessible from <a href="https://pre-pe.com/" className="text-blue-600 underline">https://pre-pe.com/</a>, one of our main priorities is the privacy of our users. This Privacy Policy document outlines the types of information we collect and how we use it.
+                                    At <strong>Prepe</strong>, accessible from <a href="https://pre-pe.com/" className="text-blue-600 underline">https://pre-pe.com/</a>, one of our main priorities is the privacy of our users. This Privacy Policy document outlines the types of information we collect and how we use it.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">Consent</h3>
@@ -142,22 +142,22 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
 
                                 <h3 className="font-bold text-slate-800 mt-4">Log Files</h3>
                                 <p>
-                                    Pre Pe powered by <strong>Pre Pe India</strong> follows a standard procedure of using log files. These files log visitors when they use the app. The information collected includes internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks. This information is not linked to any personally identifiable information and is used for analyzing trends, administering the app, tracking user's movement, and gathering demographic information.
+                                    <strong>Prepe</strong> follows a standard procedure of using log files. These files log visitors when they use the app. The information collected includes internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks. This information is not linked to any personally identifiable information and is used for analyzing trends, administering the app, tracking user's movement, and gathering demographic information.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">Cookies and Web Beacons</h3>
                                 <p>
-                                    Like many apps, Pre Pe powered by <strong>Pre Pe India</strong> uses 'cookies' to store information including visitor's preferences and the pages accessed or visited. This information is used to optimize the user experience by customizing our content based on visitor's browser type and/or other information.
+                                    Like many apps, <strong>Prepe</strong> uses 'cookies' to store information including visitor's preferences and the pages accessed or visited. This information is used to optimize the user experience by customizing our content based on visitor's browser type and/or other information.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">Third-Party Privacy Policies</h3>
                                 <p>
-                                    Pre Pe powered by <strong>Pre Pe India</strong> Privacy Policy does not apply to other advertisers or websites. Thus, we advise you to consult the respective Privacy Policies of these third-party services for more detailed information.
+                                    <strong>Prepe</strong> Privacy Policy does not apply to other advertisers or websites. Thus, we advise you to consult the respective Privacy Policies of these third-party services for more detailed information.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">Children's Information</h3>
                                 <p>
-                                    Protecting children's privacy is important. <strong>Pre Pe India</strong> does not knowingly collect any personal information from children under the age of 13. If you believe that your child has provided such information, please contact us, and we will make efforts to remove it promptly.
+                                    Protecting children's privacy is important. <strong>Prepe</strong> does not knowingly collect any personal information from children under the age of 13. If you believe that your child has provided such information, please contact us, and we will make efforts to remove it promptly.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">Contact Us</h3>
@@ -170,7 +170,7 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
                         {type === 'refund' && (
                             <div className="space-y-4">
                                 <p>
-                                    Thank you for choosing Pre Pe powered by <strong>Pre Pe India</strong> for your recharge needs. We aim to provide a seamless and reliable platform for all your mobile and DTH recharge transactions. However, we understand that circumstances may arise where a refund is required. Please take a moment to review our refund policy to ensure clarity and transparency regarding refund procedures.
+                                    Thank you for choosing <strong>Prepe</strong> for your recharge needs. We aim to provide a seamless and reliable platform for all your mobile and DTH recharge transactions. However, we understand that circumstances may arise where a refund is required. Please take a moment to review our refund policy to ensure clarity and transparency regarding refund procedures.
                                 </p>
 
                                 <h3 className="font-bold text-slate-800 mt-4">Refund Duration</h3>

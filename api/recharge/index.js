@@ -75,6 +75,52 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Failed to create transaction record', detail: txnError.message });
     }
 
+    // ══════════════════════════════════════════════════
+    // [DEMO MODE] – Remove this entire block when KWIK account is activated
+    // To activate: set DEMO_MODE=true in Vercel environment variables
+    // To remove demo: delete everything between the [DEMO MODE] comment markers
+    if (process.env.DEMO_MODE === 'true') {
+      console.log('[recharge] DEMO MODE active — bypassing KWIK API');
+      const newBalance = parseFloat(wallet.balance) - parseFloat(amount);
+
+      // Deduct wallet
+      await supabase.from('wallets')
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
+        .eq('id', wallet.id);
+
+      // Ledger entry
+      await supabase.from('wallet_ledger').insert({
+        wallet_id: wallet.id,
+        transaction_id: transaction.id,
+        type: 'DEBIT',
+        amount: parseFloat(amount),
+        balance_after: newBalance,
+        description: `[DEMO] ${service_type} Recharge for ${number}`
+      });
+
+      // Mark transaction SUCCESS with DEMO prefix
+      await supabase.from('transactions').update({
+        status: 'SUCCESS',
+        reference_id: `DEMO_${order_id}`,
+        api_transaction_id: `DEMO_${Date.now()}`,
+        description: `[DEMO] ${service_type} Recharge for ${number}`,
+        updated_at: new Date().toISOString()
+      }).eq('id', transaction.id);
+
+      return res.status(200).json({
+        success: true,
+        demo: true,
+        data: {
+          transaction_id: transaction.id,
+          order_id: `DEMO_${order_id}`,
+          operator_ref: `DEMO_REF`,
+          message: '✅ [DEMO] Recharge Successful! (Test mode — no real transaction)'
+        }
+      });
+    }
+    // [DEMO MODE] ── End of demo block ──────────────────
+    // ══════════════════════════════════════════════════
+
     // 4. Call KWIK API
     const kwikUrl = `https://www.kwikapi.com/api/v2/recharge.php`;
     const kwikParams = new URLSearchParams({

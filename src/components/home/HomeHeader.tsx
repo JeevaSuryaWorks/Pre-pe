@@ -17,7 +17,7 @@ export const HomeHeader = () => {
                     <Smartphone className="h-5 w-5 text-white" />
                 </div>
                 <h1 className="text-xl font-bold text-slate-800 tracking-tight">
-                    Pre Pe
+                    Prepe
                 </h1>
             </div>
 

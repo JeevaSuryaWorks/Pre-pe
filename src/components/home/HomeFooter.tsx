@@ -8,7 +8,8 @@ export const HomeFooter = () => {
                 <Heart className="w-3 h-3 text-red-500 fill-red-500" />
             </div>
             <p className="text-[10px] text-gray-400 font-medium">Powered by Shashtika Innovations</p>
-            <p className="text-[20px] text-blue-300 mt-2 font-semibold tracking-widest uppercase">Pre Pe India</p>
+            <p className="text-[14px] text-blue-500 mt-2 font-bold tracking-widest uppercase italic">Prepe</p>
+            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-semibold">We Take care of your Payments & Bill Dues at Just a Click</p>
         </div>
     );
 };

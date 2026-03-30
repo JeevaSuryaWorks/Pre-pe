@@ -12,6 +12,12 @@ const HomePage = () => {
             <div className="w-full max-w-md bg-white shadow-xl min-h-screen relative pb-24 flex flex-col">
                 <HomeHeader />
 
+                <div className="px-4 py-3 bg-green-50/50 border-b border-green-100/30">
+                    <p className="text-xs font-medium text-green-800 text-center leading-relaxed italic">
+                        "Prepe - We Take care of your Payments & Bill Dues at Just a Click"
+                    </p>
+                </div>
+
                 <div className="bg-gradient-to-b from-white to-blue-50/30 flex-1">
                     <WhatsAppBanner />
                     <WalletCard />

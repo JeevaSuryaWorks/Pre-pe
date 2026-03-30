@@ -29,7 +29,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 // Fallback banners if DB is unreachable
 const FALLBACK: Banner[] = [
     {
-        id: 'f1', title: 'Be A Part Of Our WhatsApp Community.', subtitle: 'Stay Connected, Stay Ahead With @Pre Pe Updates',
+        id: 'f1', title: 'Be A Part Of Our WhatsApp Community.', subtitle: 'Stay Connected, Stay Ahead With @Prepe Updates',
         tag: 'Community', cta_text: 'JOIN NOW', cta_link: 'https://chat.whatsapp.com/',
         grad_from: '#065f46', grad_to: '#16a34a', icon_name: 'MessageCircle', sort_order: 1,
     },
