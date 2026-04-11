@@ -41,7 +41,6 @@ export async function getWalletBalance(userId: string): Promise<{
     .maybeSingle();
 
   if (error || !data) {
-    console.error('Error fetching wallet:', error);
     return null;
   }
 
@@ -77,14 +76,12 @@ export async function lockAmount(
   const wallet = await getWallet(userId);
 
   if (!wallet) {
-    console.error('Wallet not found');
     return false;
   }
 
   const availableBalance = Number(wallet.balance) - Number(wallet.locked_balance);
 
   if (availableBalance < amount) {
-    console.error('Insufficient balance');
     return false;
   }
 
@@ -97,7 +94,6 @@ export async function lockAmount(
     .eq('user_id', userId);
 
   if (updateError) {
-    console.error('Error locking amount:', updateError);
     return false;
   }
 
@@ -117,7 +113,6 @@ export async function confirmDebit(
   const wallet = await getWallet(userId);
 
   if (!wallet) {
-    console.error('Wallet not found');
     return false;
   }
 
@@ -134,7 +129,6 @@ export async function confirmDebit(
     .eq('user_id', userId);
 
   if (updateError) {
-    console.error('Error confirming debit:', updateError);
     return false;
   }
 
@@ -154,7 +148,6 @@ export async function refundAmount(
   const wallet = await getWallet(userId);
 
   if (!wallet) {
-    console.error('Wallet not found');
     return false;
   }
 
@@ -169,7 +162,6 @@ export async function refundAmount(
     .eq('user_id', userId);
 
   if (updateError) {
-    console.error('Error refunding amount:', updateError);
     return false;
   }
 
@@ -189,7 +181,6 @@ export async function creditWallet(
   const wallet = await getWallet(userId);
 
   if (!wallet) {
-    console.error('Wallet not found');
     return false;
   }
 
@@ -204,7 +195,6 @@ export async function creditWallet(
     .eq('user_id', userId);
 
   if (updateError) {
-    console.error('Error crediting wallet:', updateError);
     return false;
   }
 
@@ -231,7 +221,6 @@ export async function getWalletLedger(userId: string, limit = 50): Promise<Walle
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching ledger:', error);
     return [];
   }
 
@@ -261,7 +250,7 @@ async function addLedgerEntry(
     } as never);
 
   if (error) {
-    console.error('Error adding ledger entry:', error);
+    // Silent fail for ledger entries
   }
 }
 

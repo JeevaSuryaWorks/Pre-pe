@@ -271,7 +271,7 @@ async function updateTransactionStatus(
     .eq('id', transactionId);
 
   if (error) {
-    console.error('Error updating transaction:', error);
+    // Silent fail for transaction updates
   }
 }
 
@@ -297,7 +297,6 @@ export async function getTransactionHistory(
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching transactions:', error);
     return [];
   }
 
@@ -371,4 +370,45 @@ export async function checkTransactionStatus(
     message: `Transaction is ${tx.status}`,
     data: tx as unknown as Transaction,
   };
+}
+
+/**
+ * Fetch bill history (Mock)
+ */
+export async function fetchBillHistory(
+  operatorId: string,
+  consumerId: string
+): Promise<BillItem[]> {
+  // Mock data for Paytm-style feed
+  return [
+    {
+        id: '1',
+        amount: 169,
+        billDate: 'Wed, 04 Feb 2026',
+        dueDate: 'Tue, 24 Feb 2026',
+        status: 'PAID',
+        paidDate: '7:44 AM',
+        time: '2:37 PM',
+        dateSeparator: '16 Feb 2026'
+    },
+    {
+        id: '2',
+        amount: 29,
+        billDate: 'Sat, 04 Apr 2026',
+        dueDate: 'Fri, 24 Apr 2026',
+        status: 'UNPAID',
+        dateSeparator: 'Today'
+    }
+  ];
+}
+
+export interface BillItem {
+    id: string;
+    amount: number;
+    billDate: string;
+    dueDate: string;
+    status: 'PAID' | 'UNPAID' | 'OVERDUE';
+    paidDate?: string;
+    time?: string;
+    dateSeparator?: string;
 }

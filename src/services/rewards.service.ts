@@ -1,0 +1,214 @@
+import { supabase } from '@/integrations/supabase/client';
+
+export type EventType = 'SIGNUP' | 'FIRST_RECHARGE' | 'REFERRAL' | 'SPIN_WHEEL' | 'GAME' | 'FAMILY_MEMBER' | 'CASHBACK_POINTS' | 'MANUAL';
+
+export interface RewardPointsLedger {
+  id: string;
+  user_id: string;
+  points: number;
+  event_type: EventType;
+  description: string;
+  created_at: string;
+}
+
+export interface ScratchCard {
+  id: string;
+  user_id: string;
+  type: 'GIFT_VOUCHER' | 'REWARD_POINTS' | 'CASHBACK';
+  status: 'LOCKED' | 'UNLOCKED' | 'SCRATCHED';
+  title: string;
+  description: string;
+  reward_value: number;
+  min_recharge_threshold: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Get total reward points for a user
+ */
+export async function getUserTotalPoints(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('reward_points_ledger' as never)
+    .select('points')
+    .eq('user_id', userId);
+
+  if (error || !data) return 0;
+
+  return data.reduce((sum: number, row: any) => sum + Number(row.points), 0);
+}
+
+/**
+ * Add points to a user
+ */
+export async function addRewardPoints(
+  userId: string,
+  points: number,
+  eventType: EventType,
+  description: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('reward_points_ledger' as never)
+    .insert({
+      user_id: userId,
+      points,
+      event_type: eventType,
+      description,
+    } as never);
+
+  return !error;
+}
+
+/**
+ * Get recent points transactions
+ */
+export async function getPointsHistory(userId: string, limit = 20): Promise<RewardPointsLedger[]> {
+  const { data, error } = await supabase
+    .from('reward_points_ledger' as never)
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return data as unknown as RewardPointsLedger[];
+}
+
+/**
+ * Get user's scratch cards
+ */
+export async function getUserScratchCards(userId: string): Promise<ScratchCard[]> {
+  const { data, error } = await supabase
+    .from('scratch_cards' as never)
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+  return data as unknown as ScratchCard[];
+}
+
+/**
+ * Unlock a scratch card if recharge threshold is met
+ */
+export async function unlockEligibleScratchCards(userId: string, rechargeAmount: number): Promise<void> {
+  const { data: cards } = await supabase
+    .from('scratch_cards' as never)
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'LOCKED')
+    .lte('min_recharge_threshold', rechargeAmount);
+
+  if (!cards || cards.length === 0) return;
+
+  for (const card of cards as any[]) {
+    await supabase
+      .from('scratch_cards' as never)
+      .update({ status: 'UNLOCKED' } as never)
+      .eq('id', card.id);
+  }
+}
+
+/**
+ * Scracth a card to claim reward
+ */
+export async function claimScratchCard(userId: string, cardId: string): Promise<boolean> {
+  // First verify card belongs to user and is unlocked
+  const { data: card } = await supabase
+    .from('scratch_cards' as never)
+    .select('*')
+    .eq('id', cardId)
+    .eq('user_id', userId)
+    .eq('status', 'UNLOCKED')
+    .single();
+
+  if (!card) return false;
+
+  const scratchCard = card as unknown as ScratchCard;
+
+  // Mark as scratched
+  const { error: updateError } = await supabase
+    .from('scratch_cards' as never)
+    .update({ status: 'SCRATCHED' } as never)
+    .eq('id', cardId);
+
+  if (updateError) return false;
+
+  // Grant the reward based on type
+  if (scratchCard.type === 'REWARD_POINTS') {
+    await addRewardPoints(userId, scratchCard.reward_value, 'GAME', `Won from Scratch Card: ${scratchCard.title}`);
+  } else if (scratchCard.type === 'CASHBACK') {
+    // Add to wallet ledger and update balance
+    // This logic handles granting wallet credit
+    const { data: walletData } = await supabase
+      .from('wallets' as never)
+      .select('id, balance')
+      .eq('user_id', userId)
+      .single();
+
+    if (walletData) {
+      const wallet = walletData as any;
+      const newBalance = Number(wallet.balance) + scratchCard.reward_value;
+      await supabase
+        .from('wallets' as never)
+        .update({ balance: newBalance } as never)
+        .eq('user_id', userId);
+        
+      await supabase
+        .from('wallet_ledger' as never)
+        .insert({
+          wallet_id: wallet.id,
+          type: 'CREDIT',
+          amount: scratchCard.reward_value,
+          balance_after: newBalance,
+          description: `Cashback from Scratch Card: ${scratchCard.title}`,
+        } as never);
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Handle First Recharge Cashback Check
+ */
+export async function handleCashbackOffer(userId: string, amount: number, transactionId: string): Promise<void> {
+  // Basic example of a First Recharge cashback logic.
+  // In a real scenario, we check if they have previous transactions.
+  const { count } = await supabase
+    .from('transactions' as never)
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'SUCCESS');
+
+  // If this is the first successful recharge, and amount > 100
+  if (count === 1 && amount >= 100) {
+    const cashbackAmount = amount * 0.1; // 10% cashback
+    
+    const { data: walletData } = await supabase
+      .from('wallets' as never)
+      .select('id, balance')
+      .eq('user_id', userId)
+      .single();
+
+    if (walletData) {
+      const wallet = walletData as any;
+      const newBalance = Number(wallet.balance) + cashbackAmount;
+      await supabase
+        .from('wallets' as never)
+        .update({ balance: newBalance } as never)
+        .eq('user_id', userId);
+        
+      await supabase
+        .from('wallet_ledger' as never)
+        .insert({
+          wallet_id: wallet.id,
+          transaction_id: transactionId,
+          type: 'CREDIT',
+          amount: cashbackAmount,
+          balance_after: newBalance,
+          description: `First Recharge Cashback (10%)`,
+        } as never);
+    }
+  }
+}

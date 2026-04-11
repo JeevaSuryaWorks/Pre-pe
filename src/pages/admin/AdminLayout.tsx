@@ -62,6 +62,8 @@ const AdminLayout = () => {
         { icon: Shield, label: "KYC Requests", path: "/admin/kyc" },
         { icon: Banknote, label: "Fund Requests", path: "/admin/fund-requests" },
         { icon: Users, label: "User Management", path: "/admin/users" },
+        { icon: CreditCard, label: "Paid Users", path: "/admin/paid-users" },
+        { icon: Settings, label: "Plan Manager", path: "/admin/plan-manager" },
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
         // { icon: Settings, label: "Settings", path: "/admin/settings" },

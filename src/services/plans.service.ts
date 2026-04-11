@@ -50,7 +50,6 @@ export async function getPlans(
       // For now, if circleId matches known IDs, we mapping them to likely Kwik codes if different. 
       // Assuming 1=Delhi, 2=Mumbai... matching standard lists.
       const stateCode = circleId.match(/^\d+$/) ? circleId : '17'; // Default to Delhi (often 10 or 17? Let's stick to simple pass-through if digit)
-      console.log(`Fetching plans with StateCode: ${stateCode}, OperatorId: ${operatorId}`);
       response = await fetchRechargePlans(stateCode, operatorId);
     } else {
       // No circle ID implies DTH
@@ -90,7 +89,7 @@ export async function getPlans(
       };
     }
   } catch (error) {
-    console.error('Error fetching plans from API:', error);
+    // Error fetching plans from API handled silently
   }
 
   return {
@@ -177,7 +176,7 @@ export async function getROffer(
       };
     }
   } catch (error) {
-    console.error('Error fetching R-Offer:', error);
+    // Error fetching R-Offer handled silently
     return {
       status: 'FAILED',
       transaction_id: '',

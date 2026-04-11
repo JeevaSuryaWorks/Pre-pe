@@ -35,19 +35,23 @@ enum RechargeStatus {
 model profiles {
   id         String   @id @default(uuid()) @db.Uuid
   user_id    String   @unique @db.Uuid
-  email      String?
-  full_name  String?
-  phone      String?
-  created_at DateTime @db.Timestamptz
-  updated_at DateTime @db.Timestamptz
+  email             String?
+  full_name         String?
+  phone             String?
+  plan_type         String?  @default("BASIC") @db.VarChar(20)
+  whatsapp_consent  Boolean?
+  created_at        DateTime @db.Timestamptz
+  updated_at        DateTime @db.Timestamptz
 
   wallets    wallets[]
   user_roles user_roles[]
   transactions transactions[]
   upi_transactions upi_transactions[]
-  loans        loans[]
+  loans                loans[]
   manual_fund_requests manual_fund_requests[]
-  kyc_verifications kyc_verifications[]
+  kyc_verifications    kyc_verifications[]
+  reward_points        reward_points_ledger[]
+  scratch_cards        scratch_cards[]
 
   @@map("profiles")
 }
@@ -235,4 +239,40 @@ model manual_fund_requests {
   profile profiles @relation(fields: [user_id], references: [user_id])
 
   @@map("manual_fund_requests")
+}
+
+//////////////////////////////////////
+// GAMIFICATION: REWARDS
+//////////////////////////////////////
+model reward_points_ledger {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  points      Int
+  event_type  String   @db.VarChar(50)
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("reward_points_ledger")
+}
+
+//////////////////////////////////////
+// GAMIFICATION: SCRATCH CARDS
+//////////////////////////////////////
+model scratch_cards {
+  id                    String   @id @default(uuid()) @db.Uuid
+  user_id               String   @db.Uuid
+  type                  String   @db.VarChar(50)
+  status                String   @default("LOCKED") @db.VarChar(20)
+  title                 String
+  description           String?
+  reward_value          Decimal  @default(0) @db.Decimal(15,2)
+  min_recharge_threshold Decimal? @default(0) @db.Decimal(15,2)
+  created_at            DateTime @default(now()) @db.Timestamptz
+  updated_at            DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("scratch_cards")
 }

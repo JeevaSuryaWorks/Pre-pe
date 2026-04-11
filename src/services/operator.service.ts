@@ -84,7 +84,6 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
 
     // If API returns empty (e.g. invalid key or other issue)
     if (operators.length === 0) {
-      console.warn('Kwik API returned no operators');
       return [];
     }
 
@@ -95,7 +94,6 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
     // Filter to supported types only if returning all
     return operators.filter(op => ['prepaid', 'postpaid', 'dth'].includes(op.type));
   } catch (error) {
-    console.error('Error fetching operators:', error);
     return [];
   }
 }
@@ -153,7 +151,6 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
 
       if (matchedOp) {
         // Ensure we pass the ID that getPlans expects
-        console.log('Matched Operator:', matchedOp);
         return {
           status: 'SUCCESS',
           transaction_id: '',
@@ -166,7 +163,7 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
       }
     }
   } catch (error) {
-    console.error('API operator detection failed', error);
+    // API operator detection failed silently
   }
 
   return {

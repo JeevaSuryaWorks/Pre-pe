@@ -43,7 +43,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthState({ user: null, session: null, loading: false });
       }
     } catch (err) {
-      console.error("[AuthContext] Refresh error:", err);
       setAuthState({ user: null, session: null, loading: false });
     }
   }, []);
@@ -55,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("[AuthContext] onAuthStateChange event:", event);
         if (event === 'SIGNED_OUT') {
           setAuthState({ user: null, session: null, loading: false });
         } else if (session) {
@@ -69,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, [refreshSession]);
 
-  const signUp = async (email: string, password: string, fullName?: string, phone?: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string) => {
     const redirectUrl = `${window.location.origin}/home`;
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -83,22 +81,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
     });
     return { data, error };
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     return { data, error };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     return { error };
-  };
+  }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -106,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       },
     });
     return { data, error };
-  };
+  }, []);
 
   const value = React.useMemo(() => ({
     user: authState.user,
@@ -117,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithGoogle,
     signOut,
     refreshSession,
-  }), [authState.user, authState.session, authState.loading, refreshSession]);
+  }), [authState.user, authState.session, authState.loading, signUp, signIn, signInWithGoogle, signOut, refreshSession]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

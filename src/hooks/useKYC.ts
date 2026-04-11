@@ -58,14 +58,13 @@ export const useKYC = (options?: UseKYCOptions) => {
     }, [status, toast, options?.onApproved]);
 
     // REAL-TIME: Listen for changes to current user's KYC record
+    const channelRef = useRef<string>(`kyc_status_${user?.id}_${Math.random().toString(36).substring(7)}`);
+
     useEffect(() => {
         if (!user?.id) return;
 
-        // Use a unique channel name per component instance to avoid unmount clashes
-        const uniqueTopic = `kyc_status_${user.id}_${Math.random().toString(36).substring(7)}`;
-
         const channel = supabase
-            .channel(uniqueTopic)
+            .channel(channelRef.current)
             .on(
                 'postgres_changes',
                 {
@@ -75,18 +74,17 @@ export const useKYC = (options?: UseKYCOptions) => {
                     filter: `user_id=eq.${user.id}`
                 },
                 () => {
-                    console.log('[useKYC] State change detected, refetching...');
+                    console.log("[useKYC] KYC record changed, refetching...");
                     refetch();
                 }
             )
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log(`[useKYC] Successfully subscribed to ${uniqueTopic}`);
+                    console.log("[useKYC] Subscribed to KYC changes");
                 }
             });
 
         return () => {
-            // Let Supabase handle the channel cleanup safely without crashing the WebSocket
             supabase.removeChannel(channel);
         };
     }, [user?.id, refetch]);
@@ -95,7 +93,6 @@ export const useKYC = (options?: UseKYCOptions) => {
     const isPending = status === 'PENDING';
     const isRejected = status === 'REJECTED';
 
-    console.log('[useKYC] Hook State:', { userId: user?.id, status, isLoading, kycData });
 
     return {
         kycData,

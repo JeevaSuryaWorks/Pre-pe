@@ -27,6 +27,7 @@ import { useKYC } from '@/hooks/useKYC';
 import { encryptSensitiveData } from '@/lib/crypto';
 import { Separator } from '@/components/ui/separator';
 import { ImageCropperModal } from '@/components/ui/ImageCropperModal';
+import { useProfile } from '@/hooks/useProfile';
 
 export const KYCPage = () => {
     const navigate = useNavigate();
@@ -36,6 +37,10 @@ export const KYCPage = () => {
     const { status: kycStatusFromHook, kycData: hookData, isLoading: hookLoading } = useKYC({
         onApproved: () => navigate('/home', { replace: true })
     });
+    const { profile, loading: profileLoading } = useProfile();
+
+    const planType = profile?.plan_type || 'BASIC';
+    const isBusiness = planType === 'BUSINESS';
 
     // Local state for UI
     const [step, setStep] = useState(1);
@@ -113,7 +118,7 @@ export const KYCPage = () => {
                 toast({ title: "Invalid details", description: "Please provide valid PAN and 12-digit Aadhaar number", variant: "destructive" });
                 return;
             }
-            if (!aadharFront || !aadharBack || !panCard || !selfie || !shopPhoto) {
+            if (!aadharFront || !aadharBack || !panCard || !selfie || (isBusiness && !shopPhoto)) {
                 toast({ title: "Documents Missing", description: "Please upload all required photos", variant: "destructive" });
                 return;
             }
@@ -144,7 +149,7 @@ export const KYCPage = () => {
             const abPath = await uploadKYCDocument(user.id, aadharBack!, 'aadhar_back');
             const panPath = await uploadKYCDocument(user.id, panCard!, 'pan_card');
             const selfiePath = await uploadKYCDocument(user.id, selfie!, 'selfie');
-            const shopPath = await uploadKYCDocument(user.id, shopPhoto!, 'shop_photo');
+            const shopPath = shopPhoto ? await uploadKYCDocument(user.id, shopPhoto, 'shop_photo') : null;
 
             // 2. Securely Encrypt Sensitive Numbers
             const encryptedPan = await encryptSensitiveData(panNumber);
@@ -357,7 +362,7 @@ export const KYCPage = () => {
         );
     }
 
-    if (hookLoading) {
+    if (hookLoading || profileLoading) {
         return (
             <Layout hideHeader>
                 <div className="min-h-screen flex items-center justify-center">
@@ -447,7 +452,7 @@ export const KYCPage = () => {
 
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-bold text-slate-900">Complete KYC</h1>
-                    <p className="text-slate-500 text-sm">Verify your identity to unlock full wallet features</p>
+                    <p className="text-slate-500 text-sm">Verify your identity to unlock {planType} plan features</p>
                 </div>
 
                 <Card className="w-full max-w-md shadow-xl border-slate-100 overflow-hidden bg-white/80 backdrop-blur-sm">
@@ -569,14 +574,16 @@ export const KYCPage = () => {
                                             captureMode="user"
                                         />
                                     </div>
-                                    <div className="pt-2 border-t border-slate-100">
-                                        <DocumentUpload
-                                            label="Shop Photo"
-                                            file={shopPhoto}
-                                            setFile={setShopPhoto}
-                                            captureMode="environment"
-                                        />
-                                    </div>
+                                    {isBusiness && (
+                                        <div className="pt-2 border-t border-slate-100">
+                                            <DocumentUpload
+                                                label="Shop Photo"
+                                                file={shopPhoto}
+                                                setFile={setShopPhoto}
+                                                captureMode="environment"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -604,7 +611,7 @@ export const KYCPage = () => {
                                         <span className="font-mono font-medium">XXXX-XXXX-{aadharNumber.slice(-4)}</span>
                                     </div>
                                     <div className="grid grid-cols-5 gap-2 pt-1">
-                                        {[aadharFront, aadharBack, panCard, selfie, shopPhoto].map((f, i) => (
+                                        {[aadharFront, aadharBack, panCard, selfie, ...(isBusiness ? [shopPhoto] : [])].map((f, i) => (
                                             <div key={i} className={`aspect-square rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 ${f ? 'bg-white' : 'bg-red-50'}`}>
                                                 {f ? (
                                                     <img

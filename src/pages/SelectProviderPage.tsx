@@ -64,8 +64,8 @@ export const SelectProviderPage = ({ type, title = "Select Provider" }: SelectPr
         if (type === 'dth') {
             navigate(`/dth-recharge/pay?operator=${provider.id}`);
         } else {
-            // For other services, navigate to a placeholder or generic payment page
-            navigate(`/services/${provider.id}`);
+            // For other services, navigate to the bill fetch details entry page
+            navigate(`/bills/fetch?operatorId=${provider.id}`);
         }
     };
 

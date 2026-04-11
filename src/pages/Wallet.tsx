@@ -23,10 +23,10 @@ const WalletPage = () => {
 
   return (
     <Layout showBottomNav>
-      <div className="container py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">My Wallet</h1>
-          <p className="text-muted-foreground mt-2">
+      <div className="px-4 py-6">
+        <div className="mb-8 ml-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Wallet</h1>
+          <p className="text-slate-500 font-medium mt-1">
             Manage your wallet balance and view activity
           </p>
         </div>

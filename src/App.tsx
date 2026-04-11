@@ -26,15 +26,19 @@ import { AdminGuard } from "@/components/auth/AdminGuard";
 import AdminLogin from "./pages/admin/AdminLogin";
 import { KYCRequests } from "./pages/admin/KYCRequests";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminLogs from "./pages/admin/AdminLogs";
 import UserManagement from "./pages/admin/UserManagement";
 import CommissionManager from "./pages/admin/CommissionManager";
 import TransactionsAdmin from "./pages/admin/TransactionsAdmin";
 import AdminFundRequests from "./pages/admin/AdminFundRequests";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminBannerEditor from "./pages/admin/AdminBannerEditor";
+import PaidUsers from "./pages/admin/PaidUsers";
+import PlanManager from "./pages/admin/PlanManager";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
+
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
 import LedgerPage from "./pages/LedgerPage";
@@ -56,6 +60,10 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import { AuthProvider } from "./contexts/AuthContext";
 
+import PlanSelectionPage from "./pages/onboarding/PlanSelectionPage";
+import ConsentPage from "./pages/onboarding/ConsentPage";
+import RewardsDashboard from "./pages/rewards/RewardsDashboard";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -65,7 +73,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Analytics />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <Routes>
 
@@ -86,6 +94,9 @@ const App = () => (
           {/* Protected Routes - Require Login & KYC */}
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
+            <Route path="/onboarding/plans" element={<PlanSelectionPage />} />
+            <Route path="/onboarding/consent" element={<ConsentPage />} />
+
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/profile/edit" element={<ProfileSettings />} />
@@ -97,6 +108,7 @@ const App = () => (
 
             <Route path="/mobile-recharge" element={<MobileRecharge />} />
 
+            <Route path="/rewards" element={<RewardsDashboard />} />
             <Route path="/offers" element={<CashbackOffers />} />
 
             <Route path="/dth-recharge" element={<DTHSelectProvider />} />
@@ -104,6 +116,7 @@ const App = () => (
             <Route path="/services/electricity" element={<SelectProviderPage type="electricity" title="Select Provider" />} />
             <Route path="/services/broadband" element={<SelectProviderPage type="broadband" title="Select Broadband" />} />
             <Route path="/services/redeem-code" element={<RedeemCodePage />} />
+
 
             <Route path="/services/:serviceName" element={<ServicePlaceholder />} />
             <Route path="/postpaid" element={<Postpaid />} />
@@ -126,12 +139,15 @@ const App = () => (
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="kyc" element={<KYCRequests />} />
+              <Route path="logs" element={<AdminLogs />} />
 
               {/* Placeholders for future */}
               <Route path="users" element={<UserManagement />} />
               <Route path="transactions" element={<TransactionsAdmin />} />
               <Route path="commissions" element={<CommissionManager />} />
               <Route path="fund-requests" element={<AdminFundRequests />} />
+              <Route path="paid-users" element={<PaidUsers />} />
+              <Route path="plan-manager" element={<PlanManager />} />
               <Route path="banners" element={<AdminBanners />} />
               <Route path="banners/new" element={<AdminBannerEditor />} />
               <Route path="banners/:id" element={<AdminBannerEditor />} />

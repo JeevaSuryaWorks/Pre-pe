@@ -1,4 +1,4 @@
-
+import React, { memo } from "react";
 import { BottomNav } from "@/components/home/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,60 @@ import { useKYC } from "@/hooks/useKYC";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 
+// Memoized SettingItem to prevent unnecessary re-renders of the list
+const SettingItem = memo(({ icon: Icon, title, subtitle, onClick, colorClass = "text-slate-600", bgClass = "bg-slate-100" }: any) => (
+    <div
+        onClick={onClick}
+        className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors"
+    >
+        <div className="flex items-center gap-4">
+            <div className={`h-10 w-10 rounded-full ${bgClass} flex items-center justify-center`}>
+                <Icon className={`h-5 w-5 ${colorClass}`} />
+            </div>
+            <div>
+                <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
+                {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+            </div>
+        </div>
+        <ChevronRight className="h-5 w-5 text-slate-300" />
+    </div>
+));
+
+SettingItem.displayName = 'SettingItem';
+
+const SectionHeader = memo(({ title }: { title: string }) => (
+    <h3 className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
+        {title}
+    </h3>
+));
+
+SectionHeader.displayName = 'SectionHeader';
+
+const SocialMediaFooter = memo(() => (
+    <div className="py-8 text-center space-y-4">
+        <p className="text-sm font-medium text-slate-500">Follow Us On Social Media</p>
+        <div className="flex justify-center gap-4">
+            {[
+                { icon: Instagram, color: "bg-pink-600" },
+                { icon: Youtube, color: "bg-red-600" },
+                { icon: Twitter, color: "bg-black" }, // X icon
+                { icon: Facebook, color: "bg-blue-600" },
+                { icon: Send, color: "bg-blue-400" } // Telegram
+            ].map((social, i) => (
+                <div key={i} className={`${social.color} text-white h-10 w-10 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:opacity-90`}>
+                    <social.icon className="h-5 w-5" />
+                </div>
+            ))}
+        </div>
+        <p className="text-xs text-slate-400">Version 2.0.1</p>
+    </div>
+));
+
+SocialMediaFooter.displayName = 'SocialMediaFooter';
+
 const ProfilePage = () => {
     const { user, signOut } = useAuth();
-    const { status: kycStatus, isLoading: kycLoading } = useKYC();
+    const { status: kycStatus, isInitialLoading: kycLoading } = useKYC();
     const navigate = useNavigate();
 
     const getInitials = () => {
@@ -30,30 +81,6 @@ const ProfilePage = () => {
             console.error("Logout failed:", error);
         }
     };
-
-    const SettingItem = ({ icon: Icon, title, subtitle, onClick, colorClass = "text-slate-600", bgClass = "bg-slate-100" }: any) => (
-        <div
-            onClick={onClick}
-            className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 border-b border-slate-50 last:border-0 cursor-pointer transition-colors"
-        >
-            <div className="flex items-center gap-4">
-                <div className={`h-10 w-10 rounded-full ${bgClass} flex items-center justify-center`}>
-                    <Icon className={`h-5 w-5 ${colorClass}`} />
-                </div>
-                <div>
-                    <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
-                    {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
-                </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-300" />
-        </div>
-    );
-
-    const SectionHeader = ({ title }: { title: string }) => (
-        <h3 className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
-            {title}
-        </h3>
-    );
 
     return (
         <div className="min-h-screen bg-slate-50 flex justify-center w-full">
@@ -136,23 +163,7 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Social Media Footer */}
-                    <div className="py-8 text-center space-y-4">
-                        <p className="text-sm font-medium text-slate-500">Follow Us On Social Media</p>
-                        <div className="flex justify-center gap-4">
-                            {[
-                                { icon: Instagram, color: "bg-pink-600" },
-                                { icon: Youtube, color: "bg-red-600" },
-                                { icon: Twitter, color: "bg-black" }, // X icon
-                                { icon: Facebook, color: "bg-blue-600" },
-                                { icon: Send, color: "bg-blue-400" } // Telegram
-                            ].map((social, i) => (
-                                <div key={i} className={`${social.color} text-white h-10 w-10 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:opacity-90`}>
-                                    <social.icon className="h-5 w-5" />
-                                </div>
-                            ))}
-                        </div>
-                        <p className="text-xs text-slate-400">Version 2.0.1</p>
-                    </div>
+                    <SocialMediaFooter />
 
                 </div>
 
@@ -162,4 +173,4 @@ const ProfilePage = () => {
     );
 };
 
-export default ProfilePage;
+export default memo(ProfilePage);

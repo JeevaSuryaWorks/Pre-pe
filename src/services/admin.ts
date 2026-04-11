@@ -10,7 +10,7 @@ export interface AdminAction {
 
 export const adminService = {
     // User Management
-    async getUsers(page = 1, limit = 20, search?: string) {
+    async getUsers(page = 1, limit = 20, search?: string, planType?: string) {
         // 1. Fetch Profiles
         let query = supabase
             .from('profiles')
@@ -20,6 +20,10 @@ export const adminService = {
 
         if (search) {
             query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+        }
+
+        if (planType) {
+            query = (query as any).eq('plan_type', planType);
         }
 
         const { data: profiles, error: profilesError, count } = await query;
@@ -183,5 +187,29 @@ export const adminService = {
 
         if (error) throw error;
         return count || 0;
+    },
+
+    // Plan Management
+    async getPlans() {
+        const { data, error } = await (supabase as any)
+            .from('plans')
+            .select('*')
+            .order('created_at', { ascending: true });
+        
+        if (error) throw error;
+        return data || [];
+    },
+
+    async updatePlan(id: string, updates: any) {
+        const { error } = await (supabase as any)
+            .from('plans')
+            .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+        
+        if (error) throw error;
+        return true;
     }
 };

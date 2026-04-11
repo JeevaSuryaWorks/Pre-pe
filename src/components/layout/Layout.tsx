@@ -12,9 +12,10 @@ interface LayoutProps {
   showBack?: boolean;
   hideHeader?: boolean;
   showBottomNav?: boolean;
+  isFullWidth?: boolean;
 }
 
-export const Layout = ({ children, title, showBack, hideHeader, showBottomNav }: LayoutProps) => {
+export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, isFullWidth }: LayoutProps) => {
   const navigate = useNavigate();
   const { status, isApproved } = useKYC();
 
@@ -23,7 +24,7 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav }:
 
   return (
     <div className="min-h-screen bg-blue-50/30 flex justify-center w-full">
-      <div className="w-full max-w-md bg-white shadow-xl min-h-screen relative flex flex-col">
+      <div className={`w-full ${isFullWidth ? 'max-w-none' : 'max-w-md'} bg-white shadow-xl min-h-screen relative flex flex-col`}>
 
         {/* KYC Warning Banner */}
         {!hideHeader && !isKYCPage && status && !isApproved && (
