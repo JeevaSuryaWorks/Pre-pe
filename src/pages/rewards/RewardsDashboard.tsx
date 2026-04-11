@@ -15,6 +15,7 @@ import {
   claimScratchCard, 
   addRewardPoints, 
   canUserSpinToday,
+  initializeWelcomeCard,
   RewardPointsLedger, 
   ScratchCard 
 } from '@/services/rewards.service';
@@ -35,6 +36,9 @@ export default function RewardsDashboard() {
     if (!isRefresh) setLoading(true);
     
     try {
+      // Ensure welcome card exists for the user
+      await initializeWelcomeCard(user.id);
+
       const [points, hist, cards, daySpin] = await Promise.all([
         getUserTotalPoints(user.id),
         getPointsHistory(user.id),
@@ -100,12 +104,16 @@ export default function RewardsDashboard() {
      );
   }
 
-  // Demo fallback for scratch cards if empty
-  const displayCards = scratchCards.length > 0 ? scratchCards : [
-      { id: 'demo-1', title: 'Welcome Bonus', type: 'REWARD_POINTS' as const, reward_value: 200, status: 'UNLOCKED' as const },
-      { id: 'demo-2', title: 'Big Cashback Offer', type: 'CASHBACK' as const, reward_value: 50, status: 'LOCKED' as const },
-      { id: 'demo-3', title: '50% Off Voucher', type: 'PROMO_CODE' as const, reward_value: 0, promo_code: 'PREPE50', status: 'UNLOCKED' as const }
-  ];
+  // Filter out cards that are already scratched
+  const activeCards = scratchCards.filter(c => c.status !== 'SCRATCHED');
+
+  // Fallback to demo cards only if user truly has NO cards after initialization
+  const displayCards = activeCards.length > 0 ? activeCards : (
+      scratchCards.length === 0 ? [
+          { id: 'demo-1', title: 'Welcome Bonus', type: 'REWARD_POINTS' as const, reward_value: 200, status: 'UNLOCKED' as const, description: 'Preview of our welcome reward' },
+          { id: 'demo-2', title: 'Big Cashback Offer', type: 'CASHBACK' as const, reward_value: 50, status: 'LOCKED' as const, description: 'Unlock this by recharging' }
+      ] : []
+  );
 
   const containerVariants = {
     hidden: { opacity: 0 },

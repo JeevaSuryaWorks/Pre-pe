@@ -231,3 +231,27 @@ export async function handleCashbackOffer(userId: string, amount: number, transa
     }
   }
 }
+/**
+ * Initialize a welcome scratch card for new users
+ */
+export async function initializeWelcomeCard(userId: string): Promise<void> {
+  // Check if they already have any cards
+  const { count } = await supabase
+    .from('scratch_cards' as never)
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (count === 0) {
+    // Inject first welcome card
+    await supabase
+      .from('scratch_cards' as never)
+      .insert({
+        user_id: userId,
+        title: 'Welcome Bonus',
+        type: 'REWARD_POINTS',
+        reward_value: 200,
+        status: 'UNLOCKED',
+        description: 'Exclusive reward for joining Pre-pe!'
+      } as never);
+  }
+}
