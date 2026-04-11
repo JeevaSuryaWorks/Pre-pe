@@ -11,10 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const ProfileSettings = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, refreshSession } = useAuth();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '');
+    const [simProvider, setSimProvider] = useState(user?.user_metadata?.sim_provider || '');
     const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '');
     const [uploading, setUploading] = useState(false);
 
@@ -25,6 +26,7 @@ const ProfileSettings = () => {
     useEffect(() => {
         if (user) {
             setFullName(user.user_metadata?.full_name || '');
+            setSimProvider(user.user_metadata?.sim_provider || '');
             setAvatarUrl(user.user_metadata?.avatar_url || '');
         }
     }, [user]);
@@ -85,19 +87,30 @@ const ProfileSettings = () => {
                 data: {
                     full_name: fullName,
                     avatar_url: avatarUrl,
-                    // We don't update phone here typically as it requires verification,
-                    // but if we wanted to support it, we'd add it here.
+                    sim_provider: simProvider,
                 }
             });
 
+            // Also update the public profile in the database
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ 
+                    full_name: fullName, 
+                    sim_provider: simProvider 
+                } as any)
+                .eq('user_id', user.id);
+
+            if (profileError) throw profileError;
+
             if (error) throw error;
+
+            await refreshSession();
 
             toast({
                 title: "Profile updated",
                 description: "Your profile has been successfully updated.",
             });
 
-            // Refresh logic or navigation could go here if needed
             navigate(0); // Reload to reflect changes globally if useAuth doesn't auto-update immediately in all contexts
 
         } catch (error: any) {
@@ -189,6 +202,25 @@ const ProfileSettings = () => {
                                     className="pl-10 h-12 bg-slate-50 border-slate-200"
                                     readOnly
                                 />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="sim-provider" className="text-slate-600">SIM Provider</Label>
+                            <div className="relative group">
+                                <Phone className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                                <select 
+                                    id="sim-provider"
+                                    value={simProvider}
+                                    onChange={(e) => setSimProvider(e.target.value)}
+                                    className="w-full pl-10 h-12 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-slate-700"
+                                >
+                                    <option value="">Select Provider</option>
+                                    <option value="Airtel">Airtel</option>
+                                    <option value="Jio">Jio</option>
+                                    <option value="Vi">Vi</option>
+                                    <option value="BSNL">BSNL</option>
+                                </select>
                             </div>
                         </div>
                     </div>

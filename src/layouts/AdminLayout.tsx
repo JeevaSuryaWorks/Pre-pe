@@ -10,6 +10,7 @@ export const AdminLayout = () => {
     const location = useLocation();
     const { signOut } = useAuth();
     const [open, setOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const menuItems = [
         { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -25,7 +26,7 @@ export const AdminLayout = () => {
     ];
 
     const NavLinks = () => (
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className={`flex-1 ${isCollapsed ? 'px-2' : 'px-4'} py-6 space-y-2 transition-all duration-300`}>
             {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -36,13 +37,14 @@ export const AdminLayout = () => {
                             navigate(item.path);
                             setOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+                        title={isCollapsed ? item.label : undefined}
+                        className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
                             ? 'bg-blue-600/10 text-blue-700 shadow-sm border border-blue-100/50'
                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                     >
-                        <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-                        {item.label}
+                        <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                        {!isCollapsed && <span className="truncate">{item.label}</span>}
                     </button>
                 );
             })}
@@ -88,31 +90,41 @@ export const AdminLayout = () => {
             </header>
 
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex flex-col w-72 h-screen sticky top-0 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-40">
-                <div className="p-6 border-b border-slate-200/50">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-100">
+            <aside className={`hidden md:flex flex-col ${isCollapsed ? 'w-20' : 'w-72'} h-screen sticky top-0 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ease-in-out`}>
+                <div className={`p-6 border-b border-slate-200/50 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+                    <div className="flex items-center gap-3 truncate">
+                        <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-100 flex-shrink-0">
                             <img src="/logo.png" alt="Admin" className="w-8 h-8 object-contain" />
                         </div>
-                        <h1 className="font-bold text-xl text-slate-900 tracking-tight">PrePe Admin</h1>
+                        {!isCollapsed && <h1 className="font-bold text-xl text-slate-900 tracking-tight truncate">PrePe Admin</h1>}
                     </div>
+                    
+                    <button 
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className={`hidden lg:flex p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors ${isCollapsed ? 'mt-4' : ''}`}
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <NavLinks />
                 </div>
 
-                <div className="p-6 border-t border-slate-200/50 bg-white/40">
+                <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-t border-slate-200/50 bg-white/40 transition-all duration-300`}>
                     <button
                         onClick={() => signOut()}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 bg-white border border-slate-200 shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all duration-200"
+                        className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-2'} px-4 py-3 rounded-xl text-sm font-medium text-slate-700 bg-white border border-slate-200 shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all duration-200`}
+                        title={isCollapsed ? 'Sign Out' : undefined}
                     >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
+                        <LogOut className="w-4 h-4 flex-shrink-0" />
+                        {!isCollapsed && <span>Sign Out</span>}
                     </button>
-                    <div className="mt-4 text-center text-xs text-slate-400 font-medium tracking-wide">
-                        v1.0.0 • PRE-PE INDIA
-                    </div>
+                    {!isCollapsed && (
+                        <div className="mt-4 text-center text-xs text-slate-400 font-medium tracking-wide animate-in fade-in duration-500">
+                            v1.0.0 • PRE-PE INDIA
+                        </div>
+                    )}
                 </div>
             </aside>
 

@@ -3,10 +3,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, Lock, User, Smartphone, ArrowRight } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Smartphone, ArrowRight, Signal } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -21,10 +28,11 @@ export function RegisterForm() {
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
-    const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; phone?: string }>({});
+    const [simProvider, setSimProvider] = useState('');
+    const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; phone?: string; simProvider?: string }>({});
 
     const validateForm = () => {
-        const newErrors: { email?: string; password?: string; fullName?: string; phone?: string } = {};
+        const newErrors: { email?: string; password?: string; fullName?: string; phone?: string; simProvider?: string } = {};
 
         try {
             emailSchema.parse(email);
@@ -51,6 +59,10 @@ export function RegisterForm() {
             newErrors.phone = 'Please enter a valid 10-digit mobile number';
         }
 
+        if (!simProvider) {
+            newErrors.simProvider = 'Please select your SIM provider';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -61,7 +73,7 @@ export function RegisterForm() {
 
         setLoading(true);
         const fullPhone = `+91${phone}`;
-        const { error } = await signUp(email, password, fullName, fullPhone);
+        const { error } = await signUp(email, password, fullName, fullPhone, simProvider);
         setLoading(false);
 
         if (error) {
@@ -164,6 +176,25 @@ export function RegisterForm() {
                             />
                         </div>
                         {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="sim-provider">SIM Provider</Label>
+                        <div className="relative group">
+                            <Signal className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" />
+                            <Select onValueChange={setSimProvider} value={simProvider}>
+                                <SelectTrigger className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all">
+                                    <SelectValue placeholder="Choose SIM Provider" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white border-slate-200">
+                                    <SelectItem value="Airtel" className="hover:bg-slate-50">Airtel</SelectItem>
+                                    <SelectItem value="Jio" className="hover:bg-slate-50">Jio</SelectItem>
+                                    <SelectItem value="Vi" className="hover:bg-slate-50">Vi</SelectItem>
+                                    <SelectItem value="BSNL" className="hover:bg-slate-50">BSNL</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {errors.simProvider && <p className="text-xs text-red-500 mt-1">{errors.simProvider}</p>}
                     </div>
 
                     <div className="space-y-2">

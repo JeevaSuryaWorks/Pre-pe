@@ -12,6 +12,8 @@ import { useKYC } from "@/hooks/useKYC";
 import { backendWalletService } from "@/services/backendWallet.service";
 import { useAuth } from "@/hooks/useAuth";
 import { manualFundService } from "@/services/manualFund.service";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
+import { useWallet } from "@/hooks/useWallet";
 
 export const FundRequestPage = () => {
     const navigate = useNavigate();
@@ -24,9 +26,13 @@ export const FundRequestPage = () => {
     const [isFallback, setIsFallback] = useState(false);
     const [transactionId, setTransactionId] = useState("");
     const [showManualModal, setShowManualModal] = useState(false);
+    
+    const { limits, checkWalletAddLimit, planId } = usePlanLimits();
+    const { balance: currentBalance } = useWallet();
 
     // Limit Logic
-    const LIMIT = isApproved ? 6000 : 2000;
+    // Plan-based dynamic limit display
+    const DISPLAY_LIMIT = limits.dailyWalletAddLimit;
 
     const baseAmount = Number(amount) || 0;
     const totalPayable = baseAmount; // No processing charges
@@ -61,8 +67,16 @@ export const FundRequestPage = () => {
             return;
         }
 
-        if (baseAmount > LIMIT) {
-            toast.error(`Maximum allowed amount is ₹${LIMIT}`);
+        // Check Daily Add Limit
+        const addLimitCheck = await checkWalletAddLimit(baseAmount);
+        if (!addLimitCheck.allowed) {
+            toast.error(`Daily limit reached. Your ${limits.name} allows ₹${limits.dailyWalletAddLimit} per day. Upgrade for higher limits!`);
+            return;
+        }
+
+        // Check Max Balance
+        if (currentBalance + baseAmount > limits.maxWalletBalance) {
+            toast.error(`Wallet balance cannot exceed ₹${limits.maxWalletBalance.toLocaleString()} on ${limits.name}. Upgrade to increase limit!`);
             return;
         }
 
@@ -185,15 +199,13 @@ export const FundRequestPage = () => {
                                 )}
                                 <div className="flex-1">
                                     <p className={`text-sm font-semibold ${isApproved ? 'text-green-800' : 'text-amber-800'}`}>
-                                        {isApproved ? 'Verified Account Limit: ₹5,000' :
-                                            kycStatus === 'PENDING' ? 'Pending Verification Limit: ₹2,000' :
-                                                'Standard Limit: ₹2,000'}
+                                        {limits.name} Limit: ₹{DISPLAY_LIMIT === Infinity ? 'Unlimited' : DISPLAY_LIMIT.toLocaleString()} / day
                                     </p>
+                                    <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider"> Max Balance: ₹{limits.maxWalletBalance.toLocaleString()} </p>
                                     {!isApproved && (
                                         <p className="text-xs text-amber-600 mt-1">
-                                            {kycStatus === 'PENDING'
-                                                ? 'KYC Verification is in progress. Higher limits will unlock once approved.'
-                                                : 'KYC verification is required to unlock higher limits and full services.'}
+                                            KYC verification is required to unlock full services. 
+                                            {planId === 'BASIC' && ' Upgrade to Pro for ₹10,000 daily limit!'}
                                         </p>
                                     )}
                                 </div>
@@ -253,13 +265,12 @@ export const FundRequestPage = () => {
                                             placeholder="1000"
                                             value={amount}
                                             onChange={(e) => setAmount(e.target.value)}
-                                            max={LIMIT}
                                         />
                                     </div>
-                                    {baseAmount > LIMIT && (
+                                    {baseAmount > DISPLAY_LIMIT && DISPLAY_LIMIT !== Infinity && (
                                         <p className="text-xs text-red-500 font-medium flex items-center gap-1">
                                             <AlertCircle className="w-3 h-3" />
-                                            Amount exceeds your current limit of ₹{LIMIT}
+                                            Amount exceeds your daily limit of ₹{DISPLAY_LIMIT.toLocaleString()}
                                         </p>
                                     )}
 
@@ -274,13 +285,13 @@ export const FundRequestPage = () => {
 
                                 {/* Quick Select */}
                                 <div className="flex gap-2">
-                                    {[1000, 2000, 6000].map(amt => (
+                                    {[500, 1000, 5000].map(amt => (
                                         <Button
                                             key={amt}
                                             variant="outline"
-                                            className={`flex-1 border-slate-200 ${amt > LIMIT ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:bg-slate-50'}`}
-                                            onClick={() => amt <= LIMIT && setAmount(amt.toString())}
-                                            disabled={amt > LIMIT}
+                                            className={`flex-1 border-slate-200 ${amt > DISPLAY_LIMIT && DISPLAY_LIMIT !== Infinity ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:bg-slate-50'}`}
+                                            onClick={() => (DISPLAY_LIMIT === Infinity || amt <= DISPLAY_LIMIT) && setAmount(amt.toString())}
+                                            disabled={DISPLAY_LIMIT !== Infinity && amt > DISPLAY_LIMIT}
                                         >
                                             ₹{amt}
                                         </Button>
@@ -290,7 +301,7 @@ export const FundRequestPage = () => {
                                 <Button
                                     className="w-full h-12 text-lg bg-slate-900 hover:bg-slate-800"
                                     onClick={handleInitiatePayment}
-                                    disabled={loading || baseAmount <= 0 || baseAmount > LIMIT || kycLoading}
+                                    disabled={loading || baseAmount <= 0 || (DISPLAY_LIMIT !== Infinity && baseAmount > DISPLAY_LIMIT) || kycLoading}
                                 >
                                     {loading ? <Loader2 className="animate-spin mr-2" /> : <WalletIcon className="mr-2 h-5 w-5" />}
                                     Pay ₹{totalPayable}

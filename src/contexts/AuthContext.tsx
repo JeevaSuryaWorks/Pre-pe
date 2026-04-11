@@ -6,11 +6,19 @@ export interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName?: string, phone?: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, password: string, fullName?: string, phone?: string, simProvider?: string) => Promise<{ data: any; error: any }>;
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
   signInWithGoogle: () => Promise<{ data: any; error: any }>;
   signOut: () => Promise<{ error: any }>;
   refreshSession: () => Promise<void>;
+}
+
+export function useAuth() {
+  const context = React.useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, [refreshSession]);
 
-  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string, simProvider?: string) => {
     const redirectUrl = `${window.location.origin}/home`;
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -77,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: {
           full_name: fullName,
           phone: phone,
+          sim_provider: simProvider,
         },
       },
     });

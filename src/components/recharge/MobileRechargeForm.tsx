@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Contact, ChevronRight, FlaskConical } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 // [DEMO MODE] — Remove this line when KWIK is activated
 const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -19,16 +20,26 @@ import { useToast } from '@/hooks/use-toast';
 import type { Operator, Circle, RechargePlan } from '@/types/recharge.types';
 import { useKYC } from '@/hooks/useKYC';
 import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export function MobileRechargeForm() {
   const { user } = useAuth();
   const { availableBalance, refetch: refetchWallet } = useWallet();
   const { isApproved } = useKYC();
+  const { limits, checkRechargeLimit } = usePlanLimits();
   const { toast } = useToast();
+  const location = useLocation();
 
   const [showKYCNudge, setShowKYCNudge] = useState(false);
 
   const [mobileNumber, setMobileNumber] = useState('');
+
+  // Handle pre-filled state from navigation (e.g. from Saved page)
+  useEffect(() => {
+    if (location.state?.mobileNumber) {
+      setMobileNumber(location.state.mobileNumber);
+    }
+  }, [location.state]);
   const [selectedOperator, setSelectedOperator] = useState<string>('');
   const [selectedCircle, setSelectedCircle] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -180,6 +191,18 @@ export function MobileRechargeForm() {
     }
 
     const rechargeAmount = parseFloat(amount);
+    
+    // Check Plan Limits
+    const limitCheck = await checkRechargeLimit();
+    if (!limitCheck.allowed) {
+      toast({
+        title: 'Daily Limit Reached',
+        description: `Your ${limits.name} allows ${limits.dailyRechargeLimit} recharges per day. Upgrade to Pro for unlimited recharges!`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (rechargeAmount > availableBalance) {
       toast({
         title: 'Insufficient balance',

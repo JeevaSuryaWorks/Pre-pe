@@ -194,22 +194,29 @@ export const adminService = {
         const { data, error } = await (supabase as any)
             .from('plans')
             .select('*')
-            .order('created_at', { ascending: true });
+            .order('order_index', { ascending: true });
         
         if (error) throw error;
         return data || [];
     },
 
     async updatePlan(id: string, updates: any) {
-        const { error } = await (supabase as any)
+        const { data, error, count } = await (supabase as any)
             .from('plans')
             .update({
                 ...updates,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', id);
+            .eq('id', id)
+            .select('*', { count: 'exact' });
         
         if (error) throw error;
+        
+        // If count is 0, it means RLS or a missing ID blocked the update
+        if (count === 0) {
+            throw new Error("No changes made. This is likely due to a database permission (RLS) restriction. Please run the 'Sync Admin Roles' SQL script.");
+        }
+        
         return true;
     }
 };

@@ -150,13 +150,14 @@ export function PayoutForm() {
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                {/* Bank Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Bank Details - Strict Vertical Stack */}
+                <div className="flex flex-col gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="accountNo">Account Number</Label>
+                        <Label htmlFor="accountNo" className="text-xs font-bold text-slate-500 uppercase ml-1">Account Number</Label>
                         <Input
                             id="accountNo"
-                            placeholder="Enter Account Number"
+                            placeholder="Bank Account Number"
+                            className="h-12 rounded-xl border-slate-200"
                             value={accountNo}
                             onChange={(e) => {
                                 setAccountNo(e.target.value);
@@ -165,10 +166,11 @@ export function PayoutForm() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="ifsc">IFSC Code</Label>
+                        <Label htmlFor="ifsc" className="text-xs font-bold text-slate-500 uppercase ml-1">IFSC Code</Label>
                         <Input
                             id="ifsc"
-                            placeholder="Enter IFSC Code"
+                            placeholder="IFSC Code"
+                            className="h-12 rounded-xl border-slate-200"
                             value={ifsc}
                             onChange={(e) => {
                                 setIfsc(e.target.value.toUpperCase());
@@ -188,25 +190,25 @@ export function PayoutForm() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 items-end">
-                    <div className="flex-1 space-y-2 w-full">
-                        <Label htmlFor="amount">Amount (₹)</Label>
+                <div className="flex flex-col gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="amount" className="text-xs font-bold text-slate-500 uppercase ml-1">Amount (₹)</Label>
                         <Input
                             id="amount"
                             type="number"
-                            placeholder="Enter Amount"
+                            placeholder="Enter Amount to Withdraw"
+                            className="h-12 rounded-xl border-slate-200"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex gap-2 w-full sm:w-auto">
+                    <div className="w-full">
                         {!verified ? (
                             <Button
                                 onClick={handleVerify}
-                                variant="outline"
                                 disabled={verifying || !accountNo || !ifsc}
-                                className="flex-1"
+                                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold"
                             >
                                 {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify Account'}
                             </Button>
@@ -214,7 +216,7 @@ export function PayoutForm() {
                             <Button
                                 onClick={handleWithdraw}
                                 disabled={processing || !amount}
-                                className="flex-1"
+                                className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 font-bold"
                             >
                                 {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Withdraw Money'}
                             </Button>

@@ -10,6 +10,7 @@ export interface UserProfile {
   phone: string | null;
   plan_type: string | null;
   whatsapp_consent: boolean | null;
+  sim_provider: string | null;
   created_at: string;
 }
 

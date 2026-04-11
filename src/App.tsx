@@ -63,6 +63,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import PlanSelectionPage from "./pages/onboarding/PlanSelectionPage";
 import ConsentPage from "./pages/onboarding/ConsentPage";
 import RewardsDashboard from "./pages/rewards/RewardsDashboard";
+import ServicesPage from "./pages/ServicesPage";
+import SavedPage from "@/pages/SavedPage";
+import BulkRechargePage from "@/pages/business/BulkRechargePage";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +121,7 @@ const App = () => (
             <Route path="/services/redeem-code" element={<RedeemCodePage />} />
 
 
+            <Route path="/services" element={<ServicesPage />} />
             <Route path="/services/:serviceName" element={<ServicePlaceholder />} />
             <Route path="/postpaid" element={<Postpaid />} />
 
@@ -126,8 +130,10 @@ const App = () => (
             <Route path="/fund-request" element={<FundRequestPage />} />
             <Route path="/wallet/ledger" element={<LedgerPage />} />
             <Route path="/reports/history" element={<HistoryPage />} />
+            <Route path="/saved" element={<SavedPage />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/transaction/:id" element={<TransactionDetailsPage />} />
+            <Route path="/business/bulk-recharge" element={<BulkRechargePage />} />
           </Route>
 
 

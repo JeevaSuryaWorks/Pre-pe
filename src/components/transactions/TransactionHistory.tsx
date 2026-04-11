@@ -12,6 +12,9 @@ import { useNavigate } from 'react-router-dom';
 import { getTransactionHistory } from '@/services/recharge.service';
 import { format } from 'date-fns';
 import type { Transaction } from '@/types/recharge.types';
+import { addSavedItem, removeSavedItem, checkIsFavorite } from '@/services/saved.service';
+import { toast } from '@/hooks/use-toast';
+import { Heart } from 'lucide-react';
 
 export function TransactionHistory() {
   const { user } = useAuth();
@@ -25,17 +28,57 @@ export function TransactionHistory() {
     to: undefined,
   });
 
+  const [favorites, setFavorites] = useState<Record<string, string | null>>({});
+
   useEffect(() => {
     const loadTransactions = async () => {
       if (user) {
         setLoading(true);
         const txns = await getTransactionHistory(user.id, 50);
         setTransactions(txns);
+        
+        // Load favorites status
+        const favStatus: Record<string, string | null> = {};
+        for (const tx of txns) {
+            const favId = await checkIsFavorite(user.id, tx.id);
+            favStatus[tx.id] = favId;
+        }
+        setFavorites(favStatus);
+        
         setLoading(false);
       }
     };
     loadTransactions();
   }, [user]);
+
+  const handleToggleFavorite = async (e: React.MouseEvent, tx: Transaction) => {
+    e.stopPropagation();
+    if (!user) return;
+
+    if (favorites[tx.id]) {
+        // Remove
+        const success = await removeSavedItem(favorites[tx.id]!);
+        if (success) {
+            setFavorites(prev => ({ ...prev, [tx.id]: null }));
+            toast({ title: "Removed from Saved", description: "Transaction removed from your favorites." });
+        }
+    } else {
+        // Add
+        const newItem = await addSavedItem({
+            user_id: user.id,
+            category: 'FAVORITE',
+            title: `${tx.operator_name || 'Recharge'} - ${tx.mobile_number || tx.dth_id || 'N/A'}`,
+            service_type: tx.service_type,
+            account_id: tx.mobile_number || tx.dth_id || 'N/A',
+            operator_name: tx.operator_name || undefined,
+            metadata: { transaction_id: tx.id, amount: tx.amount }
+        });
+        if (newItem) {
+            setFavorites(prev => ({ ...prev, [tx.id]: newItem.id }));
+            toast({ title: "Saved to Favorites", description: "You can find this in your Saved page." });
+        }
+    }
+  };
 
   const getServiceIcon = (serviceType: string) => {
     switch (serviceType) {
@@ -206,9 +249,22 @@ export function TransactionHistory() {
                   </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold text-lg text-slate-900">₹{Number(tx.amount).toFixed(2)}</p>
-                <div className="mt-1">{getStatusBadge(tx.status)}</div>
+              <div className="text-right flex items-center gap-3">
+                <div className="flex flex-col items-end">
+                    <p className="font-bold text-lg text-slate-900">₹{Number(tx.amount).toFixed(2)}</p>
+                    <div className="mt-1">{getStatusBadge(tx.status)}</div>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        "h-10 w-10 md:h-8 md:w-8 rounded-full transition-all duration-300",
+                        favorites[tx.id] ? "text-rose-500 bg-rose-50" : "text-slate-300 hover:text-rose-400 hover:bg-slate-50"
+                    )}
+                    onClick={(e) => handleToggleFavorite(e, tx)}
+                >
+                    <Heart className={cn("h-5 w-5 md:h-4 md:w-4", favorites[tx.id] && "fill-current")} />
+                </Button>
               </div>
             </div>
           ))}

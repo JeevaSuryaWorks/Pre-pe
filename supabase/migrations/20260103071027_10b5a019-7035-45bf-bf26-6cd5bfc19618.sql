@@ -141,6 +141,37 @@ CREATE POLICY "Users can update own transactions" ON public.transactions
 CREATE POLICY "Admins can view all transactions" ON public.transactions
   FOR SELECT USING (public.has_role(auth.uid(), 'admin'));
 
+    -- NEW: Add order_index and price_amount to plans
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='plans' AND column_name='order_index') THEN
+        ALTER TABLE public.plans ADD COLUMN order_index INTEGER DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='plans' AND column_name='price_amount') THEN
+        ALTER TABLE public.plans ADD COLUMN price_amount NUMERIC DEFAULT 0;
+    END IF;
+END $$;
+
+-- 5. Create plan_payments Table for Razorpay Tracking
+CREATE TABLE IF NOT EXISTS public.plan_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  plan_id TEXT REFERENCES public.plans(id),
+  razorpay_order_id TEXT UNIQUE NOT NULL,
+  razorpay_payment_id TEXT,
+  razorpay_signature TEXT,
+  status TEXT DEFAULT 'PENDING',
+  amount NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for plan_payments
+ALTER TABLE public.plan_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own payments" ON public.plan_payments
+  FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
 -- Wallet ledger policies
 CREATE POLICY "Users can view own wallet ledger" ON public.wallet_ledger
   FOR SELECT USING (

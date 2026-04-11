@@ -68,8 +68,17 @@ const ProfilePage = () => {
     const { status: kycStatus, isInitialLoading: kycLoading } = useKYC();
     const navigate = useNavigate();
 
+    const AUTHORIZED_ADMINS = [
+        'connect.prepe@gmail.com',
+        'prepeindia@outlook.com',
+        'prepeindia@zohomail.in',
+        'jeevasuriya2007@gmail.com'
+    ];
+
+    const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+
     const getInitials = () => {
-        const name = user?.user_metadata?.full_name || 'User';
+        const name = user?.user_metadata?.full_name || 'Admin';
         return name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
     };
 
@@ -125,10 +134,28 @@ const ProfilePage = () => {
                                 </div>
                             )}
                             <span className="text-[10px] font-bold mt-1 text-slate-500">
-                                {kycStatus === 'APPROVED' ? 'VERIFIED' : kycStatus === 'PENDING' ? 'PENDING' : 'UPGRADE'}
+                                {isAdmin ? 'ADMIN' : (kycStatus === 'APPROVED' ? 'VERIFIED' : kycStatus === 'PENDING' ? 'PENDING' : 'UPGRADE')}
                             </span>
                         </div>
                     </div>
+
+                    {/* Admin Dashboard Entry - Secret for Admins only */}
+                    {isAdmin && (
+                        <div className="bg-slate-900 rounded-2xl p-4 shadow-lg flex items-center justify-between group cursor-pointer hover:bg-slate-800 transition-all border border-slate-700" onClick={() => navigate('/admin')}>
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                                    <ShieldCheck className="h-5 w-5 text-blue-400" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-white">Admin Dashboard</h4>
+                                    <p className="text-xs text-slate-400">Access Management & Controls</p>
+                                </div>
+                            </div>
+                            <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                                <ChevronRight className="h-5 w-5 text-white" />
+                            </div>
+                        </div>
+                    )}
 
                     {/* General Settings Group */}
                     <SectionHeader title="General Settings" />

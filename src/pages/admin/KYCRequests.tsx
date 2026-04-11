@@ -72,7 +72,7 @@ export const KYCRequests = () => {
             const userIds = kycData.map((req: any) => req.user_id);
             const { data: profilesData, error: profilesError } = await supabase
                 .from('profiles')
-                .select('user_id, full_name, email')
+                .select('user_id, full_name, email, plan_type, sim_provider')
                 .in('user_id', userIds);
 
             if (profilesError) {
@@ -369,7 +369,25 @@ export const KYCRequests = () => {
                                     )}
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-900">{selectedRequest?.profiles?.full_name || 'N/A'}</h3>
-                                <p className="text-xs text-slate-500 font-medium mt-1">{selectedRequest?.profiles?.email}</p>
+                                <p className="text-xs text-slate-500 font-medium mt-1 mb-3">{selectedRequest?.profiles?.email}</p>
+                                
+                                <div className="flex flex-wrap gap-2 justify-center">
+                                    <Badge className={cn(
+                                        "px-3 py-1 rounded-full text-[10px] font-black tracking-widest border-none",
+                                        selectedRequest?.profiles?.plan_type === 'BUSINESS' 
+                                            ? "bg-purple-600 text-white shadow-lg shadow-purple-200" 
+                                            : selectedRequest?.profiles?.plan_type === 'PRO'
+                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                                : "bg-slate-900 text-white shadow-lg shadow-slate-200"
+                                    )}>
+                                        {selectedRequest?.profiles?.plan_type || 'BASIC'} PLAN
+                                    </Badge>
+                                    {selectedRequest?.profiles?.sim_provider && (
+                                        <Badge variant="outline" className="px-3 py-1 rounded-full text-[10px] font-bold border-slate-200 text-slate-600 bg-white">
+                                            {selectedRequest.profiles.sim_provider}
+                                        </Badge>
+                                    )}
+                                </div>
                             </section>
 
                             <section>
@@ -465,12 +483,34 @@ export const KYCRequests = () => {
                                                 />
                                             ) : (
                                                 <div className="flex flex-col items-center gap-3 text-slate-300 p-8 text-center">
-                                                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                                                        <ShieldAlert className="w-8 h-8" />
+                                                    <div className={cn(
+                                                        "w-16 h-16 rounded-full flex items-center justify-center",
+                                                        key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS'
+                                                            ? "bg-emerald-50"
+                                                            : "bg-slate-100"
+                                                    )}>
+                                                        {key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS' ? (
+                                                            <CheckCircle className="w-8 h-8 text-emerald-500" />
+                                                        ) : (
+                                                            <ShieldAlert className="w-8 h-8" />
+                                                        )}
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Image Unavailable</p>
-                                                        <p className="text-[10px] text-slate-400 mt-1 max-w-[140px]">Document could not be retrieved from secure storage.</p>
+                                                        <p className={cn(
+                                                            "text-xs font-bold uppercase tracking-widest",
+                                                            key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS'
+                                                            ? "text-emerald-600"
+                                                            : "text-slate-500"
+                                                        )}>
+                                                            {key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS' 
+                                                                ? `${selectedRequest?.profiles?.plan_type || 'Basic'} Plan` 
+                                                                : 'Image Unavailable'}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-400 mt-1 max-w-[140px]">
+                                                            {key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS'
+                                                                ? "Shop photo is not required for this user's plan."
+                                                                : "Document could not be retrieved from secure storage."}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             )}
@@ -598,8 +638,29 @@ export const KYCRequests = () => {
                         <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-200">
                             <ShieldCheck className="w-8 h-8 text-emerald-600" />
                         </div>
-                        <div className="text-left mt-1">
-                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight mb-2">Final Verification Checklist</DialogTitle>
+                        <div className="text-left mt-1 flex-1">
+                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight mb-2 flex items-center justify-between">
+                                Final Verification Checklist
+                                <div className="flex items-center gap-2">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="text-[10px] font-black tracking-widest uppercase text-blue-600 hover:bg-blue-50 px-3 h-7 rounded-lg"
+                                        onClick={() => {
+                                            const allChecked = Object.values(approveChecklist).every(Boolean);
+                                            setApproveChecklist({
+                                                numbersMatch: !allChecked,
+                                                photosClear: !allChecked,
+                                                selfieMatches: !allChecked,
+                                                notExpired: !allChecked,
+                                                shopAuthentic: !allChecked
+                                            });
+                                        }}
+                                    >
+                                        {Object.values(approveChecklist).every(Boolean) ? 'Deselect All' : 'Select All'}
+                                    </Button>
+                                </div>
+                            </DialogTitle>
                             <DialogDescription className="text-slate-500 text-sm max-w-lg leading-relaxed">
                                 Please confirm that you have manually verified the following details before officially approving this account.
                             </DialogDescription>
@@ -628,7 +689,9 @@ export const KYCRequests = () => {
                                         htmlFor={key}
                                         className={cn(
                                             "text-sm font-bold leading-snug cursor-pointer transition-all duration-300 select-none block",
-                                            approveChecklist[key as keyof typeof approveChecklist] ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700"
+                                            approveChecklist[key as keyof typeof approveChecklist] 
+                                                ? "text-emerald-600/60 line-through decoration-emerald-500/40 decoration-2" 
+                                                : "text-slate-700"
                                         )}
                                     >
                                         {label}

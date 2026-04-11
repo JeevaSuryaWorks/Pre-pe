@@ -8,6 +8,13 @@ import { CheckCircle2, Loader2, Zap, Landmark, Building2, AlertCircle } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { adminService } from '@/services/admin';
+import { supabase } from '@/integrations/supabase/client';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 const getPlanIcon = (id: string) => {
     switch (id.toUpperCase()) {
@@ -36,6 +43,12 @@ export default function PlanSelectionPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Load Razorpay Script
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+
         const fetchPlans = async () => {
             try {
                 const data = await adminService.getPlans();
@@ -56,9 +69,85 @@ export default function PlanSelectionPage() {
         fetchPlans();
     }, []);
 
-    const handleSelectPlan = async (planId: string) => {
+    const handleSelectPlan = async (plan: any) => {
+        const planId = plan.id;
         setSubmitting(planId);
         try {
+            // Check if plan is paid
+            if (plan.price_amount && plan.price_amount > 0) {
+                // 1. Create Order via Edge Function
+                const { data: orderData, error: orderError } = await supabase.functions.invoke('razorpay-portal', {
+                    body: { action: 'create_order', planId }
+                });
+
+                if (orderError) {
+                    console.error("Order Creation Logic Error:", orderError);
+                    throw new Error(`Edge Function Error: ${orderError.message}`);
+                }
+
+                if (!orderData || orderData.error) {
+                    console.error("Order Data Error:", orderData);
+                    throw new Error(orderData?.error || "Failed to create payment order.");
+                }
+
+                if (!window.Razorpay) {
+                    throw new Error("Razorpay SDK failed to load. Please check your internet connection.");
+                }
+
+                // 2. Open Razorpay Checkout
+                const options = {
+                    key: orderData.keyId,
+                    amount: orderData.amount,
+                    currency: "INR",
+                    name: "Pre-pe India",
+                    description: `Plan Upgrade: ${plan.name}`,
+                    order_id: orderData.orderId,
+                    handler: async (response: any) => {
+                        // 3. Verify Payment
+                        setSubmitting(planId); // Set loading while verifying
+                        const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-portal', {
+                            body: { 
+                                action: 'verify_payment', 
+                                paymentData: {
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_signature: response.razorpay_signature
+                                }
+                            }
+                        });
+
+                        if (verifyError || verifyData.error) {
+                            toast({
+                                title: "Payment Failure",
+                                description: "Signature verification failed. Please contact support.",
+                                variant: "destructive"
+                            });
+                            setSubmitting(null);
+                            return;
+                        }
+
+                        // Success!
+                        toast({
+                            title: "Plan Activated!",
+                            description: `Welcome to the ${plan.name} plan.`,
+                        });
+                        navigate('/onboarding/consent');
+                    },
+                    modal: {
+                        onblur: () => setSubmitting(null)
+                    },
+                    prefill: {
+                        email: (await supabase.auth.getUser()).data.user?.email || ""
+                    },
+                    theme: { color: "#2563eb" }
+                };
+
+                const rzp = new window.Razorpay(options);
+                rzp.open();
+                return;
+            }
+
+            // --- FREE PLAN FLOW ---
             const success = await updateProfile({ plan_type: planId });
             
             if (success) {
@@ -109,7 +198,7 @@ export default function PlanSelectionPage() {
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <div className="flex flex-col items-center gap-8 max-w-lg mx-auto w-full">
                         {plans.map((plan, index) => {
                             const Icon = getPlanIcon(plan.id);
                             const { color, bgColor } = getPlanColors(plan.id);
@@ -122,7 +211,7 @@ export default function PlanSelectionPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                 >
-                                    <Card className={`relative h-full flex flex-col ${isPopular ? 'border-2 border-blue-500 shadow-xl scale-105 z-10' : 'border border-slate-200 shadow-sm'}`}>
+                                    <Card className={`relative w-full flex flex-col transition-all duration-300 ${isPopular ? 'border-2 border-blue-500 shadow-xl z-10' : 'border border-slate-200 shadow-sm'}`}>
                                         {isPopular && (
                                             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">
                                                 Most Popular
@@ -136,8 +225,8 @@ export default function PlanSelectionPage() {
                                             {plan.subtitle && (
                                                 <div className="text-sm font-medium text-slate-500 mt-1">{plan.subtitle}</div>
                                             )}
-                                            <div className="text-3xl font-extrabold tracking-tight mt-4 text-slate-900">{plan.price}</div>
-                                            <CardDescription className="pt-2 text-slate-500 leading-relaxed min-h-[48px]">
+                                            <div className="text-3xl font-extrabold tracking-tight mt-4 text-slate-900 break-words">{plan.price}</div>
+                                            <CardDescription className="pt-2 text-slate-500 leading-relaxed min-h-[48px] break-words">
                                                 {plan.description}
                                             </CardDescription>
                                         </CardHeader>
@@ -154,7 +243,7 @@ export default function PlanSelectionPage() {
                                         <CardFooter className="pt-6">
                                             <Button 
                                                 className={`w-full h-12 text-base font-medium transition-all ${isPopular ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'}`}
-                                                onClick={() => handleSelectPlan(plan.id)}
+                                                onClick={() => handleSelectPlan(plan)}
                                                 disabled={submitting !== null}
                                             >
                                                 {submitting === plan.id ? (

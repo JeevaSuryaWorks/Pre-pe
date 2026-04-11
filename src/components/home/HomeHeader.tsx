@@ -3,14 +3,15 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useKYC } from "@/hooks/useKYC";
+import { useProfile } from "@/hooks/useProfile";
 
 export const HomeHeader = () => {
     const { user } = useAuth();
+    const { profile } = useProfile();
     const { availableBalance, loading } = useWallet();
     const { isApproved } = useKYC();
 
-    // Mock network text
-    const network = "Airtel";
+    const network = profile?.sim_provider || user?.user_metadata?.sim_provider || "Airtel";
     const phone = user?.phone || user?.user_metadata?.phone || "8668075429";
     const name = user?.user_metadata?.full_name || "Boopathi Raja";
     const fallbackChar = name.charAt(0).toUpperCase();

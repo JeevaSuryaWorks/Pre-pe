@@ -14,14 +14,34 @@ export interface RewardPointsLedger {
 export interface ScratchCard {
   id: string;
   user_id: string;
-  type: 'GIFT_VOUCHER' | 'REWARD_POINTS' | 'CASHBACK';
+  type: 'GIFT_VOUCHER' | 'REWARD_POINTS' | 'CASHBACK' | 'PROMO_CODE' | 'OFFER';
   status: 'LOCKED' | 'UNLOCKED' | 'SCRATCHED';
   title: string;
   description: string;
   reward_value: number;
+  promo_code?: string; // For Hubble codes
+  offer_url?: string; // For Hubble offers
   min_recharge_threshold: number;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Check if a user can spin today
+ */
+export async function canUserSpinToday(userId: string): Promise<boolean> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const { data, error } = await supabase
+    .from('reward_points_ledger' as never)
+    .select('id')
+    .eq('user_id', userId)
+    .eq('event_type', 'SPIN_WHEEL')
+    .gte('created_at', today.toISOString());
+
+  if (error) return false;
+  return data.length === 0;
 }
 
 /**
@@ -109,22 +129,23 @@ export async function unlockEligibleScratchCards(userId: string, rechargeAmount:
   }
 }
 
-/**
- * Scracth a card to claim reward
- */
 export async function claimScratchCard(userId: string, cardId: string): Promise<boolean> {
+  // If this is a demo card, don't hit the database
+  if (cardId.startsWith('demo-')) {
+    return true; 
+  }
+
   // First verify card belongs to user and is unlocked
-  const { data: card } = await supabase
+  const { data: cards, error: fetchError } = await supabase
     .from('scratch_cards' as never)
     .select('*')
     .eq('id', cardId)
     .eq('user_id', userId)
-    .eq('status', 'UNLOCKED')
-    .single();
+    .eq('status', 'UNLOCKED');
 
-  if (!card) return false;
+  if (fetchError || !cards || cards.length === 0) return false;
 
-  const scratchCard = card as unknown as ScratchCard;
+  const scratchCard = cards[0] as unknown as ScratchCard;
 
   // Mark as scratched
   const { error: updateError } = await supabase
@@ -143,11 +164,10 @@ export async function claimScratchCard(userId: string, cardId: string): Promise<
     const { data: walletData } = await supabase
       .from('wallets' as never)
       .select('id, balance')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
 
-    if (walletData) {
-      const wallet = walletData as any;
+    if (walletData && walletData.length > 0) {
+      const wallet = walletData[0] as any;
       const newBalance = Number(wallet.balance) + scratchCard.reward_value;
       await supabase
         .from('wallets' as never)
@@ -188,11 +208,10 @@ export async function handleCashbackOffer(userId: string, amount: number, transa
     const { data: walletData } = await supabase
       .from('wallets' as never)
       .select('id, balance')
-      .eq('user_id', userId)
-      .single();
+      .eq('user_id', userId);
 
-    if (walletData) {
-      const wallet = walletData as any;
+    if (walletData && walletData.length > 0) {
+      const wallet = walletData[0] as any;
       const newBalance = Number(wallet.balance) + cashbackAmount;
       await supabase
         .from('wallets' as never)

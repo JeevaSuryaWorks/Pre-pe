@@ -18,7 +18,8 @@ import {
     X,
     AlertCircle,
     XCircle,
-    Loader2
+    Loader2,
+    Building2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,7 +40,7 @@ export const KYCPage = () => {
     });
     const { profile, loading: profileLoading } = useProfile();
 
-    const planType = profile?.plan_type || 'BASIC';
+    const planType = (profile?.plan_type || 'BASIC').toUpperCase();
     const isBusiness = planType === 'BUSINESS';
 
     // Local state for UI
@@ -114,8 +115,13 @@ export const KYCPage = () => {
             }
         }
         if (step === 2) {
-            if (!panNumber || aadharNumber.length < 12) {
-                toast({ title: "Invalid details", description: "Please provide valid PAN and 12-digit Aadhaar number", variant: "destructive" });
+            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+            if (!panRegex.test(panNumber)) {
+                toast({ title: "Invalid PAN", description: "Please provide a valid 10-character PAN (e.g., BNJPV6685R)", variant: "destructive" });
+                return;
+            }
+            if (aadharNumber.length < 14) { // Including hyphens
+                toast({ title: "Invalid Aadhaar", description: "Please provide a valid 12-digit Aadhaar number", variant: "destructive" });
                 return;
             }
             if (!aadharFront || !aadharBack || !panCard || !selfie || (isBusiness && !shopPhoto)) {
@@ -508,13 +514,19 @@ export const KYCPage = () => {
                                 {/* Numbers Section */}
                                 <div className="grid grid-cols-1 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
                                     <div className="space-y-2">
-                                        <Label className="text-xs uppercase text-slate-500 font-semibold tracking-wider">PAN Number</Label>
+                                        <div className="flex justify-between items-end">
+                                            <Label className="text-xs uppercase text-slate-500 font-semibold tracking-wider">PAN Number</Label>
+                                            <span className="text-[10px] text-slate-400 font-mono">{panNumber.length}/10</span>
+                                        </div>
                                         <Input
-                                            placeholder="ABCDE1234F"
+                                            placeholder="BNJPV6685R"
                                             maxLength={10}
                                             value={panNumber}
-                                            onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-                                            className="font-mono bg-white border-slate-200 uppercase"
+                                            onChange={(e) => {
+                                                const val = e.target.value.toUpperCase();
+                                                if (val.length <= 10) setPanNumber(val);
+                                            }}
+                                            className="font-mono bg-white border-slate-200 uppercase tracking-widest text-lg h-12"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -576,12 +588,20 @@ export const KYCPage = () => {
                                     </div>
                                     {isBusiness && (
                                         <div className="pt-2 border-t border-slate-100">
+                                            <div className="bg-blue-50/50 p-3 rounded-xl mb-3 border border-blue-100/50">
+                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Building2 className="w-3 h-3" /> Required for Business Plan
+                                                </p>
+                                            </div>
                                             <DocumentUpload
                                                 label="Shop Photo"
                                                 file={shopPhoto}
                                                 setFile={setShopPhoto}
                                                 captureMode="environment"
                                             />
+                                            <p className="text-[10px] text-slate-400 mt-2 px-1 italic">
+                                                Please capture a clear photo of your shop front showing the name board if possible.
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -611,17 +631,26 @@ export const KYCPage = () => {
                                         <span className="font-mono font-medium">XXXX-XXXX-{aadharNumber.slice(-4)}</span>
                                     </div>
                                     <div className="grid grid-cols-5 gap-2 pt-1">
-                                        {[aadharFront, aadharBack, panCard, selfie, ...(isBusiness ? [shopPhoto] : [])].map((f, i) => (
-                                            <div key={i} className={`aspect-square rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 ${f ? 'bg-white' : 'bg-red-50'}`}>
-                                                {f ? (
+                                        {[
+                                            { file: aadharFront, label: 'AAD' }, 
+                                            { file: aadharBack, label: 'AAD' }, 
+                                            { file: panCard, label: 'PAN' }, 
+                                            { file: selfie, label: 'SELF' }, 
+                                            ...(isBusiness ? [{ file: shopPhoto, label: 'SHOP' }] : [])
+                                        ].map((item, i) => (
+                                            <div key={i} className={`aspect-square rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-200 relative ${item.file ? 'bg-white' : 'bg-red-50'}`}>
+                                                {item.file ? (
                                                     <img
-                                                        src={URL.createObjectURL(f)}
-                                                        alt="Document Preview"
+                                                        src={URL.createObjectURL(item.file)}
+                                                        alt="Preview"
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
                                                     <X className="w-5 h-5 text-red-400" />
                                                 )}
+                                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white text-center py-0.5 font-bold uppercase">
+                                                    {item.label}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

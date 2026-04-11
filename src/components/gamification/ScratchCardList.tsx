@@ -1,151 +1,91 @@
-import { useRef, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Gift, Coins, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Gift, Coins, Sparkles, Lock, CheckCircle2, Trophy, ArrowRight, PlayCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { ScratchModal } from './ScratchModal';
 
 interface ScratchCardProps {
   id: string;
   title: string;
-  type: 'GIFT_VOUCHER' | 'REWARD_POINTS' | 'CASHBACK';
+  type: 'GIFT_VOUCHER' | 'REWARD_POINTS' | 'CASHBACK' | 'PROMO_CODE' | 'OFFER';
   value: number;
   isUnlocked: boolean;
+  status: 'LOCKED' | 'UNLOCKED' | 'SCRATCHED';
+  promo_code?: string;
+  offer_url?: string;
   onScratchComplete: (id: string, value: number) => void;
 }
 
-export function ScratchCardItem({ id, title, type, value, isUnlocked, onScratchComplete }: ScratchCardProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isScratched, setIsScratched] = useState(false);
-  const [percent, setPercent] = useState(0);
+export function ScratchCardItem({ id, title, type, value, isUnlocked, status, promo_code, offer_url, onScratchComplete }: ScratchCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isUnlocked || isScratched) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Make canvas responsive
-    canvas.width = canvas.parentElement?.clientWidth || 300;
-    canvas.height = canvas.parentElement?.clientHeight || 200;
-
-    // Fill with modern scratch cover (gradient)
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, '#94a3b8');
-    gradient.addColorStop(1, '#64748b');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Decorate the scratch layer
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Scratch to Reveal', canvas.width / 2, canvas.height / 2);
-
-    ctx.globalCompositeOperation = 'destination-out';
-
-    let isDrawing = false;
-    let scratchedPixels = 0;
-    const totalPixels = canvas.width * canvas.height;
-
-    const getPosition = (e: MouseEvent | TouchEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = ('clientX' in e ? e.clientX : e.touches[0].clientX) - rect.left;
-      const y = ('clientY' in e ? e.clientY : e.touches[0].clientY) - rect.top;
-      return { x, y };
-    };
-
-    const scratch = (x: number, y: number) => {
-      ctx.beginPath();
-      ctx.arc(x, y, 20, 0, Math.PI * 2);
-      ctx.fill();
-    };
-
-    const handleStart = (e: MouseEvent | TouchEvent) => {
-      isDrawing = true;
-      const { x, y } = getPosition(e);
-      scratch(x, y);
-    };
-
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      if (!isDrawing) return;
-      const { x, y } = getPosition(e);
-      scratch(x, y);
-
-      // Naive percentage check every few frames
-      if (Math.random() > 0.9) checkPercentage();
-    };
-
-    const handleEnd = () => {
-      isDrawing = false;
-      checkPercentage();
-    };
-
-    const checkPercentage = () => {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let clear = 0;
-      for (let i = 0; i < imgData.data.length; i += 4) {
-        if (imgData.data[i + 3] === 0) clear++;
-      }
-      const p = (clear / totalPixels) * 100;
-      setPercent(p);
-      if (p > 50 && !isScratched) { // Unveiled enough
-        setIsScratched(true);
-        onScratchComplete(id, value);
-        canvas.style.transition = 'opacity 0.6s';
-        canvas.style.opacity = '0'; // fade out the remaining canvas
-      }
-    };
-
-    // Event listeners
-    canvas.addEventListener('mousedown', handleStart);
-    canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('mouseup', handleEnd);
-    canvas.addEventListener('touchstart', handleStart);
-    canvas.addEventListener('touchmove', handleMove);
-    canvas.addEventListener('touchend', handleEnd);
-
-    return () => {
-      canvas.removeEventListener('mousedown', handleStart);
-      canvas.removeEventListener('mousemove', handleMove);
-      canvas.removeEventListener('mouseup', handleEnd);
-      canvas.removeEventListener('touchstart', handleStart);
-      canvas.removeEventListener('touchmove', handleMove);
-      canvas.removeEventListener('touchend', handleEnd);
-    };
-  }, [isUnlocked, isScratched]);
+  const handleClick = () => {
+    if (isUnlocked && status !== 'SCRATCHED') {
+      setIsModalOpen(true);
+    }
+  };
 
   return (
-    <Card className="relative w-full h-[200px] overflow-hidden rounded-2xl shadow-xl border border-slate-200">
-        
-      {/* Background/Revealed Content */}
-      <div className={`absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br ${type === 'CASHBACK' ? 'from-green-100 to-emerald-200 text-emerald-800' : 'from-indigo-100 to-violet-200 text-indigo-800'}`}>
-        {!isUnlocked && (
-           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-20 flex items-center justify-center flex-col text-white px-4 text-center">
-              <Gift className="w-8 h-8 mb-2 opacity-50" />
-              <p className="font-semibold text-lg">Locked Voucher</p>
-              <p className="text-sm opacity-80 mt-1">Recharge more to unlock.</p>
-           </div>
-        )}
-        <Sparkles className="w-12 h-12 mb-3 opacity-30 absolute top-4 left-4" />
-        <div className="z-10 flex flex-col items-center">
-            {type === 'REWARD_POINTS' && <Coins className="w-12 h-12 mb-2" />}
-            {type === 'CASHBACK' && <span className="text-4xl font-black mb-2 opacity-80">₹</span>}
-            {type === 'GIFT_VOUCHER' && <Gift className="w-12 h-12 mb-2" />}
-            
-            <h3 className="font-bold text-2xl mb-1">{type === 'CASHBACK' ? `₹${value}` : `${value} ${type === 'REWARD_POINTS' ? 'Pts' : ''}`}</h3>
-            <p className="font-medium text-center opacity-80 max-w-[200px] leading-tight">{title}</p>
-        </div>
-      </div>
+    <>
+      <motion.div
+          whileHover={isUnlocked && status !== 'SCRATCHED' ? { scale: 1.05, y: -5 } : {}}
+          whileTap={isUnlocked && status !== 'SCRATCHED' ? { scale: 0.95 } : {}}
+          onClick={handleClick}
+          className="cursor-pointer h-full"
+      >
+        <Card className={`relative aspect-[4/5] overflow-hidden rounded-[2.5rem] shadow-xl border-none transition-all duration-500 overflow-hidden ${
+            status === 'SCRATCHED' ? 'opacity-70 bg-slate-100' : 'bg-white'
+        }`}>
+            {/* Card Content (Preview) */}
+            <div className={`absolute inset-0 flex flex-col items-center justify-center p-6 text-center ${
+                status === 'SCRATCHED' ? 'bg-slate-50' : 
+                type === 'CASHBACK' ? 'bg-emerald-50/30' : 
+                type === 'REWARD_POINTS' ? 'bg-indigo-50/30' : 
+                'bg-amber-50/30'
+            }`}>
+                
+                {status === 'SCRATCHED' ? (
+                    <div className="flex flex-col items-center">
+                        <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-3" />
+                        <h4 className="font-black text-xl text-slate-400">Claimed</h4>
+                        <p className="text-xs font-bold text-slate-300 mt-1 uppercase tracking-widest">{title}</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform ${isUnlocked ? 'animate-bounce' : ''} ${
+                            type === 'CASHBACK' ? 'bg-emerald-100 text-emerald-600' : 
+                            type === 'REWARD_POINTS' ? 'bg-indigo-100 text-indigo-600' : 
+                            'bg-amber-100 text-amber-600'
+                        }`}>
+                            {type === 'REWARD_POINTS' && <Coins className="w-8 h-8" />}
+                            {type === 'CASHBACK' && <Sparkles className="w-8 h-8" />}
+                            {(type === 'PROMO_CODE' || type === 'OFFER' || type === 'GIFT_VOUCHER') && <Gift className="w-8 h-8" />}
+                        </div>
+                        <h4 className="font-black text-lg text-slate-800 leading-tight px-2">{title}</h4>
+                        <div className="mt-4 px-4 py-1.5 bg-slate-100 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                             <PlayCircle className="w-3 h-3" /> Tap to reveal
+                        </div>
+                    </div>
+                )}
+            </div>
 
-      {/* Canvas Cover */}
-      {isUnlocked && !isScratched && (
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full z-30 cursor-crosshair touch-none"
-        />
-      )}
-    </Card>
+            {/* Lock Overlay */}
+            {!isUnlocked && (
+                 <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6 text-white text-center">
+                    <Lock className="w-10 h-10 text-white/40 mb-4" />
+                    <h5 className="font-black text-lg uppercase tracking-tight mb-2">Locked</h5>
+                    <p className="text-[10px] font-bold text-white/50 leading-relaxed uppercase tracking-widest">Recharge to Unlock</p>
+                 </div>
+            )}
+        </Card>
+      </motion.div>
+
+      <ScratchModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        card={{ id, title, type, value, promo_code, offer_url }}
+        onComplete={onScratchComplete}
+      />
+    </>
   );
 }

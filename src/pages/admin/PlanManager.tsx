@@ -4,11 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Plus, Trash2, Zap, Landmark, Building2, AlertCircle } from "lucide-react";
+import { Loader2, Save, Plus, Trash2, Zap, Landmark, Building2, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
 
 const PlanManager = () => {
     const [plans, setPlans] = useState<any[]>([]);
@@ -33,31 +41,90 @@ const PlanManager = () => {
         }
     };
 
+    const handleMove = async (index: number, direction: 'left' | 'right') => {
+        const newPlans = [...plans];
+        const targetIndex = direction === 'left' ? index - 1 : index + 1;
+        
+        if (targetIndex < 0 || targetIndex >= newPlans.length) return;
+
+        // Swap the order_index values
+        const plan1 = newPlans[index];
+        const plan2 = newPlans[targetIndex];
+        
+        const tempOrder = plan1.order_index;
+        plan1.order_index = plan2.order_index;
+        plan2.order_index = tempOrder;
+
+        // Optimistically update UI
+        newPlans[index] = plan2;
+        newPlans[targetIndex] = plan1;
+        setPlans(newPlans);
+
+        try {
+            // Update both in DB
+            await Promise.all([
+                adminService.updatePlan(plan1.id, { order_index: plan1.order_index }),
+                adminService.updatePlan(plan2.id, { order_index: plan2.order_index })
+            ]);
+            toast.success("Order updated");
+        } catch (e) {
+            toast.error("Failed to sync order to database");
+            fetchPlans(); // Rollback
+        }
+    };
+
     const handleEdit = (plan: any) => {
         setEditingPlan({ 
             ...plan, 
-            features_text: plan.features.join('\n') 
+            features: [...plan.features] // Clone to avoid direct mutation
         });
+    };
+
+    const handleUpdateFeature = (index: number, value: string) => {
+        const newFeatures = [...editingPlan.features];
+        newFeatures[index] = value;
+        setEditingPlan({ ...editingPlan, features: newFeatures });
+    };
+
+    const handleAddFeature = () => {
+        setEditingPlan({ 
+            ...editingPlan, 
+            features: [...editingPlan.features, ""] 
+        });
+    };
+
+    const handleRemoveFeature = (index: number) => {
+        const newFeatures = editingPlan.features.filter((_: any, i: number) => i !== index);
+        setEditingPlan({ ...editingPlan, features: newFeatures });
     };
 
     const handleSave = async () => {
         if (!editingPlan) return;
         setSaving(true);
         try {
-            const features = editingPlan.features_text.split('\n').filter((f: string) => f.trim() !== '');
+            // Filter out empty features
+            const finalFeatures = editingPlan.features.filter((f: string) => f.trim() !== '');
+            
             await adminService.updatePlan(editingPlan.id, {
                 name: editingPlan.name,
                 price: editingPlan.price,
+                price_amount: parseFloat(editingPlan.price_amount) || 0,
                 subtitle: editingPlan.subtitle,
                 description: editingPlan.description,
-                features: features,
+                features: finalFeatures,
                 is_popular: editingPlan.is_popular
             });
+            
             toast.success("Plan updated successfully");
             setEditingPlan(null);
             fetchPlans();
         } catch (e: any) {
-            toast.error(e.message || "Failed to update plan");
+            console.error("Save Error:", e);
+            if (e.message?.includes("400") || e.code === "PGRST204") {
+                toast.error("Database mismatch. Please run the 'Payment Columns Sync' SQL script provided by the assistant.");
+            } else {
+                toast.error(e.message || "Failed to update plan");
+            }
         } finally {
             setSaving(false);
         }
@@ -84,7 +151,29 @@ const PlanManager = () => {
                                 </Badge>
                                 {plan.is_popular && <Badge className="bg-blue-600 text-white text-[10px]">MOST POPULAR</Badge>}
                             </div>
-                            <CardTitle className="text-xl font-bold mt-2">{plan.name}</CardTitle>
+                            <div className="flex items-center justify-between mt-2">
+                                <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+                                <div className="flex gap-1">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 rounded-lg text-slate-400 hover:text-blue-600"
+                                        disabled={plans.indexOf(plan) === 0}
+                                        onClick={() => handleMove(plans.indexOf(plan), 'left')}
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 rounded-lg text-slate-400 hover:text-blue-600"
+                                        disabled={plans.indexOf(plan) === plans.length - 1}
+                                        onClick={() => handleMove(plans.indexOf(plan), 'right')}
+                                    >
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
                             <CardDescription className="text-lg font-black text-slate-900">{plan.price}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -101,47 +190,58 @@ const PlanManager = () => {
                 ))}
             </div>
 
-            {editingPlan && (
-                <Card className="border-none shadow-2xl bg-white rounded-[24px] overflow-hidden">
-                    <CardHeader className="bg-slate-900 text-white p-6">
-                        <CardTitle className="text-2xl font-bold">Editing: {editingPlan.name}</CardTitle>
-                        <CardDescription className="text-slate-400">Modify the fields below and click save to apply changes globally.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-8 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Edit Plan Dialog */}
+            <Dialog open={!!editingPlan} onOpenChange={(open) => !open && setEditingPlan(null)}>
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-3xl border-none shadow-2xl">
+                    <DialogHeader className="bg-slate-900 text-white p-8">
+                        <DialogTitle className="text-2xl font-bold">Edit {editingPlan?.name} Plan</DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                            Updates will be reflected instantly across the platform.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-8 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="font-bold text-slate-700">Display Name</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase">Display Name</Label>
                                     <Input 
-                                        value={editingPlan.name} 
+                                        value={editingPlan?.name || ""} 
                                         onChange={(e) => setEditingPlan({...editingPlan, name: e.target.value})}
-                                        className="h-12 rounded-xl border-slate-200"
+                                        className="h-11 rounded-xl bg-slate-50 border-slate-200"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="font-bold text-slate-700">Price Label (e.g., ₹99/mo)</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase">Price Label (e.g. "Free", "Contact Us", "₹100/mo")</Label>
                                     <Input 
-                                        value={editingPlan.price} 
+                                        value={editingPlan?.price || ''} 
                                         onChange={(e) => setEditingPlan({...editingPlan, price: e.target.value})}
-                                        className="h-12 rounded-xl border-slate-200 font-bold text-lg"
+                                        className="h-11 rounded-xl bg-slate-50 border-slate-200"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="font-bold text-slate-700">Subtitle (Optional)</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase">Subtitle</Label>
                                     <Input 
-                                        value={editingPlan.subtitle || ""} 
+                                        value={editingPlan?.subtitle || ""} 
                                         onChange={(e) => setEditingPlan({...editingPlan, subtitle: e.target.value})}
-                                        placeholder="e.g. Shop Owners"
-                                        className="h-12 rounded-xl border-slate-200"
+                                        className="h-11 rounded-xl bg-slate-50 border-slate-200"
                                     />
                                 </div>
-                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                    <div>
-                                        <Label className="font-bold text-slate-700 block">Mark as Most Popular</Label>
-                                        <span className="text-xs text-slate-500">Highlights the card on onboarding.</span>
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold text-blue-600 uppercase">Payable Amount (INR - set to 0 to make it "Free")</Label>
+                                    <Input 
+                                        type="number"
+                                        value={editingPlan?.price_amount || 0} 
+                                        onChange={(e) => setEditingPlan({...editingPlan, price_amount: e.target.value})}
+                                        className="h-11 rounded-xl bg-blue-50/30 border-blue-100 font-bold"
+                                        placeholder="0"
+                                    />
+                                    <p className="text-[10px] text-slate-400">This is the actual amount Razorpay will collect.</p>
+                                </div>
+                                <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                                    <Label className="font-bold text-blue-900">Most Popular</Label>
                                     <Switch 
-                                        checked={editingPlan.is_popular}
+                                        checked={editingPlan?.is_popular || false}
                                         onCheckedChange={(v) => setEditingPlan({...editingPlan, is_popular: v})}
                                     />
                                 </div>
@@ -149,44 +249,74 @@ const PlanManager = () => {
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="font-bold text-slate-700">Description</Label>
+                                    <Label className="text-xs font-bold text-slate-500 uppercase">Description</Label>
                                     <Textarea 
-                                        value={editingPlan.description} 
+                                        value={editingPlan?.description || ""} 
                                         onChange={(e) => setEditingPlan({...editingPlan, description: e.target.value})}
-                                        className="h-24 rounded-xl border-slate-200"
+                                        className="h-24 rounded-xl bg-slate-50 border-slate-200 resize-none"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="font-bold text-slate-700">Features (One per line)</Label>
-                                    <Textarea 
-                                        value={editingPlan.features_text} 
-                                        onChange={(e) => setEditingPlan({...editingPlan, features_text: e.target.value})}
-                                        className="h-40 rounded-xl border-slate-200 font-medium leading-relaxed"
-                                        placeholder="Feature 1\nFeature 2..."
-                                    />
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-bold text-slate-500 uppercase">Plan Features</Label>
+                                        <Button 
+                                            size="sm" 
+                                            variant="ghost" 
+                                            onClick={handleAddFeature}
+                                            className="h-7 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                        >
+                                            <Plus className="h-3 w-3 mr-1" /> Add
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                        {editingPlan?.features.map((feature: string, idx: number) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <Input 
+                                                    value={feature}
+                                                    onChange={(e) => handleUpdateFeature(idx, e.target.value)}
+                                                    className="h-9 text-sm rounded-lg border-slate-200"
+                                                    placeholder="Enter feature..."
+                                                />
+                                                <Button 
+                                                    size="icon" 
+                                                    variant="ghost" 
+                                                    className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                                    onClick={() => handleRemoveFeature(idx)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+
+                                        {editingPlan?.features.length === 0 && (
+                                            <div className="text-center py-4 text-slate-400 text-xs italic border-2 border-dashed border-slate-100 rounded-xl">
+                                                No features added.
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
-                            <Button 
-                                variant="ghost" 
-                                onClick={() => setEditingPlan(null)}
-                                className="h-12 px-8 rounded-xl font-bold text-slate-500 hover:bg-slate-100"
-                            >
-                                Cancel
-                            </Button>
-                            <Button 
-                                onClick={handleSave} 
-                                disabled={saving}
-                                className="h-12 px-8 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 min-w-[140px]"
-                            >
-                                {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Save Changes</>}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                    <DialogFooter className="bg-slate-50 p-6 flex gap-3 sm:gap-0 mt-0">
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setEditingPlan(null)}
+                            className="rounded-xl font-bold text-slate-500 hover:bg-slate-200"
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleSave} 
+                            disabled={saving}
+                            className="rounded-xl font-bold bg-blue-600 hover:bg-blue-700 min-w-[120px] shadow-lg shadow-blue-600/20"
+                        >
+                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Save Changes</>}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {!plans.length && (
                 <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-start gap-4">
