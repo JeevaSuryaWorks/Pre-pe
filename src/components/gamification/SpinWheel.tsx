@@ -38,17 +38,6 @@ export function SpinWheel({ onSpinComplete, disabled }: SpinWheelProps) {
     setTimeout(() => {
       setIsSpinning(false);
       onSpinComplete(prize.value);
-      if (prize.value > 0) {
-        toast({
-          title: "Congratulations!",
-          description: `You won ${prize.value} Points!`,
-        });
-      } else {
-        toast({
-          title: "Better luck next time!",
-          description: `Sorry, you didn't win anything this time.`,
-        });
-      }
     }, 4000); 
   };
 

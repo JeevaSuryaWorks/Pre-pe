@@ -71,19 +71,11 @@ export default function RewardsDashboard() {
     
     // Prevent database calls for demo cards
     if (id.startsWith('demo-')) {
-      toast({
-        title: "Demo Card Scratched!",
-        description: `In a real account, you would have received ${value} rewards.`,
-      });
       return;
     }
 
     const success = await claimScratchCard(user.id, id);
     if (success) {
-      toast({
-        title: "Reward Claimed!",
-        description: `You've successfully claimed your reward. Your balance has been updated.`,
-      });
       loadData(true); // refresh
     } else {
       toast({
