@@ -19,7 +19,14 @@ const AdminLogin = () => {
         e.preventDefault();
         setLoading(true);
 
-        if (email !== 'connect.prepe@gmail.com') {
+        const AUTHORIZED_ADMINS = [
+            'connect.prepe@gmail.com',
+            'prepeindia@outlook.com',
+            'prepeindia@zohomail.in',
+            'jeevasuriya2007@gmail.com'
+        ];
+
+        if (!AUTHORIZED_ADMINS.includes(email)) {
             toast({
                 title: "Unauthorized Access",
                 description: "This portal is restricted to administrators only.",

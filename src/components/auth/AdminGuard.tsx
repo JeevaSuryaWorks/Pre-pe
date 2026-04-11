@@ -18,13 +18,23 @@ export const AdminGuard = () => {
         return <Navigate to="/admin/login" replace />;
     }
 
-    // Strict Email Check
-    if (user.email !== 'connect.prepe@gmail.com') {
+    // Strictly Authorized Admin Emails
+    const AUTHORIZED_ADMINS = [
+        'connect.prepe@gmail.com',
+        'prepeindia@outlook.com',
+        'prepeindia@zohomail.in',
+        'jeevasuriya2007@gmail.com'
+    ];
+
+    if (!AUTHORIZED_ADMINS.includes(user.email || '')) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
                 <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
                 <p className="text-slate-600 mb-4">You do not have permission to view this page.</p>
-                <a href="/home" className="text-blue-600 hover:underline">Return to Dashboard</a>
+                <div className="flex flex-col gap-2">
+                    <p className="text-xs text-slate-400">Authenticated as: {user.email}</p>
+                    <a href="/home" className="text-blue-600 hover:underline">Return to Dashboard</a>
+                </div>
             </div>
         );
     }
