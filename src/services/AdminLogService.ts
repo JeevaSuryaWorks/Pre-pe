@@ -17,6 +17,7 @@ interface LogEntry {
   stack?: string;
 }
 
+
 class AdminLogService {
   private originalConsole: Partial<Console> = {};
   private channel: any = null;
@@ -28,14 +29,14 @@ class AdminLogService {
       warn: console.warn,
       error: console.error,
     };
-    
+
     // Initialize channel
     this.channel = supabase.channel('admin_logs', {
       config: {
         broadcast: { self: true },
       },
     });
-    
+
     this.channel.subscribe();
   }
 
@@ -63,7 +64,7 @@ class AdminLogService {
 
   private broadcast(level: LogLevel, args: any[]) {
     try {
-      const message = args.map(arg => 
+      const message = args.map(arg =>
         typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
       ).join(' ');
 
@@ -92,7 +93,7 @@ class AdminLogService {
         payload,
       });
     } catch (err) {
-       // Silent fail during log broadcast to avoid recursion
+      // Silent fail during log broadcast to avoid recursion
     }
   }
 }
