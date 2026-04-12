@@ -27,21 +27,31 @@ export interface ScratchCard {
 }
 
 /**
- * Check if a user can spin today
+ * Check if a user can spin today (Rolling 24-hour window)
  */
 export async function canUserSpinToday(userId: string): Promise<boolean> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const lastTime = await getLastSpinTimestamp(userId);
+  if (!lastTime) return true;
   
-  const { data, error } = await supabase
-    .from('reward_points_ledger' as never)
-    .select('id')
-    .eq('user_id', userId)
-    .eq('event_type', 'SPIN_WHEEL')
-    .gte('created_at', today.toISOString());
+  const lastSpin = new Date(lastTime).getTime();
+  const nextAvailable = lastSpin + (24 * 60 * 60 * 1000);
+  return Date.now() >= nextAvailable;
+}
 
-  if (error) return false;
-  return data.length === 0;
+/**
+ * Get the timestamp of the last spin
+ */
+export async function getLastSpinTimestamp(userId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('reward_points_ledger' as never)
+      .select('created_at')
+      .eq('user_id', userId)
+      .eq('event_type', 'SPIN_WHEEL')
+      .order('created_at', { ascending: false })
+      .limit(1);
+  
+    if (error || !data || data.length === 0) return null;
+    return data[0].created_at;
 }
 
 /**
@@ -255,3 +265,57 @@ export async function initializeWelcomeCard(userId: string): Promise<void> {
       } as never);
   }
 }
+
+export async function getUserStreak(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('reward_points_ledger' as never)
+    .select('created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error || !data || data.length === 0) return 0;
+
+  const uniqueDays = Array.from(new Set(
+    data.map((row: any) => {
+      const d = new Date(row.created_at);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    })
+  ));
+
+  uniqueDays.sort((a, b) => b - a);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayTime = yesterday.getTime();
+
+  let streak = 0;
+  let lastTime: number;
+
+  if (uniqueDays[0] === todayTime) {
+    streak = 1;
+    lastTime = todayTime;
+  } else if (uniqueDays[0] === yesterdayTime) {
+    streak = 1;
+    lastTime = yesterdayTime;
+  } else {
+    return 0;
+  }
+
+  for (let i = 1; i < uniqueDays.length; i++) {
+    const expectedTime = lastTime - (24 * 60 * 60 * 1000);
+    if (uniqueDays[i] === expectedTime) {
+      streak++;
+      lastTime = expectedTime;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+

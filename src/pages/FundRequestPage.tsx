@@ -172,40 +172,42 @@ export const FundRequestPage = () => {
             navigate('/home');
         } catch (error: any) {
             toast.error(error.message || "Failed to submit request");
-        } finally {
-            setLoading(false);
         }
     };
 
     return (
         <Layout showBottomNav={true}>
             <div className="container max-w-md mx-auto py-8 space-y-6 px-4">
-                <h1 className="text-2xl font-bold text-center">Fund Request</h1>
+                <div className="flex flex-col items-center text-center gap-1">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight italic">Topup Wallet</h1>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">Secure UPI Gateway</p>
+                </div>
 
-                <Card className="shadow-lg border-slate-100">
-                    <CardHeader>
-                        <CardTitle>Add Money to Wallet</CardTitle>
-                        <CardDescription>Enter amount to add. Processing charges apply.</CardDescription>
+                <Card className="shadow-[0_20px_50px_rgba(0,0,0,0.05)] border-slate-100 rounded-[2.5rem] overflow-hidden">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-black tracking-tight">Add Money to Wallet</CardTitle>
+                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Direct wallet credit in seconds</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
 
                         {/* KYC Limit Banner */}
                         {!kycLoading && (
-                            <div className={`p-3 rounded-lg flex items-start gap-3 border ${isApproved ? 'bg-green-50 border-green-100' : 'bg-amber-50 border-amber-100'}`}>
-                                {isApproved ? (
-                                    <ShieldCheck className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                                ) : (
-                                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                                )}
+                            <div className={`p-4 rounded-3xl flex items-start gap-3 border ${isApproved ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                                <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${isApproved ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                    {isApproved ? (
+                                        <ShieldCheck className="w-5 h-5" />
+                                    ) : (
+                                        <AlertCircle className="w-5 h-5" />
+                                    )}
+                                </div>
                                 <div className="flex-1">
-                                    <p className={`text-sm font-semibold ${isApproved ? 'text-green-800' : 'text-amber-800'}`}>
-                                        {limits.name} Limit: ₹{DISPLAY_LIMIT === Infinity ? 'Unlimited' : DISPLAY_LIMIT.toLocaleString()} / day
+                                    <p className={`text-xs font-black uppercase tracking-wider ${isApproved ? 'text-emerald-800' : 'text-amber-800'}`}>
+                                        {limits.name} Limit
                                     </p>
-                                    <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider"> Max Balance: ₹{limits.maxWalletBalance.toLocaleString()} </p>
+                                    <p className="text-lg font-black text-slate-900">₹{DISPLAY_LIMIT === Infinity ? 'Unlimited' : DISPLAY_LIMIT.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold uppercase">/ day</span></p>
                                     {!isApproved && (
-                                        <p className="text-xs text-amber-600 mt-1">
-                                            KYC verification is required to unlock full services. 
-                                            {planId === 'BASIC' && ' Upgrade to Pro for ₹10,000 daily limit!'}
+                                        <p className="text-[10px] text-amber-700/70 mt-1 font-bold">
+                                            Complete KYC to unlock higher limits.
                                         </p>
                                     )}
                                 </div>
@@ -214,42 +216,41 @@ export const FundRequestPage = () => {
 
                         {isFallback ? (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="text-center p-4 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col items-center">
-                                    <div className="bg-white p-3 rounded-2xl shadow-sm mb-4">
-                                        {/* Use a simple QR code API for reliability */}
+                                <div className="text-center p-6 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center">
+                                    <div className="bg-white p-4 rounded-3xl shadow-sm mb-4 border border-slate-100">
                                         <img
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=jeevasuriya2007-1@okicici&pn=PrePe&am=${totalPayable}&cu=INR`)}`}
                                             alt="UPI QR Code"
-                                            className="w-48 h-48"
+                                            className="w-44 h-44"
                                         />
                                     </div>
-                                    <p className="text-sm font-bold text-indigo-900 mb-1">UPI ID: jeevasuriya2007-1@okicici</p>
-                                    <p className="text-xs text-indigo-600">Scan & Pay ₹{totalPayable}</p>
+                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">UPI ID</p>
+                                    <p className="text-sm font-black text-slate-800 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">jeevasuriya2007-1@okicici</p>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase ml-1">Transaction ID / Ref Number</label>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Transaction Ref Number</label>
                                         <Input
                                             placeholder="Eg: 4123891023..."
                                             value={transactionId}
                                             onChange={(e) => setTransactionId(e.target.value)}
-                                            className="bg-slate-50 border-slate-200 h-12 text-lg font-mono"
+                                            className="bg-slate-50 border-slate-200 h-14 text-lg font-black tracking-widest rounded-2xl"
                                         />
                                     </div>
                                     <Button
-                                        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 font-bold"
+                                        className="w-full h-14 bg-slate-900 hover:bg-indigo-600 font-black rounded-2xl shadow-xl shadow-slate-200 transition-all"
                                         onClick={handleManualSubmit}
                                         disabled={loading || !transactionId}
                                     >
-                                        {loading ? <Loader2 className="animate-spin mr-2" /> : "Request Admin to Fund"}
+                                        {loading ? <Loader2 className="animate-spin mr-2" /> : "Verify Payment"}
                                     </Button>
                                     <Button
                                         variant="ghost"
-                                        className="w-full text-slate-400 text-xs"
+                                        className="w-full text-slate-400 text-[10px] font-black uppercase tracking-widest"
                                         onClick={() => setIsFallback(false)}
                                     >
-                                        Try Online Payment Again
+                                        Back to Online Payment
                                     </Button>
                                 </div>
                             </div>
@@ -257,63 +258,65 @@ export const FundRequestPage = () => {
                             <>
                                 {/* Amount Input */}
                                 <div className="space-y-4">
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-3.5 text-xl font-bold text-slate-400">₹</span>
+                                    <div className="relative group">
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 group-focus-within:text-indigo-600 transition-colors">₹</span>
                                         <Input
                                             type="number"
-                                            className="pl-8 text-xl font-bold h-14 bg-slate-50 border-slate-200"
-                                            placeholder="1000"
+                                            className="pl-12 pr-6 text-3xl font-black h-20 bg-slate-50 border-slate-100 focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-50/50 rounded-2xl transition-all tabular-nums"
+                                            placeholder="0"
                                             value={amount}
                                             onChange={(e) => setAmount(e.target.value)}
                                         />
                                     </div>
-                                    {baseAmount > DISPLAY_LIMIT && DISPLAY_LIMIT !== Infinity && (
-                                        <p className="text-xs text-red-500 font-medium flex items-center gap-1">
-                                            <AlertCircle className="w-3 h-3" />
-                                            Amount exceeds your daily limit of ₹{DISPLAY_LIMIT.toLocaleString()}
-                                        </p>
-                                    )}
 
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm">
-                                        <div className="flex justify-between items-center font-bold text-lg text-slate-900">
-                                            <span>Amount to Add</span>
-                                            <span className="text-green-700">₹{baseAmount}</span>
+                                    {/* Quick Select Grid */}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[500, 1000, 5000].map(amt => (
+                                            <button
+                                                key={amt}
+                                                className={`h-12 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                                    (DISPLAY_LIMIT !== Infinity && amt > DISPLAY_LIMIT)
+                                                    ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                                                    : 'bg-white border border-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white shadow-sm active:scale-95'
+                                                }`}
+                                                onClick={() => (DISPLAY_LIMIT === Infinity || amt <= DISPLAY_LIMIT) && setAmount(amt.toString())}
+                                                disabled={DISPLAY_LIMIT !== Infinity && amt > DISPLAY_LIMIT}
+                                            >
+                                                ₹{amt}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-black text-indigo-900/60 uppercase tracking-widest">Total Payable</span>
+                                            <span className="text-2xl font-black text-indigo-900 tabular-nums">₹{baseAmount.toLocaleString()}</span>
                                         </div>
-                                        <p className="text-xs text-slate-400 mt-1">No processing charges — what you pay is what gets added.</p>
+                                        <p className="text-[9px] text-indigo-400 mt-1 font-bold uppercase tracking-wider">Zero processing fees applied</p>
                                     </div>
                                 </div>
 
-                                {/* Quick Select */}
-                                <div className="flex gap-2">
-                                    {[500, 1000, 5000].map(amt => (
-                                        <Button
-                                            key={amt}
-                                            variant="outline"
-                                            className={`flex-1 border-slate-200 ${amt > DISPLAY_LIMIT && DISPLAY_LIMIT !== Infinity ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:bg-slate-50'}`}
-                                            onClick={() => (DISPLAY_LIMIT === Infinity || amt <= DISPLAY_LIMIT) && setAmount(amt.toString())}
-                                            disabled={DISPLAY_LIMIT !== Infinity && amt > DISPLAY_LIMIT}
-                                        >
-                                            ₹{amt}
-                                        </Button>
-                                    ))}
-                                </div>
-
                                 <Button
-                                    className="w-full h-12 text-lg bg-slate-900 hover:bg-slate-800"
+                                    className="w-full h-16 text-lg font-black bg-slate-950 hover:bg-indigo-600 rounded-2xl shadow-2xl shadow-indigo-100 transition-all flex items-center justify-center gap-3 active:scale-95"
                                     onClick={handleInitiatePayment}
                                     disabled={loading || baseAmount <= 0 || (DISPLAY_LIMIT !== Infinity && baseAmount > DISPLAY_LIMIT) || kycLoading}
                                 >
-                                    {loading ? <Loader2 className="animate-spin mr-2" /> : <WalletIcon className="mr-2 h-5 w-5" />}
-                                    Pay ₹{totalPayable}
+                                    {loading ? <Loader2 className="animate-spin" /> : <WalletIcon className="h-6 w-6" />}
+                                    Initiate Recharge
                                 </Button>
 
-                                <Button
-                                    variant="link"
-                                    className="w-full text-slate-400 text-xs mt-2"
-                                    onClick={() => setIsFallback(true)}
-                                >
-                                    Having trouble? Pay via UPI QR
-                                </Button>
+                                <div className="flex flex-col items-center gap-3 mt-4">
+                                    <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                                        RBI Regulated Gateway
+                                    </div>
+                                    <button
+                                        className="text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] hover:text-indigo-600 transition-colors"
+                                        onClick={() => setIsFallback(true)}
+                                    >
+                                        Payment Failed? Use QR
+                                    </button>
+                                </div>
                             </>
                         )}
                     </CardContent>

@@ -167,7 +167,6 @@ const ProfilePage = () => {
                         <SettingItem icon={History} title="Transactions History" subtitle="Recharge, Bill, etc." colorClass="text-cyan-600" bgClass="bg-cyan-50" onClick={() => navigate('/transactions')} />
                         <SettingItem icon={Headphones} title="24x7 Help & Support" subtitle="Support, FAQ" colorClass="text-pink-600" bgClass="bg-pink-50" onClick={() => navigate('/contact')} />
                         <SettingItem icon={Share2} title="Refer & Earn" subtitle="Cashback every time" colorClass="text-indigo-600" bgClass="bg-indigo-50" onClick={() => navigate('/profile/refer')} />
-                        <SettingItem icon={Tag} title="Cashback & Offers" subtitle="Reward Points, Vouchers" colorClass="text-yellow-600" bgClass="bg-yellow-50" onClick={() => navigate('/profile/offers')} />
                     </div>
 
                     {/* Review & Policy Group */}

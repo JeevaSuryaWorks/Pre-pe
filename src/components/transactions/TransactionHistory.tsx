@@ -14,7 +14,8 @@ import { format } from 'date-fns';
 import type { Transaction } from '@/types/recharge.types';
 import { addSavedItem, removeSavedItem, checkIsFavorite } from '@/services/saved.service';
 import { toast } from '@/hooks/use-toast';
-import { Heart } from 'lucide-react';
+import { Heart, Download, Share2 } from 'lucide-react';
+import { generateHistoryPDF, sharePDF } from '@/utils/pdfExport';
 
 export function TransactionHistory() {
   const { user } = useAuth();
@@ -160,6 +161,31 @@ export function TransactionHistory() {
     return matchesSearch && matchesDate;
   });
 
+  const handleExport = async (mode: 'download' | 'share') => {
+    if (!user || filteredTransactions.length === 0) return;
+
+    try {
+        const doc = await generateHistoryPDF(filteredTransactions, {
+            id: user.id,
+            name: user.email?.split('@')[0],
+            phone: user.phone
+        }, "Transaction History Statement");
+
+        if (mode === 'share') {
+            const shared = await sharePDF(doc, `Prepe_History_${format(new Date(), 'yyyyMMdd')}.pdf`);
+            if (shared) {
+                toast({ title: "History Shared", description: "Your PDF statement has been shared successfully." });
+            }
+        } else {
+            doc.save(`Prepe_History_${format(new Date(), 'yyyyMMdd')}.pdf`);
+            toast({ title: "History Downloaded", description: "Your transaction records are ready." });
+        }
+    } catch (error) {
+        console.error("Export error:", error);
+        toast({ variant: "destructive", title: "Export Failed", description: "There was an error generating your PDF report." });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters Header */}
@@ -208,6 +234,26 @@ export function TransactionHistory() {
             />
           </PopoverContent>
         </Popover>
+        <div className="flex gap-2">
+            <Button 
+                variant="outline" 
+                size="icon" 
+                className="bg-white border-slate-200"
+                onClick={() => handleExport('download')}
+                title="Download History"
+            >
+                <Download className="h-4 w-4 text-slate-600" />
+            </Button>
+            <Button 
+                variant="outline" 
+                size="icon" 
+                className="bg-white border-slate-200"
+                onClick={() => handleExport('share')}
+                title="Share History"
+            >
+                <Share2 className="h-4 w-4 text-slate-600" />
+            </Button>
+        </div>
       </div>
 
       {loading ? (

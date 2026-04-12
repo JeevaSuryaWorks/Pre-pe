@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useState } from 'react';
 import { getWalletLedger } from '@/services/wallet.service';
 import { format } from 'date-fns';
+import { generateTransactionPDF, sharePDF } from '@/utils/pdfExport';
+import { Share2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface LedgerEntry {
     id: string;
@@ -23,6 +26,7 @@ interface LedgerEntry {
 const LedgerPage = () => {
     const navigate = useNavigate();
     const { user, loading } = useAuth();
+    const { toast } = useToast();
     const [ledger, setLedger] = useState<LedgerEntry[]>([]);
     const [filteredLedger, setFilteredLedger] = useState<LedgerEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -59,6 +63,31 @@ const LedgerPage = () => {
 
         setFilteredLedger(result);
     }, [ledger, searchQuery, typeFilter]);
+
+    const handleExport = async (mode: 'download' | 'share') => {
+        if (!user || filteredLedger.length === 0) return;
+
+        try {
+            const doc = await generateTransactionPDF(filteredLedger, {
+                id: user.id,
+                name: user.email?.split('@')[0],
+                phone: user.phone
+            }, "Wallet Activity Statement");
+
+            if (mode === 'share') {
+                const shared = await sharePDF(doc, `Prepe_Statement_${format(new Date(), 'yyyyMMdd')}.pdf`);
+                if (shared) {
+                    toast({ title: "Statement Shared", description: "Your PDF statement has been shared successfully." });
+                }
+            } else {
+                doc.save(`Prepe_Statement_${format(new Date(), 'yyyyMMdd')}.pdf`);
+                toast({ title: "Statement Downloaded", description: "Your account statement is ready." });
+            }
+        } catch (error) {
+            console.error("Export error:", error);
+            toast({ variant: "destructive", title: "Export Failed", description: "There was an error generating your PDF statement." });
+        }
+    };
 
 
     const getTypeIcon = (type: string) => {
@@ -146,9 +175,26 @@ const LedgerPage = () => {
                                 <SelectItem value="REFUND">Refunds</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button variant="outline" size="icon" className="shrink-0 border-slate-200">
-                            <Download className="h-4 w-4 text-slate-600" />
-                        </Button>
+                        <div className="flex gap-1 shrink-0">
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="border-slate-200 hover:bg-slate-50 transition-colors"
+                                onClick={() => handleExport('download')}
+                                title="Download PDF"
+                            >
+                                <Download className="h-4 w-4 text-slate-600" />
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="border-slate-200 hover:bg-slate-50 transition-colors"
+                                onClick={() => handleExport('share')}
+                                title="Share Statement"
+                            >
+                                <Share2 className="h-4 w-4 text-slate-600" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 

@@ -7,7 +7,8 @@ import { ScratchCardItem } from '@/components/gamification/ScratchCardList';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Coins, CalendarDays, History, TrendingUp, Award, Sparkles } from 'lucide-react';
+import { Loader2, Coins, CalendarDays, History, TrendingUp, Award, Sparkles, Zap, Ticket, Banknote } from 'lucide-react';
+import { useKYC } from '@/hooks/useKYC';
 import { 
   getUserTotalPoints, 
   getPointsHistory, 
@@ -16,6 +17,8 @@ import {
   addRewardPoints, 
   canUserSpinToday,
   initializeWelcomeCard,
+  getUserStreak,
+  getLastSpinTimestamp,
   RewardPointsLedger, 
   ScratchCard 
 } from '@/services/rewards.service';
@@ -28,8 +31,12 @@ export default function RewardsDashboard() {
   const [history, setHistory] = useState<RewardPointsLedger[]>([]);
   const [scratchCards, setScratchCards] = useState<ScratchCard[]>([]);
   const [canSpin, setCanSpin] = useState<boolean>(true);
+  const [lastSpinTime, setLastSpinTime] = useState<string | null>(null);
+  const [streak, setStreak] = useState<number>(1);
+  const [cashback, setCashback] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const { isApproved, isLoading: kycLoading } = useKYC();
 
   const loadData = async (isRefresh = false) => {
     if (!user) return;
@@ -39,16 +46,20 @@ export default function RewardsDashboard() {
       // Ensure welcome card exists for the user
       await initializeWelcomeCard(user.id);
 
-      const [points, hist, cards, daySpin] = await Promise.all([
+      const [points, hist, cards, daySpin, currentStreak, lastTime] = await Promise.all([
         getUserTotalPoints(user.id),
         getPointsHistory(user.id),
         getUserScratchCards(user.id),
-        canUserSpinToday(user.id)
+        canUserSpinToday(user.id),
+        getUserStreak(user.id),
+        getLastSpinTimestamp(user.id)
       ]);
       setTotalPoints(points);
       setHistory(hist);
       setScratchCards(cards);
       setCanSpin(daySpin);
+      setStreak(currentStreak);
+      setLastSpinTime(lastTime);
     } catch (error) {
       console.error(error);
     } finally {
@@ -92,7 +103,7 @@ export default function RewardsDashboard() {
 
   if (isInitialLoading) {
      return (
-        <Layout>
+        <Layout showBottomNav={true}>
             <div className="flex h-[60vh] flex-col items-center justify-center">
                 <div className="relative">
                     <Loader2 className="w-16 h-16 animate-spin text-indigo-600 mb-4" />
@@ -129,7 +140,7 @@ export default function RewardsDashboard() {
   };
 
   return (
-    <Layout>
+    <Layout showBottomNav={true}>
       <div className="relative min-h-screen bg-slate-50/50 pb-20">
         {/* Animated Background Blobs */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -143,7 +154,7 @@ export default function RewardsDashboard() {
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative flex flex-col items-center justify-between gap-10 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-10 py-16 rounded-[4rem] text-white shadow-[0_40px_80px_rgba(0,0,0,0.3)] border border-white/5 overflow-hidden text-center"
+            className="group relative flex flex-col items-center justify-between gap-8 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-8 py-12 rounded-[3.5rem] text-white shadow-[0_40px_80px_rgba(0,0,0,0.3)] border border-white/5 overflow-hidden text-center"
           >
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] transform translate-x-1/2 -translate-y-1/2"></div>
@@ -151,47 +162,76 @@ export default function RewardsDashboard() {
               <div className="space-y-6 relative z-10 w-full max-w-2xl">
                   <div className="relative inline-block">
                       <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
-                      <div className="bg-white/10 px-6 py-2 rounded-full backdrop-blur-3xl border border-white/20 flex items-center gap-2 mb-4 mx-auto w-fit">
-                          <TrendingUp className="w-4 h-4 text-emerald-400" />
-                          <span className="tracking-widest uppercase text-[10px] font-black text-indigo-200">Executive Rewards</span>
+                      <div className="bg-white/10 px-5 py-1.5 rounded-full backdrop-blur-3xl border border-white/20 flex items-center gap-2 mb-3 mx-auto w-fit">
+                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="tracking-widest uppercase text-[9px] font-black text-indigo-200">Executive Rewards</span>
                       </div>
                       <div className="flex items-baseline justify-center gap-3">
-                          <h2 className="text-8xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
+                          <h2 className="text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
                               {totalPoints.toLocaleString()}
                           </h2>
-                          <span className="text-3xl text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
+                          <span className="text-xl text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
                       </div>
                   </div>
-                  <p className="text-indigo-200/60 font-medium text-lg max-w-md mx-auto leading-relaxed">
-                      You are an <span className="text-white font-bold">Elite</span> member. Keep transacting to unlock executive cashbacks and mystery Hubble vouchers.
-                  </p>
+
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-6 w-full relative z-10">
-                   <div className="bg-white/5 hover:bg-white/10 backdrop-blur-2xl rounded-[2rem] p-6 px-10 border border-white/10 transition-all group/card flex flex-col items-center min-w-[180px]">
-                       <div className="flex items-center gap-3 mb-2">
-                          <CalendarDays className="w-5 h-5 text-indigo-300" />
-                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300/80">My Streak</p>
-                       </div>
-                       <p className="text-3xl font-black">1 <span className="text-xs font-bold text-slate-400 ml-1">Day</span></p>
-                   </div>
-                   <div className="bg-white/5 hover:bg-white/10 backdrop-blur-2xl rounded-[2rem] p-6 px-10 border border-white/10 transition-all group/card flex flex-col items-center min-w-[180px]">
-                       <div className="flex items-center gap-3 mb-2">
-                          <Award className="w-5 h-5 text-emerald-400" />
-                          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/80">Membership</p>
-                       </div>
-                       <p className="text-3xl font-black text-emerald-400">GOLD</p>
-                   </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 w-full relative z-10">
+                    {/* Current Streak Card */}
+                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-[2rem] p-6 px-10 border border-white/10 transition-all group/card flex flex-col items-center min-w-[200px] shadow-2xl">
+                        <div className="flex items-center gap-3 mb-2">
+                           <div className="p-1.5 bg-indigo-500/20 rounded-lg">
+                              <CalendarDays className="w-5 h-5 text-indigo-300" />
+                           </div>
+                           <p className="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300/80">Current Streak</p>
+                        </div>
+                        <p className="text-4xl font-black tabular-nums tracking-tighter text-white">
+                          {streak} <span className="text-[9px] font-black text-indigo-300/40 uppercase tracking-widest ml-1">{streak === 1 ? 'Day' : 'Days'}</span>
+                        </p>
+                    </div>
+
+                    {/* Cashback Card */}
+                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-[2rem] p-6 px-10 border border-white/10 transition-all group/card flex flex-col items-center min-w-[200px] shadow-2xl">
+                        <div className="flex items-center gap-3 mb-2">
+                           <div className="p-1.5 bg-emerald-500/20 rounded-lg">
+                              <Banknote className="w-5 h-5 text-emerald-400" />
+                           </div>
+                           <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-400/80">Cashback Earned</p>
+                        </div>
+                        <p className="text-4xl font-black tabular-nums tracking-tighter text-white font-mono">
+                          ₹{kycLoading ? "..." : (isApproved ? cashback.toFixed(2) : "**.**")}
+                        </p>
+                    </div>
               </div>
           </motion.div>
 
           {/* Content Sections */}
           <Tabs defaultValue="spin" className="w-full">
-            <div className="flex items-center justify-center mb-14">
-                <TabsList className="h-16 bg-white/40 backdrop-blur-3xl p-2 rounded-full border border-white/40 shadow-2xl overflow-hidden ring-1 ring-black/5">
-                  <TabsTrigger value="spin" className="px-10 h-full rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-2xl transition-all font-bold tracking-tight text-slate-500">Daily Spin</TabsTrigger>
-                  <TabsTrigger value="vouchers" className="px-10 h-full rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-2xl transition-all font-bold tracking-tight text-slate-500">Scratch Cards</TabsTrigger>
-                  <TabsTrigger value="history" className="px-10 h-full rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-2xl transition-all font-bold tracking-tight text-slate-500">History</TabsTrigger>
+            <div className="flex items-center justify-center mb-14 px-4">
+                <TabsList className="h-16 bg-white/60 backdrop-blur-3xl p-1.5 rounded-full border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden ring-1 ring-black/5 w-full max-w-lg grid grid-cols-3 relative">
+                  <TabsTrigger 
+                    value="spin" 
+                    className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all font-black text-[10px] uppercase tracking-wider text-slate-500 py-3 px-2 h-full"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">Daily Spin</span>
+                    <span className="xs:hidden">Spin</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="vouchers" 
+                    className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all font-black text-[10px] uppercase tracking-wider text-slate-500 py-3 px-2 h-full"
+                  >
+                    <Ticket className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">Scratch Cards</span>
+                    <span className="xs:hidden">Cards</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="history" 
+                    className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all font-black text-[10px] uppercase tracking-wider text-slate-500 py-3 px-2 h-full"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    <span>History</span>
+                  </TabsTrigger>
                 </TabsList>
             </div>
 
@@ -214,7 +254,11 @@ export default function RewardsDashboard() {
                                 Test your luck today! You can win up to <span className="text-indigo-600 font-bold">500 Reward Points</span> or exclusive cash bonuses.
                              </p>
                           </div>
-                          <SpinWheel onSpinComplete={handleSpinComplete} disabled={!canSpin} />
+                           <SpinWheel 
+                              onSpinComplete={handleSpinComplete} 
+                              disabled={!canSpin} 
+                              lastSpinTime={lastSpinTime}
+                           />
                       </CardContent>
                    </Card>
                 </motion.div>

@@ -1,67 +1,163 @@
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Gift, Coins, Zap, Star, Lock, Timer } from 'lucide-react';
+import { Gift, Coins, Zap, Star, Timer, Sparkles, Trophy } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SpinWheelProps {
   onSpinComplete: (points: number) => void;
   disabled?: boolean;
+  lastSpinTime?: string | null;
 }
 
 const slices = [
-  { id: 1, label: '50 Pts', value: 50, color: 'from-amber-400 to-yellow-500', icon: Star },
-  { id: 2, label: '10 Pts', value: 10, color: 'from-rose-400 to-red-500', icon: Coins },
-  { id: 3, label: '200 Pts', value: 200, color: 'from-emerald-400 to-green-500', icon: Zap },
-  { id: 4, label: 'Oops', value: 0, color: 'from-slate-400 to-slate-500', icon: Gift },
-  { id: 5, label: '100 Pts', value: 100, color: 'from-indigo-400 to-blue-500', icon: Star },
-  { id: 6, label: '20 Pts', value: 20, color: 'from-violet-400 to-purple-500', icon: Coins },
+  { id: 1, label: '50 Pts', value: 50, color: 'from-amber-400 to-yellow-600', icon: Star },
+  { id: 2, label: '10 Pts', value: 10, color: 'from-rose-500 to-red-600', icon: Coins },
+  { id: 3, label: '500 Pts', value: 500, color: 'from-indigo-600 to-violet-700', icon: Trophy },
+  { id: 4, label: 'Oops', value: 0, color: 'from-slate-500 to-slate-700', icon: Gift },
+  { id: 5, label: '100 Pts', value: 100, color: 'from-emerald-500 to-green-600', icon: Zap },
+  { id: 6, label: '25 Pts', value: 25, color: 'from-sky-400 to-blue-600', icon: Coins },
+  { id: 7, label: 'Bonus', value: 150, color: 'from-fuchsia-500 to-purple-600', icon: Sparkles },
+  { id: 8, label: '5 Pts', value: 5, color: 'from-orange-400 to-orange-600', icon: Coins },
 ];
 
-export function SpinWheel({ onSpinComplete, disabled }: SpinWheelProps) {
+export function SpinWheel({ onSpinComplete, disabled, lastSpinTime }: SpinWheelProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const { toast } = useToast();
+  const [showPrize, setShowPrize] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const pointerControls = useAnimation();
+  
+  // Calculate time until next spin (rolling 24h)
+  const calculateTimeLeft = useCallback(() => {
+    if (!lastSpinTime) return 0;
+    const lastSpin = new Date(lastSpinTime).getTime();
+    const now = Date.now();
+    const diff = (lastSpin + 24 * 60 * 60 * 1000) - now;
+    return Math.max(0, Math.floor(diff / 1000));
+  }, [lastSpinTime]);
+
+  useEffect(() => {
+    const initialTime = calculateTimeLeft();
+    setTimeLeft(initialTime);
+
+    if (initialTime > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+           if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+           }
+           return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [calculateTimeLeft, lastSpinTime]); // Added lastSpinTime to dependencies to ensure timer restarts after a successful spin
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
   
   const spin = () => {
-    if (isSpinning || disabled) return;
+    if (isSpinning || disabled || timeLeft > 0) return;
     setIsSpinning(true);
+    setShowPrize(null);
     
     const prizeIndex = Math.floor(Math.random() * slices.length);
     const prize = slices[prizeIndex];
     
     const sliceAngle = 360 / slices.length;
-    const targetAngle = 360 * 5 + (slices.length - prizeIndex - 0.5) * sliceAngle;
+    const targetAngle = 360 * 8 + (slices.length - prizeIndex - 0.5) * sliceAngle;
     
     setRotation(prev => prev + targetAngle);
     
+    // Ticking animation
+    const tickInterval = setInterval(() => {
+        pointerControls.start({
+            rotate: [0, -15, 0],
+            transition: { duration: 0.1 }
+        });
+    }, 150);
+
     setTimeout(() => {
+      clearInterval(tickInterval);
       setIsSpinning(false);
-      onSpinComplete(prize.value);
-    }, 4000); 
+      setShowPrize(prize.value);
+      
+      setTimeout(() => {
+        onSpinComplete(prize.value);
+      }, 1500);
+    }, 4500); 
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center space-y-12">
-      <div className="relative w-80 h-80 md:w-96 md:h-96">
-        
-        {/* Outer Ring Decorations */}
-        <div className="absolute -inset-4 border-2 border-dashed border-slate-200 rounded-full animate-spin-slow opacity-20" />
-        <div className="absolute -inset-8 border-1 border-slate-100 rounded-full opacity-10" />
+  // Only lock if we actually have time remaining. 
+  // We prioritize the timer over the 'disabled' prop to prevent the 00:00:00 lock bug.
+  const isActuallyDisabled = (timeLeft > 0 || (disabled && !lastSpinTime)) && !isSpinning;
 
-        {/* Pointer */}
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-10 h-10 z-30 drop-shadow-[0_10px_10px_rgba(0,0,0,0.2)]">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="text-slate-900 drop-shadow-lg">
-                <path d="M12 2L4 20h16L12 2z" />
-            </svg>
+  return (
+    <div className="flex flex-col items-center justify-center space-y-10">
+      <div className="relative w-72 h-72 md:w-80 md:h-80">
+        
+        {/* Outer Metallic Rim with Lights */}
+        <div className="absolute -inset-6 rounded-full bg-gradient-to-br from-slate-200 via-slate-400 to-slate-300 shadow-[0_0_50px_rgba(0,0,0,0.2)] p-1.5 overflow-hidden">
+            <div className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent,rgba(255,255,255,0.4),transparent)] animate-spin-slow pointer-events-none" />
+            
+            {/* LED Dots around the rim */}
+            {[...Array(12)].map((_, i) => (
+                <motion.div
+                    key={i}
+                    animate={isSpinning ? { 
+                        opacity: [0.3, 1, 0.3],
+                        scale: [0.8, 1.2, 0.8],
+                        backgroundColor: i % 2 === 0 ? '#fbbf24' : '#6366f1'
+                    } : { opacity: 0.6 }}
+                    transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                    className="absolute w-2 h-2 rounded-full bg-white shadow-[0_0_10px_white]"
+                    style={{
+                        top: '50%',
+                        left: '50%',
+                        transform: `translate(-50%, -50%) rotate(${i * 30}deg) translateY(-144px)`
+                    }}
+                />
+            ))}
+            
+            <div className="w-full h-full rounded-full bg-slate-900 shadow-inner" />
         </div>
 
+        {/* Pointer (The Needle) */}
+        <motion.div 
+            animate={pointerControls}
+            className="absolute -top-10 left-1/2 -translate-x-1/2 w-12 h-16 z-30 drop-shadow-2xl"
+        >
+            <div className="relative w-full h-full flex justify-center">
+                <svg viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                    <path d="M20 60L5 10C5 10 5 0 20 0C35 0 35 10 35 10L20 60Z" fill="url(#needle-grad)" />
+                    <circle cx="20" cy="15" r="5" fill="white" fillOpacity="0.5" />
+                    <defs>
+                        <linearGradient id="needle-grad" x1="20" y1="0" x2="20" y2="60" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#1e293b" />
+                            <stop offset="1" stopColor="#0f172a" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+        </motion.div>
+
         {/* Wheel container */}
-        <div className="relative w-full h-full p-2 bg-white rounded-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] border-4 border-slate-50">
+        <div className={cn(
+            "relative w-full h-full p-1.5 bg-slate-950 rounded-full shadow-2xl border-4 border-slate-800 overflow-hidden transition-all duration-700",
+            isActuallyDisabled && "opacity-40 grayscale-[0.5] scale-95"
+        )}>
+          {/* Slices */}
           <motion.div
-            className="w-full h-full rounded-full relative overflow-hidden ring-4 ring-slate-100/50"
+            className="w-full h-full rounded-full relative overflow-hidden"
             animate={{ rotate: rotation }}
-            transition={{ duration: 4, ease: [0.1, 0.9, 0.2, 1] }} 
+            transition={{ duration: 4.5, ease: [0.15, 0, 0.15, 1] }} 
           >
             {slices.map((slice, index) => {
               const angle = (360 / slices.length) * index;
@@ -69,61 +165,116 @@ export function SpinWheel({ onSpinComplete, disabled }: SpinWheelProps) {
               return (
                 <div
                   key={slice.id}
-                  className={`absolute w-[50%] h-[50%] top-0 right-0 origin-bottom-left flex items-center justify-center border-l-2 border-white/30 transition-all bg-gradient-to-br ${slice.color}`}
+                  className={cn(
+                    "absolute w-[50%] h-[50%] top-0 right-0 origin-bottom-left flex items-center justify-center border-l border-white/10 transition-all bg-gradient-to-br",
+                    slice.color
+                  )}
                   style={{
                     transform: `rotate(${angle}deg)`,
                     clipPath: 'polygon(0 100%, 100% 0, 100% 100%)',
                   }}
                 >
                    <div 
-                      className="absolute bottom-6 right-6 flex flex-col items-center transform -rotate-45"
+                      className="absolute bottom-4 right-4 flex flex-col items-center transform -rotate-[22.5deg] scale-90 md:scale-100"
                    >
-                      <Icon className="w-6 h-6 text-white mb-2 drop-shadow-md" />
-                      <span className="text-white font-black text-xs md:text-sm tracking-tighter uppercase drop-shadow-md">{slice.label}</span>
+                      <Icon className="w-5 h-5 text-white mb-1 drop-shadow-lg" />
+                      <span className="text-white font-black text-[9px] md:text-[10px] tracking-tighter uppercase drop-shadow-lg whitespace-nowrap">
+                        {slice.label}
+                      </span>
                    </div>
                 </div>
               );
             })}
           </motion.div>
 
+          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-black/20 via-transparent to-white/10 pointer-events-none z-10" />
+          <div className="absolute inset-4 border border-white/5 rounded-full pointer-events-none z-10" />
+
           {/* Center piece */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white rounded-full p-1.5 shadow-2xl z-20">
-              <div className="w-full h-full bg-slate-950 rounded-full border-4 border-slate-50 flex items-center justify-center shadow-inner group overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-transparent animate-pulse" />
-                  <span className="text-white font-black text-[10px] tracking-widest relative z-10 transition-transform group-hover:scale-110">LUCKY</span>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-300 rounded-full p-1 shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-20">
+              <div className="w-full h-full bg-slate-950 rounded-full border-2 border-slate-50 flex items-center justify-center shadow-inner overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/30 to-transparent animate-pulse" />
+                  <Star className={cn("w-6 h-6 text-yellow-400 relative z-10", isSpinning && "animate-spin")} />
               </div>
           </div>
         </div>
 
-        {/* Daily Limit Overlay */}
+        {/* Big Reward Celebration */}
         <AnimatePresence>
-            {disabled && !isSpinning && (
+            {showPrize !== null && (
+                <motion.div 
+                   initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                   exit={{ opacity: 0, scale: 0.5 }}
+                   className="absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none"
+                >
+                    <div className="bg-white rounded-full p-8 shadow-[0_0_60px_rgba(79,70,229,0.5)] border-4 border-indigo-100 flex flex-col items-center">
+                        <Sparkles className="w-10 h-10 text-yellow-500 mb-2 animate-bounce" />
+                        <h2 className="text-4xl font-black text-slate-950 tracking-tighter">WINNER!</h2>
+                        <p className="text-2xl font-black text-indigo-600">+{showPrize} PTS</p>
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Rolling 24h Timer Overlay */}
+        <AnimatePresence>
+            {isActuallyDisabled && (
                 <motion.div 
                     initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                    animate={{ opacity: 1, backdropFilter: 'blur(10px)' }}
-                    className="absolute inset-0 z-40 rounded-full bg-slate-900/40 flex flex-col items-center justify-center text-white p-10 text-center"
+                    animate={{ opacity: 1, backdropFilter: 'blur(8px)' }}
+                    exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                    className="absolute inset-0 z-40 rounded-full bg-slate-900/60 flex flex-col items-center justify-center text-white p-6 text-center"
                 >
-                    <div className="bg-white/20 p-4 rounded-3xl mb-4 border border-white/20">
-                        <Timer className="w-10 h-10 text-white" />
+                    <div className="bg-indigo-500/20 p-4 rounded-3xl mb-4 border border-white/10 shadow-2xl">
+                        <Timer className="w-8 h-8 text-white animate-pulse" />
                     </div>
-                    <h4 className="font-black text-xl uppercase tracking-tight mb-2">Check Back Tomorrow</h4>
-                    <p className="text-xs font-medium text-white/70 leading-relaxed uppercase tracking-widest">You have used your free daily spin. Reset at midnight.</p>
+                    <h4 className="font-black text-lg uppercase tracking-tight mb-2">Next Spin Available</h4>
+                    <div className="bg-white/10 px-6 py-2 rounded-2xl border border-white/5 font-mono text-xl font-black tracking-widest text-indigo-300">
+                        {formatTime(timeLeft)}
+                    </div>
+                    <p className="text-[9px] font-bold text-white/40 leading-tight uppercase tracking-[0.2em] mt-4 max-w-[150px]">
+                        Rolling 24-hour reward system
+                    </p>
                 </motion.div>
             )}
         </AnimatePresence>
       </div>
 
-      <Button 
-        onClick={spin} 
-        disabled={isSpinning || disabled}
-        className="w-full max-w-sm h-16 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-black hover:to-slate-950 text-white font-black text-xl rounded-[2rem] shadow-2xl transform active:scale-95 transition-all group overflow-hidden relative"
-      >
-        <span className="relative z-10 flex items-center gap-3">
-            {isSpinning ? 'SPINNING...' : (disabled ? 'SPUN TODAY' : 'SPIN TO WIN!')}
-            {!isSpinning && !disabled && <Star className="w-5 h-5 text-yellow-400 animate-pulse" />}
-        </span>
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-violet-600/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-      </Button>
+      <div className="w-full max-w-xs space-y-4">
+          <Button 
+            onClick={spin} 
+            disabled={isSpinning || isActuallyDisabled}
+            className={cn(
+                "w-full h-14 bg-slate-950 hover:bg-black text-white font-black text-lg rounded-2xl shadow-xl transition-all group overflow-hidden relative border border-white/5",
+                isActuallyDisabled && "bg-slate-900/50 text-slate-500 cursor-not-allowed border-slate-800 shadow-none"
+            )}
+          >
+            <span className="relative z-10 flex items-center justify-center gap-3">
+                {isSpinning ? (
+                    <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        SPINNING...
+                    </>
+                 ) : (isActuallyDisabled ? formatTime(timeLeft) : 'SPIN TO WIN!')}
+                {!isSpinning && !isActuallyDisabled && <Zap className="w-4 h-4 text-emerald-400 fill-current animate-pulse" />}
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
+          </Button>
+          
+          {!isActuallyDisabled && !isSpinning && (
+            <p className="text-[10px] text-slate-400 text-center font-black uppercase tracking-widest animate-pulse">
+                Click to unlock executive rewards
+            </p>
+          )}
+      </div>
     </div>
   );
 }
+
+const Loader2 = ({ className }: { className?: string }) => (
+  <svg className={cn("animate-spin", className)} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+);
