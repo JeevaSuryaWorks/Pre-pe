@@ -95,11 +95,7 @@ export default function RewardsDashboard() {
     if (success) {
       loadData(true); // refresh
     } else {
-      toast({
-        variant: 'destructive',
-        title: "Error",
-        description: "Could not claim this reward. Please try again.",
-      });
+      console.warn("Could not claim reward: Database table 'scratch_cards' might be missing or RLS is blocking access.");
     }
   };
   
