@@ -163,7 +163,7 @@ const ProfilePage = () => {
                         <SettingItem icon={User} title="Profile Settings" subtitle="Name, Email Id" colorClass="text-blue-600" bgClass="bg-blue-50" onClick={() => navigate('/profile/edit')} />
                         <SettingItem icon={Palette} title="Theme Settings" subtitle="Dark, Light, System" colorClass="text-purple-600" bgClass="bg-purple-50" onClick={() => navigate('/profile/theme')} />
                         <SettingItem icon={Lock} title="Security Settings" subtitle="App lock, M-Pin" colorClass="text-orange-600" bgClass="bg-orange-50" onClick={() => navigate('/profile/security')} />
-                        <SettingItem icon={FileCheck} title="KYC / Upgrade Account" subtitle="Identity Verification" colorClass="text-green-600" bgClass="bg-green-50" onClick={() => navigate('/profile/kyc')} />
+
                         <SettingItem icon={History} title="Transactions History" subtitle="Recharge, Bill, etc." colorClass="text-cyan-600" bgClass="bg-cyan-50" onClick={() => navigate('/transactions')} />
                         <SettingItem icon={Headphones} title="24x7 Help & Support" subtitle="Support, FAQ" colorClass="text-pink-600" bgClass="bg-pink-50" onClick={() => navigate('/contact')} />
                         <SettingItem icon={Share2} title="Refer & Earn" subtitle="Cashback every time" colorClass="text-indigo-600" bgClass="bg-indigo-50" onClick={() => navigate('/profile/refer')} />

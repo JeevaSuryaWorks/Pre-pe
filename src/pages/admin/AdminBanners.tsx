@@ -45,6 +45,9 @@ interface Banner {
     grad_to: string;
     icon_name: string;
     status: 'draft' | 'published';
+    type: 'banner' | 'announcement';
+    style: 'card' | 'voucher';
+    image_url?: string;
     sort_order: number;
     created_at: string;
 }
@@ -191,6 +194,8 @@ const newBanner = (): Omit<Banner, 'id' | 'created_at'> => ({
     grad_to: '#16a34a',
     icon_name: 'MessageCircle',
     status: 'draft',
+    type: 'banner',
+    style: 'card',
     sort_order: 99,
 });
 
@@ -320,13 +325,34 @@ const AdminBanners = () => {
                                     <div className="flex-1 flex flex-col md:flex-row items-start md:items-center gap-3 p-4">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <Badge className={cn('text-[10px] font-bold rounded-full border',
+                                                <Badge className={cn('text-[10px] font-bold rounded-full border px-2',
                                                     b.status === 'published'
                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                                         : 'bg-amber-50 text-amber-700 border-amber-200'
                                                 )}>
                                                     {b.status === 'published' ? '🌐 Published' : '📝 Draft'}
                                                 </Badge>
+                                                <Badge className={cn('text-[10px] font-bold rounded-full border px-2',
+                                                    b.type === 'banner'
+                                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                )}>
+                                                    {b.type === 'banner' ? '💎 Banner' : '📣 Alert'}
+                                                </Badge>
+                                                {b.type === 'banner' && (
+                                                    <Badge className={cn('text-[10px] font-bold rounded-full border px-2',
+                                                        b.style === 'card'
+                                                            ? 'bg-slate-50 text-slate-700 border-slate-200'
+                                                            : 'bg-purple-50 text-purple-700 border-purple-200'
+                                                    )}>
+                                                        {b.style === 'card' ? '🃏 Classic' : '🎟️ Voucher'}
+                                                    </Badge>
+                                                )}
+                                                {b.image_url && (
+                                                    <Badge className="text-[10px] font-bold rounded-full border px-2 bg-pink-50 text-pink-700 border-pink-200">
+                                                        🖼️ Image
+                                                    </Badge>
+                                                )}
                                                 <span className="text-xs text-slate-400">Order #{b.sort_order}</span>
                                             </div>
                                             <p className="text-xs text-slate-400 mt-1 truncate">{b.cta_link}</p>

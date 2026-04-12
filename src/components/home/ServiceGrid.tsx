@@ -14,6 +14,7 @@ import {
   HandCoins,
   ChevronRight
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useKYC } from "@/hooks/useKYC";
 import { useToast } from "@/hooks/use-toast";
@@ -40,8 +41,8 @@ const ServiceItem = ({ icon: Icon, label, path, isBorrowService }: ServiceItemPr
         if (!isApproved) {
           e.preventDefault();
           toast({
-            title: "KYC Required",
-            description: "Please wait for your KYC to be approved to use this service.",
+            title: "Verification Required",
+            description: "Please complete your KYC to unlock this premium service.",
             variant: "destructive"
           });
           return;
@@ -49,26 +50,28 @@ const ServiceItem = ({ icon: Icon, label, path, isBorrowService }: ServiceItemPr
         if (isOverdue && !isBorrowService) {
           e.preventDefault();
           toast({
-            title: "Account Restricted",
-            description: "Please clear your pending loan dues to continue using services.",
+            title: "Plan Restricted",
+            description: "Account access restricted due to pending dues.",
             variant: "destructive"
           });
         }
       }}
-      className={`flex flex-col items-center gap-1.5 group relative`}
+      className="flex flex-col items-center group relative transition-transform active:scale-95"
     >
-      <div className={`w-[52px] h-[52px] rounded-[18px] flex items-center justify-center transition-all ${
+      <div className={cn(
+        "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
         !isApproved || (isOverdue && !isBorrowService)
-          ? "bg-slate-50 opacity-60"
-          : "bg-blue-50/70 hover:bg-blue-100/70"
-      }`}>
-        <Icon className={`w-6 h-6 ${
+          ? "bg-slate-50 opacity-40"
+          : "bg-[#065f46]/5 group-hover:bg-[#065f46]/10 border border-[#065f46]/5 group-hover:border-[#065f46]/20 shadow-sm"
+      )}>
+        <Icon className={cn(
+          "w-6 h-6 transition-colors",
           !isApproved || (isOverdue && !isBorrowService)
-            ? "text-slate-400"
-            : "text-[#0046BE]"
-        }`} strokeWidth={1.5} />
+            ? "text-slate-300"
+            : "text-[#065f46]"
+        )} strokeWidth={2} />
       </div>
-      <span className="text-[11px] font-bold text-slate-700 text-center leading-[1.1] tracking-tight mt-1 px-1 h-8 flex items-start justify-center">
+      <span className="text-[10px] font-black text-slate-500 text-center leading-[1.1] tracking-widest mt-3 px-1 uppercase opacity-80 group-hover:opacity-100 transition-opacity">
         {label}
       </span>
     </Link>
@@ -95,33 +98,10 @@ export const ServiceGrid = () => {
   ];
 
   return (
-    <div className="flex flex-col w-full">
-      {/* Primary Row */}
-      <div className="px-4 py-2 mt-2 mb-1">
-        <div className="grid grid-cols-4 gap-2">
-          {primaryServices.map((service, index) => (
-            <ServiceItem key={index} {...service} />
-          ))}
-        </div>
-      </div>
-
-      {/* Secondary Card Layout */}
-      <div className="mx-4 mt-2 mb-6">
-        <div className="bg-white rounded-[24px] p-4 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-extrabold text-slate-900 text-[15px] tracking-tight">Recharge & Bills</h3>
-            <Link to="/services" className="bg-blue-50/80 text-blue-600 px-3 py-1 rounded-full text-[11px] font-bold hover:bg-blue-100 transition-colors">
-              View All
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-4 gap-y-5 gap-x-2">
-            {secondaryServices.map((service, index) => (
-              <ServiceItem key={index} {...service} />
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="grid grid-cols-4 gap-y-8 gap-x-2">
+      {[...primaryServices, ...secondaryServices].filter(s => s.label !== "See All").map((service, index) => (
+        <ServiceItem key={index} {...service} />
+      ))}
     </div>
   );
 };

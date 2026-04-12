@@ -77,6 +77,9 @@ interface BannerForm {
     grad_to: string;
     icon_name: string;
     status: 'draft' | 'published';
+    type: 'banner' | 'announcement';
+    style: 'card' | 'voucher';
+    image_url?: string;
     sort_order: number;
 }
 
@@ -84,36 +87,83 @@ const EMPTY: BannerForm = {
     title: '', subtitle: '', tag: 'New Banner',
     cta_text: 'LEARN MORE', cta_link: '#',
     grad_from: '#065f46', grad_to: '#16a34a',
-    icon_name: 'MessageCircle', status: 'draft', sort_order: 99,
+    icon_name: 'MessageCircle', status: 'draft', 
+    type: 'banner', style: 'card', sort_order: 99,
 };
 
 // ── Live Preview ────────────────────────────────────────────────────────────────
 const LivePreview = ({ form }: { form: BannerForm }) => {
     const Icon = ALL_ICONS[form.icon_name] || MessageCircle;
+    const isVoucher = form.style === 'voucher';
+
+    if (isVoucher) {
+        return (
+            <div className="relative group px-1 py-1">
+                <div className="flex bg-white rounded-2xl overflow-hidden shadow-xl border border-slate-100" style={{ borderLeft: `4px solid ${form.grad_from}` }}>
+                    {/* Left Section */}
+                    <div className="flex-1 p-5 relative min-h-[110px] flex flex-col justify-center">
+                        <div className="absolute -left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                            {[1, 2, 3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: form.grad_from }} />)}
+                        </div>
+                        <div className="flex items-center gap-2.5 mb-2">
+                            {form.image_url ? (
+                                <img src={form.image_url} alt="logo" className="w-7 h-7 object-contain" />
+                            ) : (
+                                <Icon className="w-6 h-6" style={{ color: form.grad_from }} />
+                            )}
+                            <span className="text-sm font-black text-slate-800 tracking-tight">{form.title || 'Brand Name'}</span>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100 self-start">
+                            {form.tag || 'Voucher'}
+                        </span>
+                    </div>
+
+                    {/* Separator */}
+                    <div className="relative w-px border-r border-dashed my-3 opacity-30" style={{ borderColor: form.grad_from }}>
+                        <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.grad_from }} />
+                        <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.grad_from }} />
+                    </div>
+
+                    {/* Right Section */}
+                    <div className="w-28 p-3 flex items-center justify-center relative">
+                        <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2" style={{ backgroundColor: `${form.grad_from}10`, border: `1px dashed ${form.grad_from}40` }}>
+                            <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: form.grad_from }}>REDEEM</span>
+                            <span className="text-sm font-black leading-tight text-center px-1" style={{ color: form.grad_from }}>{form.cta_text || 'OFF'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
-            className="relative overflow-hidden rounded-2xl text-white shadow-xl"
+            className="relative overflow-hidden rounded-2xl text-white shadow-xl h-44"
             style={{ background: `linear-gradient(135deg, ${form.grad_from}, ${form.grad_to})` }}
         >
             <div className="absolute -top-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-            <div className="relative z-10 p-6 flex items-center gap-5">
+            <div className="relative z-10 p-6 flex items-center gap-5 h-full">
                 <div className="flex-1 min-w-0">
-                    <span className="inline-block text-[10px] font-black uppercase tracking-widest bg-white/20 rounded-full px-3 py-1 mb-3">
+                    <span className="inline-block text-[9px] font-black uppercase tracking-[0.2em] bg-white/30 backdrop-blur-md border border-white/20 text-white rounded-full px-3 py-1 mb-3">
                         {form.tag || 'Tag'}
                     </span>
-                    <h3 className="text-xl font-extrabold leading-snug mb-2 whitespace-pre-line">
+                    <h3 className="text-xl font-black text-white leading-tight mb-2 whitespace-pre-line tracking-tight">
                         {form.title || 'Your Banner Title'}
                     </h3>
-                    <p className="text-sm text-white/75 mb-4 line-clamp-2">
+                    <p className="text-[11px] font-medium text-emerald-50/70 mb-4 line-clamp-2 leading-relaxed">
                         {form.subtitle || 'Subtitle goes here'}
                     </p>
-                    <div className="inline-block bg-white/25 hover:bg-white/35 cursor-pointer rounded-full px-5 py-2 text-sm font-black transition-all">
+                    <div className="inline-block bg-white text-emerald-900 rounded-xl px-5 py-2.5 text-[11px] font-black shadow-lg uppercase tracking-widest">
                         {form.cta_text || 'Click Here'}
                     </div>
                 </div>
-                <div className="shrink-0 w-20 h-20 flex items-center justify-center">
-                    <Icon className="w-16 h-16 opacity-80" />
+                <div className="shrink-0 w-24 h-24 flex items-center justify-center">
+                    {form.image_url ? (
+                        <img src={form.image_url} alt="preview" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                    ) : (
+                        <Icon className="w-16 h-16 opacity-80" />
+                    )}
                 </div>
             </div>
         </div>
@@ -319,8 +369,71 @@ const AdminBannerEditor = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* ── Left column: form ── */}
                 <div className="space-y-4">
+                    {/* Display Type & Style */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Section title="Display Type">
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { id: 'banner' as const, label: 'Banner', icon: Bell },
+                                    { id: 'announcement' as const, label: 'Alert', icon: Megaphone },
+                                ].map(t => (
+                                    <button
+                                        key={t.id}
+                                        onClick={() => set('type', t.id)}
+                                        className={cn(
+                                            'flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all',
+                                            form.type === t.id
+                                                ? 'bg-blue-50 border-blue-600 shadow-sm'
+                                                : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
+                                        )}
+                                    >
+                                        <t.icon className={cn('w-5 h-5', form.type === t.id ? 'text-blue-600' : 'text-slate-400')} />
+                                        <span className={cn('text-[10px] font-black uppercase tracking-tight', form.type === t.id ? 'text-blue-700' : 'text-slate-500')}>
+                                            {t.label}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </Section>
+
+                        <Section title="Banner Style">
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { id: 'card' as const, label: 'Classic', icon: Layout },
+                                    { id: 'voucher' as const, label: 'Voucher', icon: Ticket },
+                                ].map(s => (
+                                    <button
+                                        key={s.id}
+                                        onClick={() => set('style', s.id)}
+                                        className={cn(
+                                            'flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all',
+                                            form.style === s.id
+                                                ? 'bg-purple-50 border-purple-600 shadow-sm'
+                                                : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
+                                        )}
+                                    >
+                                        <s.icon className={cn('w-5 h-5', form.style === s.id ? 'text-purple-600' : 'text-slate-400')} />
+                                        <span className={cn('text-[10px] font-black uppercase tracking-tight', form.style === s.id ? 'text-purple-700' : 'text-slate-500')}>
+                                            {s.label}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </Section>
+                    </div>
+
                     {/* Content */}
                     <Section title="Content">
+                        <Field label="Banner Image URL (Optional)">
+                            <div className="flex gap-2">
+                                <Input className="rounded-xl h-10" placeholder="https://image-link.png" value={form.image_url || ''} onChange={e => set('image_url', e.target.value)} />
+                                {form.image_url && (
+                                    <Button variant="outline" className="rounded-xl h-10 border-rose-200 text-rose-600" onClick={() => set('image_url', '')}>
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        </Field>
                         <Field label="Tag (small label above title)">
                             <Input className="rounded-xl h-10" placeholder="e.g. Community, Offer, New!" value={form.tag} onChange={e => set('tag', e.target.value)} />
                         </Field>

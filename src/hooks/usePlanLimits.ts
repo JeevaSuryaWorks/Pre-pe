@@ -6,7 +6,7 @@ import { useAuth } from './useAuth';
 export function usePlanLimits() {
     const { user } = useAuth();
     const { profile, loading: profileLoading } = useProfile();
-    const limits = getPlanLimits(profile?.plan_type);
+    const limits = getPlanLimits(profile?.plan_type, profile?.plans?.config);
 
     const checkRechargeLimit = async () => {
         if (!user) return { allowed: false, count: 0, limit: 0 };

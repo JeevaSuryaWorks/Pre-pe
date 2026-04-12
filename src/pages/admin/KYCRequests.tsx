@@ -156,7 +156,11 @@ export const KYCRequests = () => {
         mutationFn: async ({ id, status, userId, reason }: { id: string, status: 'APPROVED' | 'REJECTED', userId: string, reason?: string }) => {
             const { error: updateError, data: updatedRecords } = await supabase
                 .from('kyc_verifications' as any)
-                .update({ status, updated_at: new Date().toISOString() })
+                .update({ 
+                    status, 
+                    rejection_reason: reason || null,
+                    updated_at: new Date().toISOString() 
+                })
                 .eq('id', id)
                 .select();
 

@@ -225,7 +225,9 @@ export default function PlanSelectionPage() {
                                             {plan.subtitle && (
                                                 <div className="text-sm font-medium text-slate-500 mt-1">{plan.subtitle}</div>
                                             )}
-                                            <div className="text-3xl font-extrabold tracking-tight mt-4 text-slate-900 break-words">{plan.price}</div>
+                                            <div className="text-3xl font-extrabold tracking-tight mt-4 text-slate-900 break-words">
+                                                {plan.price?.replace(/\/ Lifetime/gi, '').trim()}
+                                            </div>
                                             <CardDescription className="pt-2 text-slate-500 leading-relaxed min-h-[48px] break-words">
                                                 {plan.description}
                                             </CardDescription>
