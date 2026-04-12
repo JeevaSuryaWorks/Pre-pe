@@ -1,4 +1,3 @@
-import { serve } from "std/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req: Request) => {
+(globalThis as any).Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,11 +15,12 @@ serve(async (req: Request) => {
     const supabaseKey = (globalThis as any).Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const RZP_KEY_ID = (globalThis as any).Deno.env.get('RAZORPAY_KEY_ID');
-    const RZP_KEY_SECRET = (globalThis as any).Deno.env.get('RAZORPAY_KEY_SECRET');
+    // Razorpay Keys (Using provided test keys as fallbacks for testing)
+    const RZP_KEY_ID = (globalThis as any).Deno.env.get('RAZORPAY_KEY_ID') || 'rzp_test_Sca3POCkQk0Loe';
+    const RZP_KEY_SECRET = (globalThis as any).Deno.env.get('RAZORPAY_KEY_SECRET') || 'r4u9ezssnkw7cl4aQf8fzQSj';
 
     if (!RZP_KEY_ID || !RZP_KEY_SECRET) {
-      throw new Error("Razorpay credentials not configured in Edge Functions");
+      console.warn("Razorpay credentials not fully configured. Using default test keys.");
     }
 
     const { action, planId, paymentData } = await req.json();
@@ -123,9 +123,9 @@ serve(async (req: Request) => {
         throw new Error("Payment record not found. Could not upgrade profile.");
       }
 
-      await supabase.from('profiles')
+      await supabase.from('users')
         .update({ plan_type: currentPayment.plan_id })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

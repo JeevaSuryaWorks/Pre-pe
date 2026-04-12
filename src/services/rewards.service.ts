@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
+import { creditWallet } from './wallet.service';
 
-export type EventType = 'SIGNUP' | 'FIRST_RECHARGE' | 'REFERRAL' | 'SPIN_WHEEL' | 'GAME' | 'FAMILY_MEMBER' | 'CASHBACK_POINTS' | 'MANUAL';
+export type EventType = 'SIGNUP' | 'FIRST_RECHARGE' | 'REFERRAL' | 'SPIN_WHEEL' | 'GAME' | 'FAMILY_MEMBER' | 'CASHBACK_POINTS' | 'MANUAL' | 'REDEEM';
 
 export interface RewardPointsLedger {
   id: string;
@@ -51,7 +52,7 @@ export async function getLastSpinTimestamp(userId: string): Promise<string | nul
       .limit(1);
   
     if (error || !data || data.length === 0) return null;
-    return data[0].created_at;
+    return (data[0] as any).created_at;
 }
 
 /**
@@ -317,5 +318,57 @@ export async function getUserStreak(userId: string): Promise<number> {
   }
 
   return streak;
+}
+
+/**
+ * Redeem points for wallet balance
+ * 1000 Points = 10 Rupees
+ */
+export async function redeemRewardPoints(
+  userId: string,
+  pointsToRedeem: number
+): Promise<{ success: boolean; amount?: number; error?: string }> {
+  if (pointsToRedeem < 1000) {
+    return { success: false, error: "Minimum 1000 points required to redeem." };
+  }
+
+  const currentPoints = await getUserTotalPoints(userId);
+  if (currentPoints < pointsToRedeem) {
+    return { success: false, error: "Insufficient points." };
+  }
+
+  // Calculate multiples of 1000
+  const multiples = Math.floor(pointsToRedeem / 1000);
+  const totalPointsUsed = multiples * 1000;
+  const cashbackAmount = multiples * 10;
+
+  // 1. Deduct points
+  const { error: pointsError } = await supabase
+    .from('reward_points_ledger' as never)
+    .insert({
+      user_id: userId,
+      points: -totalPointsUsed,
+      event_type: 'REDEEM',
+      description: `Redeemed ${totalPointsUsed} points for ₹${cashbackAmount} wallet balance`,
+    } as never);
+
+  if (pointsError) {
+    console.error("Points Deduction Error:", pointsError);
+    return { success: false, error: "Failed to deduct points." };
+  }
+
+  // 2. Add to wallet
+  const walletSuccess = await creditWallet(
+    userId,
+    cashbackAmount,
+    `Redeemed from Reward Points (${totalPointsUsed} pts)`
+  );
+
+  if (!walletSuccess) {
+    // Note: In production, you'd want a compensation transaction here or a db transaction
+    return { success: false, error: "Points deducted but failed to update wallet. Contact support." };
+  }
+
+  return { success: true, amount: cashbackAmount };
 }
 

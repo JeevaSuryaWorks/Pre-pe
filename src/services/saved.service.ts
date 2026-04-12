@@ -26,7 +26,7 @@ export const getSavedItems = async (userId: string): Promise<SavedItem[]> => {
     return [];
   }
 
-  return data as SavedItem[];
+  return data as unknown as SavedItem[];
 };
 
 export const addSavedItem = async (item: Omit<SavedItem, 'id' | 'created_at'>): Promise<SavedItem | null> => {
@@ -41,7 +41,7 @@ export const addSavedItem = async (item: Omit<SavedItem, 'id' | 'created_at'>): 
     return null;
   }
 
-  return data as SavedItem;
+  return data as unknown as SavedItem;
 };
 
 export const removeSavedItem = async (id: string): Promise<boolean> => {
@@ -68,5 +68,5 @@ export const checkIsFavorite = async (userId: string, transactionId: string): Pr
       .maybeSingle();
   
     if (error) return null;
-    return data?.id || null;
+    return (data as any)?.id || null;
 };

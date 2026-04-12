@@ -1,18 +1,3 @@
-/**
- * Process Recharge Edge Function
- * 
- * PLACEHOLDER: This function will be the bridge to external recharge APIs.
- * 
- * To connect to KwikApi:
- * 1. Add RECHARGE_API_KEY and RECHARGE_API_SECRET to your secrets
- * 2. Update the API_BASE_URL environment variable
- * 3. Map the request/response formats as needed
- * 
- * The core logic (wallet handling, transaction status updates) is in the client services.
- * This function only handles the external API communication.
- */
-
-import { serve } from "std/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
@@ -37,7 +22,7 @@ interface ApiResponse {
   data: Record<string, unknown>;
 }
 
-serve(async (req: Request) => {
+(globalThis as any).Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

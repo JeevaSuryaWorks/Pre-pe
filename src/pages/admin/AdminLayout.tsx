@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 

@@ -19,6 +19,7 @@ import {
   initializeWelcomeCard,
   getUserStreak,
   getLastSpinTimestamp,
+  redeemRewardPoints,
   RewardPointsLedger, 
   ScratchCard 
 } from '@/services/rewards.service';
@@ -36,6 +37,7 @@ export default function RewardsDashboard() {
   const [cashback, setCashback] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRedeeming, setIsRedeeming] = useState(false);
   const { isApproved, isLoading: kycLoading } = useKYC();
 
   const loadData = async (isRefresh = false) => {
@@ -100,6 +102,38 @@ export default function RewardsDashboard() {
       });
     }
   };
+  
+  const handleRedeem = async () => {
+    if (!user || totalPoints < 1000) return;
+    
+    setIsRedeeming(true);
+    try {
+      const result = await redeemRewardPoints(user.id, totalPoints);
+      if (result.success) {
+        toast({
+          title: "Redemption Successful!",
+          description: `₹${result.amount} has been added to your wallet.`,
+        });
+        loadData(true);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: "Redemption Failed",
+          description: result.error || "An unexpected error occurred.",
+        });
+      }
+    } catch (error) {
+       console.error(error);
+       toast({
+        variant: 'destructive',
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
 
   if (isInitialLoading) {
      return (
@@ -171,6 +205,38 @@ export default function RewardsDashboard() {
                               {totalPoints.toLocaleString()}
                           </h2>
                           <span className="text-xl text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
+                      </div>
+
+                      {/* Redeem Button */}
+                      <div className="mt-8 flex flex-col items-center gap-4">
+                          <motion.button
+                            whileHover={totalPoints >= 1000 ? { scale: 1.05 } : {}}
+                            whileTap={totalPoints >= 1000 ? { scale: 0.95 } : {}}
+                            onClick={handleRedeem}
+                            disabled={totalPoints < 1000 || isRedeeming}
+                            className={`
+                                relative px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-2xl
+                                ${totalPoints >= 1000 
+                                    ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-900 shadow-yellow-500/20 hover:shadow-yellow-500/40' 
+                                    : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                                }
+                            `}
+                          >
+                              {isRedeeming ? (
+                                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                              ) : (
+                                  <div className="flex items-center gap-2">
+                                      <Zap className={totalPoints >= 1000 ? "w-4 h-4 fill-current" : "w-4 h-4"} />
+                                      {totalPoints >= 1000 ? 'Redeem for Wallet' : 'Need 1,000 Pts to Redeem'}
+                                  </div>
+                              )}
+                          </motion.button>
+                          
+                          {totalPoints >= 1000 && (
+                             <p className="text-[10px] font-bold text-indigo-300/60 uppercase tracking-widest animate-pulse">
+                                Convert to ₹{(Math.floor(totalPoints / 1000) * 10).toFixed(2)} instantly
+                             </p>
+                          )}
                       </div>
                   </div>
 
