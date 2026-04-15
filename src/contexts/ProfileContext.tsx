@@ -45,6 +45,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     console.log("[ProfileContext] Fetching profile for:", user.id);
     
     try {
+        // Attempt 1: Full join with plans
         const { data, error } = await supabase
           .from('profiles')
           .select('*, plans:plan_type(*)')
@@ -52,15 +53,31 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
           .maybeSingle();
 
         if (error) {
-            console.error("[ProfileContext] Fetch error:", error);
+            console.error("[ProfileContext] Advanced fetch error (plans join failed):", error);
+            
+            // Attempt 2: Fallback to basic profile without join
+            console.log("[ProfileContext] Falling back to basic profile fetch...");
+            const { data: basicData, error: basicError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (basicError) {
+                console.error("[ProfileContext] Critical fetch error:", basicError);
+            } else if (basicData) {
+                console.log("[ProfileContext] Basic profile loaded (no plans info):", basicData);
+                setProfile(basicData as unknown as UserProfile);
+            }
         } else if (data) {
-            console.log("[ProfileContext] Profile loaded:", data);
+            console.log("[ProfileContext] Full profile loaded:", data);
             setProfile(data as unknown as UserProfile);
         } else {
             console.warn("[ProfileContext] No profile found in DB for user:", user.id);
+            setProfile(null);
         }
     } catch (err) {
-        console.error("[ProfileContext] Critical fetch error:", err);
+        console.error("[ProfileContext] Unexpected error during fetch:", err);
     } finally {
         setLoading(false);
     }
@@ -101,10 +118,15 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     console.log("[ProfileContext] Updating profile with:", updates);
     
     // We use .select() to verify the update actually hit a row (RLS check)
+    // Use upsert to ensure the profile exists even if signup trigger failed
     const { data, error } = await supabase
       .from('profiles')
-      .update(updates as any)
-      .eq('user_id', user.id)
+      .upsert({ 
+        user_id: user.id,
+        ...updates 
+      } as any, { 
+        onConflict: 'user_id' 
+      })
       .select();
       
     if (error) {

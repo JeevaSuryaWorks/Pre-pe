@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getUserTotalPoints } from "@/services/rewards.service";
+import { Layout } from "@/components/layout/Layout";
 
 const HomePage = () => {
     const { user } = useAuth();
@@ -60,8 +61,8 @@ const HomePage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex justify-center w-full overflow-x-hidden">
-            <div className="w-full max-w-md bg-white shadow-2xl min-h-screen relative pb-32 flex flex-col">
+        <Layout showBottomNav={true} hideHeader={true}>
+            <div className="relative pb-10 flex flex-col">
                 
                 {/* Dynamic Background Accents */}
                 <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-[#065f46]/10 to-transparent pointer-events-none" />
@@ -200,10 +201,8 @@ const HomePage = () => {
                         </p>
                     </div>
                 </div>
-
-                <BottomNav />
             </div>
-        </div>
+        </Layout>
     );
 };
 

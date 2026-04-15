@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ export const AdminLayout = () => {
         { path: '/admin/users', icon: Users, label: 'User Management' },
         { path: '/admin/paid-users', icon: CreditCard, label: 'Paid Users' },
         { path: '/admin/plan-manager', icon: Settings, label: 'Plan Manager' },
+        { path: '/admin/rewards', icon: Gift, label: 'Rewards Manager' },
+        { path: '/admin/tasks', icon: Shield, label: 'Task Manager' },
         { path: '/admin/transactions', icon: History, label: 'Transactions' },
         { path: '/admin/commissions', icon: Percent, label: 'Commissions' },
         { path: '/admin/logs', icon: Terminal, label: 'System Logs' },

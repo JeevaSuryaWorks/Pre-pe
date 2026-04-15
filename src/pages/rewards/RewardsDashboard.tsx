@@ -1,72 +1,150 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
-import { SpinWheel } from '@/components/gamification/SpinWheel';
-import { ScratchCardItem } from '@/components/gamification/ScratchCardList';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+    getUserTotalPoints, 
+    getUserTotalCashback, 
+    getUserStreak, 
+    canUserSpinToday, 
+    getLastSpinTimestamp,
+    getUserScratchCards,
+    claimScratchCard,
+    redeemRewardPoints,
+    getAvailableTasks,
+    getUserCompletedTasks,
+    claimTaskReward
+} from '@/services/rewards.service';
+import { 
+    Sparkles, 
+    Zap, 
+    TrendingUp, 
+    History, 
+    Gift, 
+    Award, 
+    ChevronRight, 
+    Trophy, 
+    Timer,
+    CalendarDays,
+    Banknote,
+    Ticket,
+    Shield,
+    UserIcon,
+    Loader2,
+    CheckCircle2,
+    Star,
+    LayoutList,
+    ClipboardList,
+    Target,
+    Wallet,
+    Calendar,
+    Heart,
+    Smartphone,
+    ShoppingBag,
+    Tag,
+    Share2,
+    MessageSquare,
+    Play,
+    Image,
+    Lock,
+    ShieldCheck
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Coins, CalendarDays, History, TrendingUp, Award, Sparkles, Zap, Ticket, Banknote } from 'lucide-react';
-import { useKYC } from '@/hooks/useKYC';
-import { 
-  getUserTotalPoints, 
-  getPointsHistory, 
-  getUserScratchCards, 
-  claimScratchCard, 
-  addRewardPoints, 
-  canUserSpinToday,
-  initializeWelcomeCard,
-  getUserStreak,
-  getLastSpinTimestamp,
-  redeemRewardPoints,
-  RewardPointsLedger, 
-  ScratchCard 
-} from '@/services/rewards.service';
+import { useToast } from '@/hooks/use-toast';
+import { SpinWheel } from '@/components/gamification/SpinWheel';
+import { ScratchCardItem } from '@/components/gamification/ScratchCardList';
+import { Leaderboard } from '@/components/rewards/Leaderboard';
+import { AdReward } from '@/components/rewards/AdReward';
+import { useNavigate } from 'react-router-dom';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100
+    }
+  }
+} as const;
 
 export default function RewardsDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [totalPoints, setTotalPoints] = useState<number>(0);
-  const [history, setHistory] = useState<RewardPointsLedger[]>([]);
-  const [scratchCards, setScratchCards] = useState<ScratchCard[]>([]);
-  const [canSpin, setCanSpin] = useState<boolean>(true);
-  const [lastSpinTime, setLastSpinTime] = useState<string | null>(null);
-  const [streak, setStreak] = useState<number>(1);
-  const [cashback, setCashback] = useState<number>(0);
+  const navigate = useNavigate();
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [cashback, setCashback] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [canSpin, setCanSpin] = useState(false);
+  const [lastSpinTime, setLastSpinTime] = useState<string | null>(null);
+  const [scratchCards, setScratchCards] = useState<any[]>([]);
   const [isRedeeming, setIsRedeeming] = useState(false);
-  const { isApproved, isLoading: kycLoading } = useKYC();
+  const [isApproved, setIsApproved] = useState(false);
+  const [kycLoading, setKycLoading] = useState(true);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
+  const [taskLoading, setTaskLoading] = useState(false);
 
-  const loadData = async (isRefresh = false) => {
+  const loadData = async (silent = false) => {
     if (!user) return;
-    if (!isRefresh) setLoading(true);
+    if (!silent) setLoading(true);
     
     try {
-      // Ensure welcome card exists for the user
-      await initializeWelcomeCard(user.id);
-
-      const [points, hist, cards, daySpin, currentStreak, lastTime] = await Promise.all([
+      const [points, cb, strk, spinPossible, lastSpin, cards, availableTasks, completedIds] = await Promise.all([
         getUserTotalPoints(user.id),
-        getPointsHistory(user.id),
-        getUserScratchCards(user.id),
-        canUserSpinToday(user.id),
+        getUserTotalCashback(user.id),
         getUserStreak(user.id),
-        getLastSpinTimestamp(user.id)
+        canUserSpinToday(user.id),
+        getLastSpinTimestamp(user.id),
+        getUserScratchCards(user.id),
+        getAvailableTasks(),
+        getUserCompletedTasks(user.id)
       ]);
+
       setTotalPoints(points);
-      setHistory(hist);
+      setCashback(cb);
+      setStreak(strk);
+      setCanSpin(spinPossible);
+      setLastSpinTime(lastSpin);
       setScratchCards(cards);
-      setCanSpin(daySpin);
-      setStreak(currentStreak);
-      setLastSpinTime(lastTime);
+      setTasks(availableTasks);
+      setCompletedTaskIds(completedIds);
+
+      // Check KYC status from kyc_verifications table
+      const { data: kycData } = await (supabase as any)
+        .from('kyc_verifications')
+        .select('status')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setIsApproved(kycData?.status === 'APPROVED');
+
+      // Fetch profile for plan info
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
     } catch (error) {
-      console.error(error);
+      console.error("Error loading rewards data:", error);
     } finally {
-      setLoading(false);
-      setIsInitialLoading(false);
+      if (!silent) setLoading(false);
+      setKycLoading(false);
     }
   };
 
@@ -74,118 +152,127 @@ export default function RewardsDashboard() {
     loadData();
   }, [user]);
 
+  const handleTaskAction = async (task: any) => {
+    if (completedTaskIds.includes(task.id)) return;
+
+    // Handle special navigation requirements first
+    if (task.requirement_type === 'KYC' && !isApproved) {
+        toast({
+            title: "Requirement Not Met",
+            description: "Please complete your KYC verification first.",
+            variant: "destructive"
+        });
+        navigate(task.target_url || '/profile/kyc');
+        return;
+    }
+
+    // For validated types (RECHARGE/REFERRAL), we usually navigate to the action page
+    if (task.requirement_type === 'RECHARGE' || task.requirement_type === 'REFERRAL') {
+        if (task.target_url) {
+            navigate(task.target_url);
+        } else {
+            if (task.requirement_type === 'RECHARGE') navigate('/wallet');
+            if (task.requirement_type === 'REFERRAL') navigate('/profile/refer');
+        }
+        return;
+    }
+
+    // Manual/Click type (NONE)
+    if (task.requirement_type === 'NONE' || !task.requirement_type) {
+        setTaskLoading(true);
+        const success = await claimTaskReward(user?.id || '', task);
+        setTaskLoading(false);
+
+        if (success) {
+            toast({
+                title: "Task Completed!",
+                description: `You've earned ${task.reward_points} reward points!`,
+            });
+            loadData(true);
+            // If it's a redirect task, go there after claiming
+            if (task.target_url) {
+                navigate(task.target_url);
+            }
+        } else {
+            toast({
+                title: "Claim Failed",
+                description: "Something went wrong. Please try again.",
+                variant: "destructive"
+            });
+        }
+    }
+  };
+
   const handleSpinComplete = async (points: number) => {
-    if (!user || points <= 0) return;
-    const success = await addRewardPoints(user.id, points, 'SPIN_WHEEL', 'Won from Daily Spin Wheel');
+    toast({
+      title: "Wheel Result",
+      description: points > 0 ? `Congratulations! You won ${points} points!` : "Better luck next time!",
+    });
+    loadData(true);
+  };
+
+  const handleScratchComplete = async (id: string, result: any) => {
+    const success = await claimScratchCard(user?.id || '', id);
     if (success) {
-      setCanSpin(false); 
-      loadData(true); // refresh points and history
+      toast({
+        title: "Reward Claimed!",
+        description: result.type === 'REWARD_POINTS' 
+          ? `You won ${result.value} points!` 
+          : "Cashback added to your wallet.",
+      });
+      loadData(true);
     }
   };
 
-  const handleScratchComplete = async (id: string, value: number) => {
-    if (!user) return;
-    
-    // Prevent database calls for demo cards
-    if (id.startsWith('demo-')) {
-      return;
-    }
-
-    const success = await claimScratchCard(user.id, id);
-    if (success) {
-      loadData(true); // refresh
-    } else {
-      console.warn("Could not claim reward: Database table 'scratch_cards' might be missing or RLS is blocking access.");
-    }
-  };
-  
   const handleRedeem = async () => {
-    if (!user || totalPoints < 1000) return;
+    if (totalPoints < 1000) return;
     
     setIsRedeeming(true);
-    try {
-      const result = await redeemRewardPoints(user.id, totalPoints);
-      if (result.success) {
-        toast({
-          title: "Redemption Successful!",
-          description: `₹${result.amount} has been added to your wallet.`,
-        });
-        loadData(true);
-      } else {
-        toast({
-          variant: 'destructive',
-          title: "Redemption Failed",
-          description: result.error || "An unexpected error occurred.",
-        });
-      }
-    } catch (error) {
-       console.error(error);
-       toast({
-        variant: 'destructive',
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+    const result = await redeemRewardPoints(user?.id || '', Math.floor(totalPoints / 1000) * 1000);
+    setIsRedeeming(false);
+
+    if (result.success) {
+      toast({
+        title: "Redemption Successful!",
+        description: `₹${result.amount} has been added to your wallet.`,
       });
-    } finally {
-      setIsRedeeming(false);
+      loadData(true);
+    } else {
+      toast({
+        title: "Redemption Failed",
+        description: result.error || "Please try again later.",
+        variant: "destructive"
+      });
     }
   };
 
+  const displayCards = scratchCards.length > 0 ? scratchCards : [
+    { id: 'demo-1', title: 'Daily Bonus', type: 'REWARD_POINTS', reward_value: 50, status: 'LOCKED', min_recharge_threshold: 100 },
+    { id: 'demo-2', title: 'Mega Cashback', type: 'CASHBACK', reward_value: 100, status: 'LOCKED', min_recharge_threshold: 500 }
+  ];
 
-  if (isInitialLoading) {
-     return (
-        <Layout showBottomNav={true}>
-            <div className="flex h-[60vh] flex-col items-center justify-center">
-                <div className="relative">
-                    <Loader2 className="w-16 h-16 animate-spin text-indigo-600 mb-4" />
-                    <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-yellow-400 animate-pulse" />
-                </div>
-                <p className="text-slate-500 font-bold tracking-widest uppercase text-xs animate-pulse">Initializing Premium Rewards...</p>
-            </div>
-        </Layout>
-     );
+  if (loading && !totalPoints) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      </Layout>
+    );
   }
 
-  // Filter out cards that are already scratched
-  const activeCards = scratchCards.filter(c => c.status !== 'SCRATCHED');
-
-  // Fallback to demo cards only if user truly has NO cards after initialization
-  const displayCards = activeCards.length > 0 ? activeCards : (
-      scratchCards.length === 0 ? [
-          { id: 'demo-1', title: 'Welcome Bonus', type: 'REWARD_POINTS' as const, reward_value: 200, status: 'UNLOCKED' as const, description: 'Preview of our welcome reward' },
-          { id: 'demo-2', title: 'Big Cashback Offer', type: 'CASHBACK' as const, reward_value: 50, status: 'LOCKED' as const, description: 'Unlock this by recharging' }
-      ] : []
-  );
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
-
   return (
-    <Layout showBottomNav={true}>
-      <div className="relative min-h-screen bg-slate-50/50 pb-20">
-        {/* Animated Background Blobs */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/40 rounded-full blur-[120px] animate-pulse"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] bg-violet-200/40 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-        </div>
-
-        <div className="container relative z-10 py-10 max-w-6xl space-y-12">
+    <Layout title="Executive Rewards">
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <div className="max-w-md mx-auto py-8">
           
-          {/* Main Hero Header */}
+          {/* Header Stats */}
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative flex flex-col items-center justify-between gap-8 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-8 py-12 rounded-[3.5rem] text-white shadow-[0_40px_80px_rgba(0,0,0,0.3)] border border-white/5 overflow-hidden text-center"
+            className="relative px-6 py-10 rounded-[3rem] bg-slate-900 border border-white/10 shadow-3xl text-center overflow-hidden mb-10"
           >
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-emerald-600/10 pointer-events-none"></div>
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] transform translate-x-1/2 -translate-y-1/2"></div>
               
@@ -196,12 +283,22 @@ export default function RewardsDashboard() {
                           <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
                           <span className="tracking-widest uppercase text-[9px] font-black text-indigo-200">Executive Rewards</span>
                       </div>
-                      <div className="flex items-baseline justify-center gap-3">
-                          <h2 className="text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
-                              {totalPoints.toLocaleString()}
-                          </h2>
-                          <span className="text-xl text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
-                      </div>
+                       <div className="flex items-baseline justify-center gap-2 relative group">
+                           <h2 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
+                               {totalPoints.toLocaleString()}
+                           </h2>
+                           <span className="text-sm text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
+                           
+                           <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => navigate('/rewards/history')}
+                                className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-2xl h-10 w-10 flex-shrink-0 border border-white/10 opacity-60 group-hover:opacity-100 transition-opacity"
+                                title="Points History"
+                           >
+                                <History className="w-5 h-5" />
+                           </Button>
+                       </div>
 
                       {/* Redeem Button */}
                       <div className="mt-8 flex flex-col items-center gap-4">
@@ -238,29 +335,25 @@ export default function RewardsDashboard() {
 
               </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 w-full relative z-10">
+              <div className="grid grid-cols-2 gap-3 w-full relative z-10 mt-4">
                     {/* Current Streak Card */}
-                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-[2rem] p-6 px-10 border border-white/10 transition-all group/card flex flex-col items-center min-w-[200px] shadow-2xl">
-                        <div className="flex items-center gap-3 mb-2">
-                           <div className="p-1.5 bg-indigo-500/20 rounded-lg">
-                              <CalendarDays className="w-5 h-5 text-indigo-300" />
-                           </div>
-                           <p className="text-[9px] font-black uppercase tracking-[0.25em] text-indigo-300/80">Current Streak</p>
+                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
+                        <div className="flex items-center gap-2 mb-1">
+                           <CalendarDays className="w-3.5 h-3.5 text-indigo-300" />
+                           <p className="text-[8px] font-black uppercase tracking-widest text-indigo-300/80">Streak</p>
                         </div>
-                        <p className="text-4xl font-black tabular-nums tracking-tighter text-white">
-                          {streak} <span className="text-[9px] font-black text-indigo-300/40 uppercase tracking-widest ml-1">{streak === 1 ? 'Day' : 'Days'}</span>
+                        <p className="text-2xl font-black tabular-nums tracking-tighter text-white">
+                          {streak} <span className="text-[8px] font-black text-indigo-300/40 uppercase ml-1">{streak === 1 ? 'Day' : 'Days'}</span>
                         </p>
                     </div>
 
                     {/* Cashback Card */}
-                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-[2rem] p-6 px-10 border border-white/10 transition-all group/card flex flex-col items-center min-w-[200px] shadow-2xl">
-                        <div className="flex items-center gap-3 mb-2">
-                           <div className="p-1.5 bg-emerald-500/20 rounded-lg">
-                              <Banknote className="w-5 h-5 text-emerald-400" />
-                           </div>
-                           <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-400/80">Cashback Earned</p>
+                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
+                        <div className="flex items-center gap-2 mb-1">
+                           <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                           <p className="text-[8px] font-black uppercase tracking-widest text-emerald-400/80">Earned</p>
                         </div>
-                        <p className="text-4xl font-black tabular-nums tracking-tighter text-white font-mono">
+                        <p className="text-2xl font-black tabular-nums tracking-tighter text-white font-mono leading-none pt-1">
                           ₹{kycLoading ? "..." : (isApproved ? cashback.toFixed(2) : "**.**")}
                         </p>
                     </div>
@@ -268,159 +361,219 @@ export default function RewardsDashboard() {
           </motion.div>
 
           {/* Content Sections */}
-          <Tabs defaultValue="spin" className="w-full">
-            <div className="flex items-center justify-center mb-14 px-4">
-                <TabsList className="h-16 bg-white/60 backdrop-blur-3xl p-1.5 rounded-full border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden ring-1 ring-black/5 w-full max-w-lg grid grid-cols-3 relative">
-                  <TabsTrigger 
-                    value="spin" 
-                    className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all font-black text-[10px] uppercase tracking-wider text-slate-500 py-3 px-2 h-full"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">Daily Spin</span>
-                    <span className="xs:hidden">Spin</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="vouchers" 
-                    className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all font-black text-[10px] uppercase tracking-wider text-slate-500 py-3 px-2 h-full"
-                  >
-                    <Ticket className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">Scratch Cards</span>
-                    <span className="xs:hidden">Cards</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="history" 
-                    className="flex items-center justify-center gap-2 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-xl transition-all font-black text-[10px] uppercase tracking-wider text-slate-500 py-3 px-2 h-full"
-                  >
-                    <History className="w-3.5 h-3.5" />
-                    <span>History</span>
-                  </TabsTrigger>
-                </TabsList>
-            </div>
+          <Tabs defaultValue="earn" className="w-full px-4">
+               <div className="flex items-center justify-center mb-6">
+                 <TabsList className="h-12 bg-white/60 backdrop-blur-xl p-1.5 rounded-full border border-white shadow-xl ring-1 ring-black/5 flex w-full max-w-[400px] gap-1">
+                   <TabsTrigger 
+                     value="earn" 
+                     className="flex-1 flex items-center justify-center gap-1.5 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-[10px] uppercase tracking-tighter text-slate-500 h-full px-2"
+                   >
+                     <Sparkles className="w-3.5 h-3.5" />
+                     <span className="hidden xs:inline">Points</span>
+                     <span className="xs:hidden">Earn</span>
+                   </TabsTrigger>
+                   <TabsTrigger 
+                     value="spin" 
+                     className="flex-1 flex items-center justify-center gap-1.5 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-[10px] uppercase tracking-tighter text-slate-500 h-full px-2"
+                   >
+                     <Zap className="w-3.5 h-3.5" />
+                     <span>Spin</span>
+                   </TabsTrigger>
+                   <TabsTrigger 
+                     value="vouchers" 
+                     className="flex-1 flex items-center justify-center gap-1.5 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-[10px] uppercase tracking-tighter text-slate-500 h-full px-2"
+                   >
+                     <Ticket className="w-3.5 h-3.5" />
+                     <span className="hidden xs:inline">Vouchers</span>
+                     <span className="xs:hidden">Gift</span>
+                   </TabsTrigger>
+                   <TabsTrigger 
+                     value="leaderboard" 
+                     className="flex-1 flex items-center justify-center gap-1.5 rounded-full data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all font-black text-[10px] uppercase tracking-tighter text-slate-500 h-full px-2"
+                   >
+                     <Award className="w-3.5 h-3.5" />
+                     <span className="hidden xs:inline">Rank</span>
+                     <span className="xs:hidden">Top</span>
+                   </TabsTrigger>
+                 </TabsList>
+               </div>
 
-            <div className="relative">
-              <TabsContent value="spin" className="focus-visible:outline-none">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center"
-                >
-                   <Card className="border-none shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/70 backdrop-blur-3xl rounded-[4rem] p-10 w-full max-w-4xl border border-white/50">
-                      <CardContent className="pt-10 pb-16 flex flex-col items-center">
-                          <div className="text-center space-y-4 mb-20">
-                             <div className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 shadow-xl shadow-indigo-200 text-white rounded-full text-[10px] font-black uppercase tracking-widest ring-4 ring-indigo-50">
-                                <Sparkles className="w-3 h-3" />
-                                1x Spin per day
-                             </div>
-                             <h3 className="text-5xl font-black text-slate-900 tracking-tighter">Mega Fortune Wheel</h3>
-                             <p className="text-slate-500 max-w-md mx-auto font-medium leading-relaxed">
-                                Test your luck today! You can win up to <span className="text-indigo-600 font-bold">500 Reward Points</span> or exclusive cash bonuses.
-                             </p>
-                          </div>
-                           <SpinWheel 
-                              onSpinComplete={handleSpinComplete} 
-                              disabled={!canSpin} 
-                              lastSpinTime={lastSpinTime}
-                           />
-                      </CardContent>
-                   </Card>
-                </motion.div>
-              </TabsContent>
+             <div className="relative">
+               <TabsContent value="earn" className="focus-visible:outline-none">
+                   <motion.div 
+                     variants={containerVariants}
+                     initial="hidden"
+                     animate="visible"
+                     className="flex flex-col gap-10 px-4 sm:px-0"
+                   >
+                     {/* Featured Earn: Watch Ad */}
+                     <AdReward 
+                       userId={user?.id || ''} 
+                       onComplete={(p) => loadData(true)} 
+                     />
 
-              <TabsContent value="vouchers" className="focus-visible:outline-none space-y-10">
-                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                 >
-                    <div className="flex items-center justify-between pb-6 border-b border-slate-200">
-                        <div>
-                            <h3 className="text-3xl font-black text-slate-900 tracking-tight">Active Rewards</h3>
-                            <p className="text-slate-500 font-medium">Rewards by <span className="text-black font-black italic">Hubble</span> and Pre-pe</p>
-                        </div>
-                        <div className="text-xs font-black text-indigo-600 px-6 py-2 bg-indigo-50 rounded-2xl border border-indigo-100 uppercase tracking-widest">
-                            {displayCards.filter(c => c.status !== 'SCRATCHED').length} Available
-                        </div>
-                    </div>
-                    
-                    <motion.div 
-                        variants={containerVariants}
-                        initial="hidden"
-                        animate="visible"
-                        className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10 mt-10"
-                    >
-                        {displayCards.map((card: any, idx) => (
-                            <motion.div key={card.id || `card-${idx}`} variants={itemVariants}>
-                                <ScratchCardItem 
-                                    id={card.id}
-                                    title={card.title}
-                                    type={card.type as any}
-                                    value={card.reward_value}
-                                    isUnlocked={card.status === 'UNLOCKED'}
-                                    status={card.status}
-                                    promo_code={card.promo_code}
-                                    offer_url={card.offer_url}
-                                    onScratchComplete={handleScratchComplete}
-                                />
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                 </motion.div>
-              </TabsContent>
+                     {/* Task Earning List */}
+                     <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-8 space-y-6 border border-white">
+                         <div className="flex items-center justify-between mb-4">
+                             <h4 className="text-xl font-black tracking-tight text-slate-900">Task Earning</h4>
+                             <Sparkles className="w-4 h-4 text-amber-500" />
+                         </div>
+                         <div className="space-y-4">
+                             {tasks.map((task) => {
+                                 const TaskIcon = ({
+                                     Shield: Shield,
+                                     Zap: Zap,
+                                     User: UserIcon,
+                                     TrendingUp: TrendingUp,
+                                     CalendarDays: CalendarDays,
+                                     Gift: Gift,
+                                     Star: Star,
+                                     Award: Award,
+                                     Banknote: Banknote,
+                                     Target: Target,
+                                     Wallet: Wallet,
+                                     Calendar: Calendar,
+                                     Heart: Heart,
+                                     Smartphone: Smartphone,
+                                     ShoppingBag: ShoppingBag,
+                                     Tag: Tag,
+                                     Share2: Share2,
+                                     MessageSquare: MessageSquare,
+                                     Play: Play,
+                                     Image: Image,
+                                     Lock: Lock,
+                                     ShieldCheck: ShieldCheck,
+                                     LayoutList: LayoutList,
+                                     ClipboardList: ClipboardList
+                                 } as any)[task.icon_name || "Gift"] || Gift;
+                                 
+                                 const isCompleted = completedTaskIds.includes(task.id);
+                                 const statusLabel = isCompleted ? "CLAIMED" : (task.button_text || (task.requirement_type === "NONE" ? "CLAIM" : "GO"));
 
-              <TabsContent value="history" className="focus-visible:outline-none">
-                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                 >
-                    <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[3.5rem] overflow-hidden border border-white/50">
-                        <div className="p-10 border-b border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-5">
-                                <div className="bg-slate-950 p-4 rounded-3xl text-white shadow-2xl">
-                                    <History className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Points Ledger</h3>
-                                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Real-time update</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-4 space-y-2">
-                            {history.length === 0 ? (
-                                <div className="py-32 text-center">
-                                    <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                                        <Coins className="w-10 h-10 text-slate-300" />
+                                 return (
+                                    <div key={task.id} className="flex items-center justify-between p-3 sm:p-4 bg-white/50 rounded-2xl border border-slate-100/50 hover:bg-white transition-all gap-2">
+                                        <div className="flex items-center gap-3 sm:gap-4 text-left min-w-0">
+                                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                                                <TaskIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight truncate">{task.title}</p>
+                                                <p className="text-[10px] sm:text-[11px] font-black text-emerald-600 uppercase tracking-widest">+{task.reward_points} PTS</p>
+                                            </div>
+                                        </div>
+                                        <Button 
+                                           variant={isCompleted ? "ghost" : "default"} 
+                                           size="sm"
+                                           disabled={isCompleted || taskLoading}
+                                           onClick={() => handleTaskAction(task)}
+                                           className={`rounded-full shadow-lg text-[8px] sm:text-[9px] font-black uppercase tracking-widest h-7 sm:h-8 px-3 sm:px-4 shrink-0 ${isCompleted ? "text-slate-400" : "bg-slate-900 text-white"}`}
+                                        >
+                                            {isCompleted && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                            {statusLabel}
+                                        </Button>
                                     </div>
-                                    <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Your ledger is currently empty</p>
+                                 );
+                             })}
+                             {tasks.length === 0 && (
+                                <div className="text-center py-6 opacity-40">
+                                    <p className="text-xs font-bold">No tasks available right now.</p>
                                 </div>
-                            ) : (
-                                <div className="space-y-1">
-                                  {history.map((entry, idx) => (
-                                      <motion.div 
-                                        key={entry.id || `hist-${idx}`} 
-                                        whileHover={{ scale: 0.99, backgroundColor: 'rgba(255,255,255,0.8)' }}
-                                        className="flex justify-between items-center p-8 rounded-[2.5rem] transition-all"
-                                      >
-                                          <div className="flex items-center gap-6 text-left">
-                                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${entry.points > 0 ? 'bg-emerald-50 text-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-rose-50 text-rose-600 shadow-[0_0_20px_rgba(244,63,94,0.1)]'}`}>
-                                                  {entry.points > 0 ? <TrendingUp className="w-6 h-6" /> : <TrendingUp className="w-6 h-6 rotate-180" />}
-                                              </div>
-                                              <div>
-                                                  <p className="font-black text-slate-900 text-xl leading-none mb-2">{entry.description}</p>
-                                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(entry.created_at).toLocaleString()}</p>
-                                              </div>
-                                          </div>
-                                          <div className={`text-3xl font-black tabular-nums tracking-tighter ${entry.points > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                              {entry.points > 0 ? '+' : ''}{entry.points}
-                                          </div>
-                                      </motion.div>
-                                  ))}
-                                </div>
-                            )}
-                        </div>
+                             )}
+                          </div>
+                     </Card>
+
+                     {/* How to Earn Banner */}
+                     <div className="bg-slate-950 rounded-[3rem] p-8 text-white relative overflow-hidden group">
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] opacity-20 -mr-32 -mt-32"></div>
+                         <div className="relative z-10 flex flex-col items-center text-center gap-6">
+                             <div className="space-y-2">
+                                 <h3 className="text-2xl font-black tracking-tight">Become an Elite Member</h3>
+                                 <p className="text-indigo-200/60 font-medium text-xs leading-relaxed max-w-[280px] mx-auto">
+                                     Higher plans give you up to <span className="text-indigo-400 font-black">2x Rewards Multiplier</span> and exclusive 
+                                     access to high-value scratch cards.
+                                 </p>
+                             </div>
+                             <Button className="w-full bg-white text-slate-950 hover:bg-emerald-50 rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-[10px] transition-transform active:scale-95 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                                 View Executive Plans
+                             </Button>
+                         </div>
+                     </div>
+                  </motion.div>
+               </TabsContent>
+
+               <TabsContent value="spin" className="focus-visible:outline-none">
+                 <motion.div
+                   initial={{ opacity: 0, scale: 0.95 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   className="flex flex-col items-center"
+                 >
+                    <Card className="border-none shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/70 backdrop-blur-3xl rounded-[4rem] p-10 w-full max-w-4xl border border-white/50">
+                       <CardContent className="pt-10 pb-16 flex flex-col items-center">
+                           <div className="text-center space-y-4 mb-20">
+                              <div className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 shadow-xl shadow-indigo-200 text-white rounded-full text-[10px] font-black uppercase tracking-widest ring-4 ring-indigo-50">
+                                 <Sparkles className="w-3 h-3" />
+                                 1x Spin per day
+                              </div>
+                              <h3 className="text-5xl font-black text-slate-900 tracking-tighter">Mega Fortune Wheel</h3>
+                              <p className="text-slate-500 max-w-md mx-auto font-medium leading-relaxed">
+                                 Test your luck today! You can win up to <span className="text-indigo-600 font-bold">500 Reward Points</span> or exclusive cash bonuses.
+                              </p>
+                           </div>
+                            <SpinWheel 
+                               onSpinComplete={handleSpinComplete} 
+                               disabled={!canSpin} 
+                               lastSpinTime={lastSpinTime}
+                            />
+                       </CardContent>
                     </Card>
                  </motion.div>
-              </TabsContent>
-            </div>
-          </Tabs>
+               </TabsContent>
+
+               <TabsContent value="vouchers" className="focus-visible:outline-none space-y-10">
+                  <motion.div
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                  >
+                     <div className="flex items-center justify-between pb-6 border-b border-slate-200">
+                         <div>
+                             <h3 className="text-3xl font-black text-slate-900 tracking-tight">Active Rewards</h3>
+                             <p className="text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] xs:max-w-none">Rewards by <span className="text-black font-black italic">Hubble</span> and Pre-pe</p>
+                         </div>
+                         <div className="text-xs font-black text-indigo-600 px-6 py-2 bg-indigo-50 rounded-2xl border border-indigo-100 uppercase tracking-widest">
+                             {displayCards.filter(c => c.status !== 'SCRATCHED').length} Available
+                         </div>
+                     </div>
+                     
+                     <motion.div 
+                         variants={containerVariants}
+                         initial="hidden"
+                         animate="visible"
+                         className="grid grid-cols-2 gap-4 mt-6"
+                     >
+                         {displayCards.map((card: any, idx) => (
+                             <motion.div key={card.id || `card-${idx}`} variants={itemVariants}>
+                                 <ScratchCardItem 
+                                     id={card.id}
+                                     title={card.title}
+                                     type={card.type as any}
+                                     value={card.reward_value}
+                                     isUnlocked={card.status === 'UNLOCKED'}
+                                     status={card.status}
+                                     promo_code={card.promo_code}
+                                     offer_url={card.offer_url}
+                                     onScratchComplete={handleScratchComplete}
+                                 />
+                             </motion.div>
+                         ))}
+                     </motion.div>
+                  </motion.div>
+               </TabsContent>
+
+               <TabsContent value="leaderboard" className="focus-visible:outline-none">
+                  <Leaderboard />
+               </TabsContent>
+             </div>
+           </Tabs>
         </div>
       </div>
     </Layout>

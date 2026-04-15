@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -64,6 +64,7 @@ const AdminLayout = () => {
         { icon: Users, label: "User Management", path: "/admin/users" },
         { icon: CreditCard, label: "Paid Users", path: "/admin/paid-users" },
         { icon: Settings, label: "Plan Manager", path: "/admin/plan-manager" },
+        { icon: Gift, label: "Rewards Manager", path: "/admin/rewards" },
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
         // { icon: Settings, label: "Settings", path: "/admin/settings" },

@@ -218,5 +218,68 @@ export const adminService = {
         }
         
         return true;
+    },
+
+    // Reward Settings Management
+    async getRewardSettings() {
+        const { data, error } = await (supabase as any)
+            .from('reward_settings')
+            .select('*');
+        
+        if (error) throw error;
+        
+        // Convert array to key-value object for easier UI handling
+        return (data || []).reduce((acc: any, item: any) => {
+            acc[item.key] = item.value;
+            return acc;
+        }, {});
+    },
+
+    async updateRewardSetting(key: string, value: any) {
+        const { error } = await (supabase as any)
+            .from('reward_settings')
+            .update({ 
+                value,
+                updated_at: new Date().toISOString()
+            })
+            .eq('key', key);
+        
+        if (error) throw error;
+        return true;
+    },
+
+    // Task Management
+    async getTasks() {
+        const { data, error } = await (supabase as any)
+            .from('rewards_tasks')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
+    },
+
+    async upsertTask(task: any) {
+        const { data, error } = await (supabase as any)
+            .from('rewards_tasks')
+            .upsert({
+                ...task,
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteTask(id: string) {
+        const { error } = await (supabase as any)
+            .from('rewards_tasks')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        return true;
     }
 };

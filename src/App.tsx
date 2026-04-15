@@ -35,6 +35,8 @@ import AdminBanners from "./pages/admin/AdminBanners";
 import AdminBannerEditor from "./pages/admin/AdminBannerEditor";
 import PaidUsers from "./pages/admin/PaidUsers";
 import PlanManager from "./pages/admin/PlanManager";
+import RewardsManager from "./pages/admin/RewardsManager";
+import AdminTasks from "./pages/admin/AdminTasks";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
@@ -64,6 +66,7 @@ import { ProfileProvider } from "./contexts/ProfileContext";
 import PlanSelectionPage from "./pages/onboarding/PlanSelectionPage";
 import ConsentPage from "./pages/onboarding/ConsentPage";
 import RewardsDashboard from "./pages/rewards/RewardsDashboard";
+import RewardHistoryPage from "./pages/rewards/RewardHistoryPage";
 import ServicesPage from "./pages/ServicesPage";
 import SavedPage from "@/pages/SavedPage";
 import BulkRechargePage from "@/pages/business/BulkRechargePage";
@@ -116,6 +119,7 @@ const App = () => (
               <Route path="/mobile-recharge" element={<MobileRecharge />} />
 
               <Route path="/rewards" element={<RewardsDashboard />} />
+              <Route path="/rewards/history" element={<RewardHistoryPage />} />
               <Route path="/offers" element={<CashbackOffers />} />
 
               <Route path="/dth-recharge" element={<DTHSelectProvider />} />
@@ -162,6 +166,8 @@ const App = () => (
                 <Route path="fund-requests" element={<AdminFundRequests />} />
                 <Route path="paid-users" element={<PaidUsers />} />
                 <Route path="plan-manager" element={<PlanManager />} />
+                <Route path="rewards" element={<RewardsManager />} />
+                <Route path="tasks" element={<AdminTasks />} />
                 <Route path="banners" element={<AdminBanners />} />
                 <Route path="banners/new" element={<AdminBannerEditor />} />
                 <Route path="banners/:id" element={<AdminBannerEditor />} />

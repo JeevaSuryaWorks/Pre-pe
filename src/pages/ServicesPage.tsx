@@ -102,7 +102,7 @@ export default function ServicesPage() {
       <div className="min-h-screen bg-[#F8FAFC]">
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 p-4">
-          <div className="flex items-center gap-4 max-w-2xl mx-auto">
+          <div className="flex items-center gap-4 px-4">
             <button 
               onClick={() => navigate(-1)}
               className="p-2 hover:bg-slate-100 rounded-full transition-colors"
@@ -121,7 +121,7 @@ export default function ServicesPage() {
           </div>
         </div>
 
-        <div className="max-w-2xl mx-auto p-4 pb-24">
+        <div className="p-4 pb-24">
           <div className="mb-8 mt-4 px-2">
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">All Services</h1>
             <p className="text-slate-500 mt-1">Pay all your bills and recharges securely</p>

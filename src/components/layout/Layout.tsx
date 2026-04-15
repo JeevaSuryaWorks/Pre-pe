@@ -23,8 +23,8 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
   const isKYCPage = window.location.pathname === '/kyc';
 
   return (
-    <div className="min-h-screen bg-blue-50/30 flex justify-center w-full">
-      <div className={`w-full ${isFullWidth ? 'max-w-none' : 'max-w-md'} bg-white shadow-xl min-h-screen relative flex flex-col`}>
+    <div className="min-h-screen bg-[#F1F5F9] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] flex justify-center w-full">
+      <div className={`w-full ${isFullWidth ? 'max-w-none' : 'max-w-[448px]'} bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] min-h-screen relative flex flex-col`}>
 
         {/* KYC Warning Banner */}
         {!hideHeader && !isKYCPage && status && !isApproved && (
@@ -60,7 +60,7 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
         ) : (
           <Header />
         ))}
-        <main className="flex-1 pb-20">{children}</main>
+        <main className={`flex-1 pb-20 ${!hideHeader ? 'pt-4' : ''}`}>{children}</main>
         {showBottomNav && <BottomNav />}
       </div>
     </div>

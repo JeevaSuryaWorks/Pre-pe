@@ -28,6 +28,24 @@ export interface ScratchCard {
 }
 
 /**
+ * Fetch global reward configuration
+ */
+async function getRewardConfig(key: string, defaultValue: any): Promise<any> {
+  try {
+    const { data, error } = await supabase
+      .from('reward_settings' as never)
+      .select('value')
+      .eq('key', key)
+      .single();
+    
+    if (error || !data) return defaultValue;
+    return (data as any).value;
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
+/**
  * Check if a user can spin today (Rolling 24-hour window)
  */
 export async function canUserSpinToday(userId: string): Promise<boolean> {
@@ -67,6 +85,33 @@ export async function getUserTotalPoints(userId: string): Promise<number> {
   if (error || !data) return 0;
 
   return data.reduce((sum: number, row: any) => sum + Number(row.points), 0);
+}
+
+/**
+ * Get total cashback earned by a user (from rewards and redemptions)
+ */
+export async function getUserTotalCashback(userId: string): Promise<number> {
+  // 1. Get wallet ID 
+  const { data: wallet, error: walletError } = await supabase
+    .from('wallets' as never)
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (walletError || !wallet) return 0;
+
+  // 2. Sum up credits with reward-related descriptions
+  const { data, error } = await supabase
+    .from('wallet_ledger' as never)
+    .select('amount')
+    .eq('wallet_id', (wallet as any).id)
+    .eq('type', 'CREDIT')
+    // Match common reward patterns in descriptions
+    .or('description.ilike.%Cashback%,description.ilike.%Redeemed%');
+
+  if (error || !data) return 0;
+
+  return data.reduce((sum: number, row: any) => sum + Number(row.amount), 0);
 }
 
 /**
@@ -212,9 +257,12 @@ export async function handleCashbackOffer(userId: string, amount: number, transa
     .eq('user_id', userId)
     .eq('status', 'SUCCESS');
 
-  // If this is the first successful recharge, and amount > 100
-  if (count === 1 && amount >= 100) {
-    const cashbackAmount = amount * 0.1; // 10% cashback
+  // Get configuration from DB
+  const config = await getRewardConfig('first_recharge', { min_amount: 100, cashback_percent: 10 });
+
+  // If this is the first successful recharge, and amount meets threshold
+  if (count === 1 && amount >= config.min_amount) {
+    const cashbackAmount = amount * (config.cashback_percent / 100); 
     
     const { data: walletData } = await supabase
       .from('wallets' as never)
@@ -237,7 +285,7 @@ export async function handleCashbackOffer(userId: string, amount: number, transa
           type: 'CREDIT',
           amount: cashbackAmount,
           balance_after: newBalance,
-          description: `First Recharge Cashback (10%)`,
+          description: `First Recharge Cashback (${config.cashback_percent}%)`,
         } as never);
     }
   }
@@ -253,6 +301,9 @@ export async function initializeWelcomeCard(userId: string): Promise<void> {
     .eq('user_id', userId);
 
   if (count === 0) {
+    // Get configuration from DB
+    const config = await getRewardConfig('signup_bonus', { points: 200 });
+
     // Inject first welcome card
     await supabase
       .from('scratch_cards' as never)
@@ -260,7 +311,7 @@ export async function initializeWelcomeCard(userId: string): Promise<void> {
         user_id: userId,
         title: 'Welcome Bonus',
         type: 'REWARD_POINTS',
-        reward_value: 200,
+        reward_value: config.points,
         status: 'UNLOCKED',
         description: 'Exclusive reward for joining Pre-pe!'
       } as never);
@@ -322,14 +373,16 @@ export async function getUserStreak(userId: string): Promise<number> {
 
 /**
  * Redeem points for wallet balance
- * 1000 Points = 10 Rupees
+ * 1000 Points = 10 Rupees (Default)
  */
 export async function redeemRewardPoints(
   userId: string,
   pointsToRedeem: number
 ): Promise<{ success: boolean; amount?: number; error?: string }> {
-  if (pointsToRedeem < 1000) {
-    return { success: false, error: "Minimum 1000 points required to redeem." };
+  const config = await getRewardConfig('redemption', { points_per_rupee: 100, min_points: 1000 });
+
+  if (pointsToRedeem < config.min_points) {
+    return { success: false, error: `Minimum ${config.min_points} points required to redeem.` };
   }
 
   const currentPoints = await getUserTotalPoints(userId);
@@ -337,10 +390,10 @@ export async function redeemRewardPoints(
     return { success: false, error: "Insufficient points." };
   }
 
-  // Calculate multiples of 1000
-  const multiples = Math.floor(pointsToRedeem / 1000);
-  const totalPointsUsed = multiples * 1000;
-  const cashbackAmount = multiples * 10;
+  // Calculate multiples of step (min_points used as step)
+  const multiples = Math.floor(pointsToRedeem / config.min_points);
+  const totalPointsUsed = multiples * config.min_points;
+  const cashbackAmount = totalPointsUsed / config.points_per_rupee;
 
   // 1. Deduct points
   const { error: pointsError } = await supabase
@@ -370,5 +423,111 @@ export async function redeemRewardPoints(
   }
 
   return { success: true, amount: cashbackAmount };
+}
+
+/**
+ * Get top 100 users by their total recharge volume
+ */
+export async function getLeaderboard(): Promise<{ profile: any, total_amount: number }[]> {
+  try {
+    // Note: In production, this should be a DB view or RPC for performance.
+    // For now, we aggregate successful transactions.
+    const { data: transactions, error } = await supabase
+      .from('transactions' as never)
+      .select('user_id, amount, profiles(full_name)')
+      .eq('status', 'SUCCESS')
+      .eq('type', 'RECHARGE');
+
+    if (error || !transactions) return [];
+
+    const userTotals = (transactions as any[]).reduce((acc: any, tx: any) => {
+        const userId = tx.user_id;
+        if (!acc[userId]) {
+            acc[userId] = { 
+                name: tx.profiles?.full_name || 'Anonymous User', 
+                amount: 0 
+            };
+        }
+        acc[userId].amount += Number(tx.amount);
+        return acc;
+    }, {});
+
+    return Object.values(userTotals)
+      .sort((a: any, b: any) => b.amount - a.amount)
+      .slice(0, 100) as any;
+  } catch (err) {
+    console.error("Leaderboard Error:", err);
+    return [];
+  }
+}
+
+/**
+ * Reward points for watching an advertisement
+ */
+export async function watchAdAndEarnPoints(userId: string): Promise<{ success: boolean; points?: number; error?: string }> {
+  // Configurable amount per ad
+  const pointsPerAd = 5; 
+  const description = "Reward for watching advertisement";
+  
+  const success = await addRewardPoints(userId, pointsPerAd, 'MANUAL', description);
+  
+  if (success) {
+    return { success: true, points: pointsPerAd };
+  } else {
+    return { success: false, error: "Failed to award points." };
+  }
+}
+
+/**
+ * Fetch all active tasks
+ */
+export async function getAvailableTasks(): Promise<any[]> {
+    const { data, error } = await (supabase as any)
+        .from('rewards_tasks')
+        .select('*')
+        .eq('is_active', true)
+        .order('reward_points', { ascending: false });
+    
+    if (error) return [];
+    return data || [];
+}
+
+/**
+ * Get IDs of tasks completed by user
+ */
+export async function getUserCompletedTasks(userId: string): Promise<string[]> {
+    const { data, error } = await (supabase as any)
+        .from('user_completed_tasks')
+        .select('task_id')
+        .eq('user_id', userId);
+    
+    if (error) return [];
+    return data.map((d: any) => d.task_id) || [];
+}
+
+/**
+ * Claim a task reward
+ */
+export async function claimTaskReward(userId: string, task: any): Promise<boolean> {
+    // 1. Record completion
+    const { error: completeError } = await (supabase as any)
+        .from('user_completed_tasks')
+        .insert({
+            user_id: userId,
+            task_id: task.id,
+            earned_points: task.reward_points
+        });
+    
+    if (completeError) return false;
+
+    // 2. Add points
+    await addRewardPoints(
+        userId, 
+        task.reward_points, 
+        'MANUAL', 
+        `Reward for task: ${task.title}`
+    );
+
+    return true;
 }
 
