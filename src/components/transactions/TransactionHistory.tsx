@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Search, Calendar as CalendarIcon, Loader2, History, Smartphone, Tv, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Loader2, History, Smartphone, Tv, FileText, CheckCircle2, XCircle, Clock, TrendingUp, ArrowUpRight, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getTransactionHistory } from '@/services/recharge.service';
@@ -22,8 +22,9 @@ export function TransactionHistory() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [activeTab, setActiveTab] = useState('Recharges');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterPreset, setFilterPreset] = useState('Recent');
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -35,7 +36,7 @@ export function TransactionHistory() {
     const loadTransactions = async () => {
       if (user) {
         setLoading(true);
-        const txns = await getTransactionHistory(user.id, 50);
+        const txns = await getTransactionHistory(user.id, 100);
         setTransactions(txns);
         
         // Load favorites status
@@ -57,14 +58,12 @@ export function TransactionHistory() {
     if (!user) return;
 
     if (favorites[tx.id]) {
-        // Remove
         const success = await removeSavedItem(favorites[tx.id]!);
         if (success) {
             setFavorites(prev => ({ ...prev, [tx.id]: null }));
             toast({ title: "Removed from Saved", description: "Transaction removed from your favorites." });
         }
     } else {
-        // Add
         const newItem = await addSavedItem({
             user_id: user.id,
             category: 'FAVORITE',
@@ -81,79 +80,44 @@ export function TransactionHistory() {
     }
   };
 
-  const getServiceIcon = (serviceType: string) => {
-    switch (serviceType) {
-      case 'MOBILE_PREPAID':
-        return <Smartphone className="h-4 w-4" />;
-      case 'DTH':
-        return <Tv className="h-4 w-4" />;
-      case 'MOBILE_POSTPAID':
-        return <FileText className="h-4 w-4" />;
-      default:
-        return <History className="h-4 w-4" />;
+  const getServiceIcon = (tx: Transaction) => {
+    const operator = tx.operator_name?.toLowerCase() || '';
+    if (operator.includes('jio')) return <div className="w-10 h-10 rounded-full bg-[#00529b] flex items-center justify-center text-white font-bold text-xs">Jio</div>;
+    if (operator.includes('airtel')) return <div className="w-10 h-10 rounded-full bg-[#e11d2b] flex items-center justify-center text-white font-bold text-[10px]">Airtel</div>;
+    if (operator.includes('vi')) return <div className="w-10 h-10 rounded-full bg-[#ff0000] flex items-center justify-center text-white font-bold text-xs">Vi</div>;
+    if (operator.includes('bsnl')) return <div className="w-10 h-10 rounded-full bg-[#004a95] flex items-center justify-center text-white font-bold text-[10px]">BSNL</div>;
+    
+    switch (tx.service_type) {
+      case 'MOBILE_PREPAID': return <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><Smartphone className="h-5 w-5" /></div>;
+      case 'DTH': return <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><Tv className="h-5 w-5" /></div>;
+      case 'MOBILE_POSTPAID': return <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><FileText className="h-5 w-5" /></div>;
+      default: return <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center"><History className="h-5 w-5" /></div>;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'SUCCESS':
-        return (
-          <Badge className="bg-chart-2/20 text-chart-2 hover:bg-chart-2/30">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Success
-          </Badge>
-        );
-      case 'FAILED':
-        return (
-          <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" />
-            Failed
-          </Badge>
-        );
-      case 'PENDING':
-        return (
-          <Badge variant="secondary">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case 'REFUNDED':
-        return (
-          <Badge className="bg-chart-3/20 text-chart-3 hover:bg-chart-3/30">
-            Refunded
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getServiceLabel = (serviceType: string) => {
-    switch (serviceType) {
-      case 'MOBILE_PREPAID':
-        return 'Mobile Prepaid';
-      case 'DTH':
-        return 'DTH Recharge';
-      case 'MOBILE_POSTPAID':
-        return 'Postpaid Bill';
-      default:
-        return serviceType;
-    }
-  };
-
-  // Filter Transactions
   const filteredTransactions = transactions.filter((tx) => {
     const query = searchQuery.toLowerCase();
     const date = new Date(tx.created_at);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Tab Filter
+    if (activeTab === 'Recharges' && !['RECHARGE', 'BILL_PAYMENT'].includes(tx.type)) return false;
+    if (activeTab === 'Deposits' && tx.type !== 'WALLET_CREDIT') return false;
+    if (activeTab === 'Referrals' && !tx.metadata?.is_referral && !tx.metadata?.description?.toString().toLowerCase().includes('referral')) return false;
+    if (activeTab === 'Cashbacks' && (!tx.commission || tx.commission <= 0)) return false;
+
+    // Preset Filter
+    if (filterPreset === 'Today' && date < today) return false;
 
     // Search Filter
     const matchesSearch =
       tx.id.toLowerCase().includes(query) ||
       (tx.mobile_number && tx.mobile_number.includes(query)) ||
       (tx.dth_id && tx.dth_id.includes(query)) ||
-      (tx.reference_id && tx.reference_id.toLowerCase().includes(query));
+      (tx.operator_name && tx.operator_name.toLowerCase().includes(query));
 
-    // Date Filter
+    // Date Range Filter
     const matchesDate =
       (!dateRange.from || date >= dateRange.from) &&
       (!dateRange.to || date <= new Date(dateRange.to.setHours(23, 59, 59, 999)));
@@ -161,156 +125,227 @@ export function TransactionHistory() {
     return matchesSearch && matchesDate;
   });
 
+  const stats = {
+    totalSpent: filteredTransactions
+      .filter(tx => tx.status === 'SUCCESS' && (tx.type === 'RECHARGE' || tx.type === 'BILL_PAYMENT'))
+      .reduce((acc, tx) => acc + Number(tx.amount), 0),
+    totalCashback: filteredTransactions
+      .filter(tx => tx.status === 'SUCCESS')
+      .reduce((acc, tx) => acc + (Number(tx.commission) || 0), 0)
+  };
+
   const handleExport = async (mode: 'download' | 'share') => {
     if (!user || filteredTransactions.length === 0) return;
-
     try {
         const doc = await generateHistoryPDF(filteredTransactions, {
             id: user.id,
             name: user.email?.split('@')[0],
             phone: user.phone
         }, "Transaction History Statement");
-
         if (mode === 'share') {
-            const shared = await sharePDF(doc, `Prepe_History_${format(new Date(), 'yyyyMMdd')}.pdf`);
-            if (shared) {
-                toast({ title: "History Shared", description: "Your PDF statement has been shared successfully." });
-            }
+            await sharePDF(doc, `Prepe_History_${format(new Date(), 'yyyyMMdd')}.pdf`);
         } else {
             doc.save(`Prepe_History_${format(new Date(), 'yyyyMMdd')}.pdf`);
-            toast({ title: "History Downloaded", description: "Your transaction records are ready." });
         }
     } catch (error) {
         console.error("Export error:", error);
-        toast({ variant: "destructive", title: "Export Failed", description: "There was an error generating your PDF report." });
     }
   };
 
+  const tabs = ['Recharges', 'Deposits', 'Referrals', 'Cashbacks'];
+  const presets = [
+    { label: 'Recent', icon: <History className="h-3 w-3" /> },
+    { label: 'Today', icon: <CalendarIcon className="h-3 w-3" /> },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Filters Header */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
+      {/* Search & Main Filters */}
+      <div className="space-y-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by ID, Mobile, or Reference..."
-            className="pl-9 bg-white"
+            placeholder="Search by ID, Mobile, or Operator..."
+            className="pl-10 bg-white border-slate-200 rounded-full h-11"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Popover>
-          <PopoverTrigger asChild>
+
+        {/* Quick Presets Row */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          {presets.map(p => (
             <Button
-              variant={"outline"}
+              key={p.label}
+              variant={filterPreset === p.label ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterPreset(p.label)}
               className={cn(
-                "w-[240px] justify-start text-left font-normal bg-white",
-                !dateRange.from && "text-muted-foreground"
+                "rounded-full gap-2 whitespace-nowrap h-9 px-4 font-bold text-xs",
+                filterPreset === p.label ? "bg-emerald-600 hover:bg-emerald-700" : "bg-white border-slate-200 text-slate-600"
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Pick a date range</span>
+              {p.icon}
+              {p.label}
+            </Button>
+          ))}
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full gap-2 whitespace-nowrap h-9 px-4 font-bold text-xs bg-white border-slate-200 text-slate-600"
+              >
+                <CalendarIcon className="h-3 w-3" />
+                Pick Date
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
+                numberOfMonths={1}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full gap-2 whitespace-nowrap h-9 px-4 font-bold text-xs bg-white border-slate-200 text-slate-600"
+            onClick={() => handleExport('download')}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            Filter
+          </Button>
+        </div>
+
+        {/* Categories Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-slate-100 pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap",
+                activeTab === tab 
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-100" 
+                  : "bg-white text-slate-500 border border-slate-100 hover:bg-slate-50"
               )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange.from}
-              selected={dateRange}
-              onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
-        </Popover>
-        <div className="flex gap-2">
-            <Button 
-                variant="outline" 
-                size="icon" 
-                className="bg-white border-slate-200"
-                onClick={() => handleExport('download')}
-                title="Download History"
             >
-                <Download className="h-4 w-4 text-slate-600" />
-            </Button>
-            <Button 
-                variant="outline" 
-                size="icon" 
-                className="bg-white border-slate-200"
-                onClick={() => handleExport('share')}
-                title="Share History"
-            >
-                <Share2 className="h-4 w-4 text-slate-600" />
-            </Button>
+              {tab}
+            </button>
+          ))}
         </div>
       </div>
 
+      {/* Summary Section */}
+      <div className="grid grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-3xl border border-emerald-100">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-white rounded-2xl shadow-sm">
+            <TrendingUp className="h-5 w-5 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Spent</p>
+            <p className="text-lg font-black text-slate-900 leading-tight">₹{stats.totalSpent.toFixed(0)}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 border-l border-emerald-100 pl-4">
+          <div className="p-2.5 bg-white rounded-2xl shadow-sm">
+             <div className="h-5 w-5 bg-emerald-600 rounded-full flex items-center justify-center">
+                <ArrowUpRight className="h-3 w-3 text-white rotate-180" />
+             </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Cashback</p>
+            <p className="text-lg font-black text-emerald-600 leading-tight">₹{stats.totalCashback.toFixed(2)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Transactions List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
       ) : filteredTransactions.length === 0 ? (
-        <div className="text-center py-12 border rounded-lg bg-slate-50 border-dashed border-slate-200">
-          <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No transactions match your filters</p>
-          <Button variant="link" onClick={() => { setSearchQuery(''); setDateRange({ from: undefined, to: undefined }); }}>
-            Clear Filters
+        <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50">
+          <div className="bg-white p-4 rounded-full w-fit mx-auto shadow-sm mb-4">
+            <History className="h-8 w-8 text-slate-300" />
+          </div>
+          <p className="text-slate-500 font-bold">No transactions found</p>
+          <Button variant="link" className="text-emerald-600 text-xs font-bold" onClick={() => { setSearchQuery(''); setActiveTab('Recharges'); setFilterPreset('Recent'); }}>
+            Reset Filters
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredTransactions.map((tx) => (
             <div
               key={tx.id}
-              className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm hover:border-primary/30 hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
+              className="group bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all overflow-hidden cursor-pointer active:scale-[0.98]"
               onClick={() => navigate(`/transaction/${tx.id}`, { state: { transaction: tx } })}
             >
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-slate-50 text-slate-600">
-                  {getServiceIcon(tx.service_type)}
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    {tx.mobile_number || tx.dth_id || 'N/A'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-slate-500 font-medium">
-                      {getServiceLabel(tx.service_type)}
-                    </span>
-                    <span className="text-xs text-slate-300">•</span>
-                    <span className="text-xs text-slate-400">
-                      {format(new Date(tx.created_at), 'MMM d, h:mm a')}
-                    </span>
+              {/* Top Card Section */}
+              <div className="p-5 pb-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="transition-transform group-hover:scale-110">
+                      {getServiceIcon(tx)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 leading-tight">
+                        {tx.operator_name || (tx.service_type === 'WALLET' ? 'Wallet Topup' : 'Recharge')}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        {tx.mobile_number || tx.dth_id || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-black text-slate-900">₹{Number(tx.amount).toFixed(2)}</p>
+                    <div className="mt-1 flex justify-end">
+                      {tx.status === 'SUCCESS' && (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Success
+                        </div>
+                      )}
+                      {tx.status === 'FAILED' && (
+                        <div className="flex items-center gap-1.5 bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-[10px] font-bold">
+                          <XCircle className="h-3 w-3" />
+                          Failed
+                        </div>
+                      )}
+                      {tx.status === 'PENDING' && (
+                        <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-3 py-1 rounded-full text-[10px] font-bold">
+                          <Clock className="h-3 w-3" />
+                          Pending
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="text-right flex items-center gap-3">
-                <div className="flex flex-col items-end">
-                    <p className="font-bold text-lg text-slate-900">₹{Number(tx.amount).toFixed(2)}</p>
-                    <div className="mt-1">{getStatusBadge(tx.status)}</div>
+
+              {/* Bottom Card Strip */}
+              <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                <div className="flex items-center gap-2">
+                  <span>{format(new Date(tx.created_at), 'yyyy-MM-dd')}</span>
+                  <span className="opacity-50">{format(new Date(tx.created_at), 'HH:mm:ss')}</span>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                        "h-10 w-10 md:h-8 md:w-8 rounded-full transition-all duration-300",
-                        favorites[tx.id] ? "text-rose-500 bg-rose-50" : "text-slate-300 hover:text-rose-400 hover:bg-slate-50"
-                    )}
-                    onClick={(e) => handleToggleFavorite(e, tx)}
-                >
-                    <Heart className={cn("h-5 w-5 md:h-4 md:w-4", favorites[tx.id] && "fill-current")} />
-                </Button>
+                <div className="flex items-center gap-1 max-w-[120px] truncate opacity-80">
+                  #{tx.reference_id || tx.id.substring(0, 12)}
+                </div>
+                {(Number(tx.commission) > 0) && (
+                   <div className="flex items-center gap-1.5 text-emerald-600 bg-white px-2 py-0.5 rounded-md border border-emerald-50">
+                      <span className="text-[8px] opacity-70">₹</span>
+                      <span>{(Number(tx.commission)).toFixed(2)}</span>
+                   </div>
+                )}
               </div>
             </div>
           ))}
