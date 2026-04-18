@@ -138,24 +138,29 @@ export default async function handler(req, res) {
     try {
       const response = await fetch(`${kwikUrl}?${kwikParams.toString()}`);
       const rawText = await response.text();
-      console.log('[recharge] KWIK raw response:', rawText.substring(0, 500));
+      console.log('[recharge] KWIK raw response:', rawText);
+      
       try {
         kwikResponse = JSON.parse(rawText);
       } catch (e) {
         console.error('[recharge] KWIK response is not JSON:', rawText);
-        await supabase.from('transactions').update({ status: 'FAILED', description: 'Invalid API response' }).eq('id', transaction.id);
-        return res.status(502).json({ success: false, error: 'Payment gateway returned invalid response' });
+        await supabase.from('transactions').update({ status: 'FAILED', description: 'Invalid API response from gateway' }).eq('id', transaction.id);
+        return res.status(502).json({ 
+          success: false, 
+          error: 'Payment gateway returned invalid response format',
+          raw: rawText.substring(0, 100)
+        });
       }
     } catch (apiError) {
       console.error('[recharge] KWIK API unreachable:', apiError);
-      await supabase.from('transactions').update({ status: 'FAILED', description: 'API Error' }).eq('id', transaction.id);
-      return res.status(502).json({ success: false, error: 'Payment gateway timeout' });
+      await supabase.from('transactions').update({ status: 'FAILED', description: 'Gateway connection failed' }).eq('id', transaction.id);
+      return res.status(502).json({ success: false, error: 'Payment gateway timeout or connection error' });
     }
 
     console.log('[recharge] KWIK parsed status:', kwikResponse.status, '| message:', kwikResponse.message);
 
     // 5. Handle KWIK response
-    if (kwikResponse.status === 'SUCCESS') {
+    if (kwikResponse.status === 'SUCCESS' || kwikResponse.status === 'SUCCESSFULL') {
       const newBalance = parseFloat(wallet.balance) - parseFloat(amount);
       await supabase.from('wallets')
         .update({ balance: newBalance, updated_at: new Date().toISOString() })
@@ -172,7 +177,7 @@ export default async function handler(req, res) {
 
       await supabase.from('transactions').update({
         status: 'SUCCESS',
-        api_transaction_id: kwikResponse.opr_id,
+        api_transaction_id: kwikResponse.opr_id || kwikResponse.operator_ref,
         updated_at: new Date().toISOString()
       }).eq('id', transaction.id);
 
@@ -180,8 +185,8 @@ export default async function handler(req, res) {
         success: true,
         data: {
           transaction_id: transaction.id,
-          order_id: kwikResponse.order_id,
-          operator_ref: kwikResponse.opr_id,
+          order_id: kwikResponse.order_id || order_id,
+          operator_ref: kwikResponse.opr_id || kwikResponse.operator_ref,
           message: kwikResponse.message || 'Recharge Successful'
         }
       });
@@ -203,7 +208,7 @@ export default async function handler(req, res) {
 
       await supabase.from('transactions').update({
         status: 'PENDING',
-        api_transaction_id: kwikResponse.opr_id || null,
+        api_transaction_id: kwikResponse.opr_id || kwikResponse.operator_ref || null,
         updated_at: new Date().toISOString()
       }).eq('id', transaction.id);
 
@@ -216,11 +221,12 @@ export default async function handler(req, res) {
         }
       });
     } else {
-      // FAILED
-      console.warn('[recharge] KWIK returned FAILED. message:', kwikResponse.message, '| opid:', opid, '| number:', number);
+      // FAILED or ERROR
+      console.warn('[recharge] API returned FAILED. Raw response:', kwikResponse);
+      
       await supabase.from('transactions').update({
         status: 'FAILED',
-        api_transaction_id: kwikResponse.opr_id || null,
+        api_transaction_id: kwikResponse.opr_id || kwikResponse.operator_ref || null,
         description: kwikResponse.message || 'Transaction Failed',
         updated_at: new Date().toISOString()
       }).eq('id', transaction.id);
@@ -228,12 +234,13 @@ export default async function handler(req, res) {
       return res.status(400).json({
         success: false,
         status: 'FAILED',
-        error: kwikResponse.message || 'Recharge failed'
+        error: kwikResponse.message || 'Recharge failed at gateway',
+        detail: kwikResponse
       });
     }
 
   } catch (error) {
     console.error('[recharge] Unexpected Error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'An unexpected server error occurred during recharge' });
   }
 }

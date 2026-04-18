@@ -248,6 +248,11 @@ export function MobileRechargeForm() {
         description: result.message,
         variant: 'destructive',
       });
+      
+      // If there is detailed API response data, log it for support
+      if (result.data) {
+        console.warn('Recharge Failure Diagnostic Data:', result.data);
+      }
     }
   };
 

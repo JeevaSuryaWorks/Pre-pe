@@ -52,6 +52,7 @@ export async function processRecharge(
       })
     });
     const data = await res.json();
+    console.log('[recharge service] Response:', { status: res.status, data });
     
     if (data.success) {
       // HTTP 202 = PENDING (wallet deducted, API is processing)
@@ -63,14 +64,16 @@ export async function processRecharge(
         data: null
       };
     } else {
+      console.error('[recharge service] Error response:', data);
       return {
         status: data.status === 'PENDING' ? 'PENDING' : 'FAILED',
         transaction_id: '',
         message: data.error || 'Recharge failed',
-        data: null
+        data: data.detail || null // Pass back detailed response if available for troubleshooting
       };
     }
   } catch (error: any) {
+    console.error('[recharge service] Network or Exception:', error);
     return {
       status: 'FAILED',
       transaction_id: '',
