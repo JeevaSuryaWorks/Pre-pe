@@ -9,12 +9,13 @@ export default async function handler(req, res) {
   try {
     const { payid, client_id, operator_ref, status } = req.query;
 
-    console.log(`Received KWIK callback for order ${client_id} with status ${status}`);
+    console.log(`[kwik-callback] Payload:`, req.query);
 
-    // Validate required parameters
+    // Validate required parameters per KwikAPI format
     if (!payid || !client_id || !status) {
-      console.warn('Missing required parameters in KWIK callback');
-      return res.status(200).json({ error: 'Missing required parameters' });
+      console.warn('[kwik-callback] Missing required parameters:', { payid, client_id, status });
+      // We still return 200 so they stop retrying a broken URL
+      return res.status(200).json({ status: 'ERROR', message: 'Missing parameters' });
     }
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
