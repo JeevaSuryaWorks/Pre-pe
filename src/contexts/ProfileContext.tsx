@@ -48,7 +48,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Attempt 1: Full join with plans
         const { data, error } = await supabase
           .from('profiles')
-          .select('*, plans:plan_type(*)')
+          .select('*, plans:plans(*)')
           .eq('user_id', user.id)
           .maybeSingle();
 

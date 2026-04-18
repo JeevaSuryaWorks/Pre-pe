@@ -224,17 +224,28 @@ export default async function handler(req, res) {
       // FAILED or ERROR
       console.warn('[recharge] API returned FAILED. Raw response:', kwikResponse);
       
+      // Update transaction description with gateway error
       await supabase.from('transactions').update({
         status: 'FAILED',
         api_transaction_id: kwikResponse.opr_id || kwikResponse.operator_ref || null,
-        description: kwikResponse.message || 'Transaction Failed',
+        description: `Gateway Error: ${kwikResponse.message || 'Transaction Failed'}`,
         updated_at: new Date().toISOString()
       }).eq('id', transaction.id);
+
+      // Diagnostic logging for user help
+      if (kwikResponse.error_code === '192' || kwikResponse.message?.includes('Not Activated')) {
+        console.error('[recharge] SERVICE_NOT_ACTIVATED detected. IP whitelisting or portal configuration may be required.');
+      }
 
       return res.status(400).json({
         success: false,
         status: 'FAILED',
         error: kwikResponse.message || 'Recharge failed at gateway',
+        diagnostic: {
+          error_code: kwikResponse.error_code,
+          gate_message: kwikResponse.message,
+          suggestion: kwikResponse.error_code === '192' ? 'Verify IP Whitelisting in KWIK Dashboard and ensure service is active.' : 'Check operator ID and balance.'
+        },
         detail: kwikResponse
       });
     }
