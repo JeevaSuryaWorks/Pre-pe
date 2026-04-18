@@ -245,7 +245,9 @@ export function MobileRechargeForm() {
     } else {
       toast({
         title: 'Recharge Failed',
-        description: result.message,
+        description: result.data?.diagnostic?.suggestion 
+          ? `${result.message}. ${result.data.diagnostic.suggestion}`
+          : result.message,
         variant: 'destructive',
       });
       

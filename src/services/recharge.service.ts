@@ -69,7 +69,10 @@ export async function processRecharge(
         status: data.status === 'PENDING' ? 'PENDING' : 'FAILED',
         transaction_id: '',
         message: data.error || 'Recharge failed',
-        data: data.detail || null // Pass back detailed response if available for troubleshooting
+        data: {
+          ...data.detail,
+          diagnostic: data.diagnostic
+        }
       };
     }
   } catch (error: any) {

@@ -69,6 +69,11 @@ export interface Transaction {
   created_at: string;
   updated_at: string;
   metadata?: Record<string, unknown>;
+  diagnostic?: {
+    suggestion?: string;
+    error_code?: string;
+    gate_message?: string;
+  };
 }
 
 // Wallet Types
