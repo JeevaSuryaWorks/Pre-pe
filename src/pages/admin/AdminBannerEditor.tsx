@@ -336,59 +336,63 @@ const AdminBannerEditor = () => {
         </div>
     );
 
+    // ────────────────────────────────────────────────────────────────────────────
     return (
-        <div className="max-w-4xl mx-auto space-y-5 pb-10">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <button onClick={() => navigate('/admin/banners')}
-                    className="p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-all">
+        <div className="space-y-6 max-w-6xl mx-auto pb-10">
+            {/* Header / Breadcrumb */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <button 
+                    onClick={() => navigate('/admin/banners')}
+                    className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                        {isNew ? '✨ New Banner' : '✏️ Edit Banner'}
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Marketing / Banner Registry</span>
+                    </div>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                        {isNew ? 'Initialize Asset' : 'Refine Operational Asset'} 
+                        <span className="text-blue-600">[{id?.slice(0, 4) || 'NEW'}]</span>
                     </h1>
-                    <p className="text-sm text-slate-500 mt-0.5">
-                        {isNew ? 'Design a new promotional banner for the home screen.' : `Editing banner · ${id?.slice(0, 8)}...`}
-                    </p>
                 </div>
-                {/* Status pill */}
-                <button
-                    onClick={() => set('status', form.status === 'published' ? 'draft' : 'published')}
-                    className={cn(
-                        'flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black border transition-all',
-                        form.status === 'published'
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
-                            : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                    )}
-                >
-                    {form.status === 'published' ? <><Globe className="w-3.5 h-3.5" /> Published</> : <><Save className="w-3.5 h-3.5" /> Draft</>}
-                </button>
+                {/* Secondary Actions */}
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => navigate('/admin/banners')}
+                        className="h-11 px-6 rounded-xl font-bold border-slate-200"
+                    >
+                        Abort
+                    </Button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                {/* ── Left column: form ── */}
-                <div className="space-y-4">
-                    {/* Display Type & Style */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* ── Left column: Command Console (Form) ── */}
+                <div className="lg:col-span-8 space-y-6">
+                    
+                    {/* Primary Configuration */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Section title="Display Type">
+                        <Section title="Asset Type Identification">
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    { id: 'banner' as const, label: 'Banner', icon: Bell },
-                                    { id: 'announcement' as const, label: 'Alert', icon: Megaphone },
+                                    { id: 'banner' as const, label: 'Standard Banner', icon: LayoutGrid },
+                                    { id: 'announcement' as const, label: 'Global Alert', icon: Megaphone },
                                 ].map(t => (
                                     <button
                                         key={t.id}
                                         onClick={() => set('type', t.id)}
                                         className={cn(
-                                            'flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all',
+                                            'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all group',
                                             form.type === t.id
-                                                ? 'bg-blue-50 border-blue-600 shadow-sm'
-                                                : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
+                                                ? 'bg-blue-600 border-blue-600 translate-y-[-2px] shadow-lg shadow-blue-500/20'
+                                                : 'bg-white border-slate-100 hover:border-slate-200'
                                         )}
                                     >
-                                        <t.icon className={cn('w-5 h-5', form.type === t.id ? 'text-blue-600' : 'text-slate-400')} />
-                                        <span className={cn('text-[10px] font-black uppercase tracking-tight', form.type === t.id ? 'text-blue-700' : 'text-slate-500')}>
+                                        <t.icon className={cn('w-5 h-5 transition-transform duration-300 group-hover:scale-110', form.type === t.id ? 'text-white' : 'text-slate-400')} />
+                                        <span className={cn('text-[10px] font-black uppercase tracking-tight', form.type === t.id ? 'text-white' : 'text-slate-500')}>
                                             {t.label}
                                         </span>
                                     </button>
@@ -396,24 +400,24 @@ const AdminBannerEditor = () => {
                             </div>
                         </Section>
 
-                        <Section title="Banner Style">
+                        <Section title="Visual Architecture">
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    { id: 'card' as const, label: 'Classic', icon: Layout },
-                                    { id: 'voucher' as const, label: 'Voucher', icon: Ticket },
+                                    { id: 'card' as const, label: 'Industrial Classic', icon: Layout },
+                                    { id: 'voucher' as const, label: 'Dynamic Voucher', icon: Ticket },
                                 ].map(s => (
                                     <button
                                         key={s.id}
                                         onClick={() => set('style', s.id)}
                                         className={cn(
-                                            'flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all',
+                                            'flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all group',
                                             form.style === s.id
-                                                ? 'bg-purple-50 border-purple-600 shadow-sm'
-                                                : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
+                                                ? 'bg-blue-900 border-blue-900 translate-y-[-2px] shadow-lg shadow-blue-900/20'
+                                                : 'bg-white border-slate-100 hover:border-slate-200'
                                         )}
                                     >
-                                        <s.icon className={cn('w-5 h-5', form.style === s.id ? 'text-purple-600' : 'text-slate-400')} />
-                                        <span className={cn('text-[10px] font-black uppercase tracking-tight', form.style === s.id ? 'text-purple-700' : 'text-slate-500')}>
+                                        <s.icon className={cn('w-5 h-5 transition-transform duration-300 group-hover:scale-110', form.style === s.id ? 'text-white' : 'text-slate-400')} />
+                                        <span className={cn('text-[10px] font-black uppercase tracking-tight', form.style === s.id ? 'text-white' : 'text-slate-500')}>
                                             {s.label}
                                         </span>
                                     </button>
@@ -422,118 +426,136 @@ const AdminBannerEditor = () => {
                         </Section>
                     </div>
 
-                    {/* Content */}
-                    <Section title="Content">
-                        <Field label="Banner Image URL (Optional)">
-                            <div className="flex gap-2">
-                                <Input className="rounded-xl h-10" placeholder="https://image-link.png" value={form.image_url || ''} onChange={e => set('image_url', e.target.value)} />
-                                {form.image_url && (
-                                    <Button variant="outline" className="rounded-xl h-10 border-rose-200 text-rose-600" onClick={() => set('image_url', '')}>
-                                        <X className="w-4 h-4" />
-                                    </Button>
-                                )}
+                    {/* Content Registry */}
+                    <Section title="Content Specification">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <Field label="Asset Identity (Tag)">
+                                    <Input 
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-bold" 
+                                        placeholder="e.g. SYSTEM_UPDATE" 
+                                        value={form.tag} 
+                                        onChange={e => set('tag', e.target.value)} 
+                                    />
+                                </Field>
+                                <Field label="Primary Headline *">
+                                    <Input 
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-black text-lg" 
+                                        placeholder="Enter high-impact title" 
+                                        value={form.title} 
+                                        onChange={e => set('title', e.target.value)} 
+                                    />
+                                </Field>
                             </div>
-                        </Field>
-                        <Field label="Tag (small label above title)">
-                            <Input className="rounded-xl h-10" placeholder="e.g. Community, Offer, New!" value={form.tag} onChange={e => set('tag', e.target.value)} />
-                        </Field>
-                        <Field label="Title *">
-                            <Input className="rounded-xl h-10" placeholder="Main headline" value={form.title} onChange={e => set('title', e.target.value)} />
-                        </Field>
-                        <Field label="Subtitle">
-                            <Input className="rounded-xl h-10" placeholder="Short supporting text" value={form.subtitle} onChange={e => set('subtitle', e.target.value)} />
-                        </Field>
+                            <div className="space-y-4">
+                                <Field label="Supporting Detail (Subtitle)">
+                                    <Input 
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-medium" 
+                                        placeholder="Enter technical or marketing copy" 
+                                        value={form.subtitle} 
+                                        onChange={e => set('subtitle', e.target.value)} 
+                                    />
+                                </Field>
+                                <Field label="Priority Index (Sort Order)">
+                                    <Input 
+                                        type="number"
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-black" 
+                                        value={form.sort_order} 
+                                        onChange={e => set('sort_order', Number(e.target.value))} 
+                                    />
+                                </Field>
+                            </div>
+                        </div>
                     </Section>
 
-                    {/* CTA */}
-                    <Section title="Call to Action">
-                        <Field label="Button Text">
-                            <Input className="rounded-xl h-10" placeholder="e.g. JOIN NOW, RECHARGE" value={form.cta_text} onChange={e => set('cta_text', e.target.value)} />
-                        </Field>
-                        <Field label="Button Link">
-                            <Input className="rounded-xl h-10" placeholder="https://... or #" value={form.cta_link} onChange={e => set('cta_link', e.target.value)} />
-                        </Field>
+                    {/* Interaction Protocol */}
+                    <Section title="Interaction Protocol (CTA)">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Field label="Command Label (Button Text)">
+                                <Input 
+                                    className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-black uppercase tracking-widest text-xs" 
+                                    placeholder="e.g. EXECUTE_UPGRADE" 
+                                    value={form.cta_text} 
+                                    onChange={e => set('cta_text', e.target.value)} 
+                                />
+                            </Field>
+                            <Field label="Destination URI (Link)">
+                                <Input 
+                                    className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-mono text-xs" 
+                                    placeholder="https://..." 
+                                    value={form.cta_link} 
+                                    onChange={e => set('cta_link', e.target.value)} 
+                                />
+                            </Field>
+                        </div>
                     </Section>
 
-                    {/* Sort order */}
-                    <Section title="Display Settings">
-                        <Field label="Sort Order (lower = appears first)">
-                            <Input
-                                type="number" className="rounded-xl h-10 w-32"
-                                value={form.sort_order}
-                                onChange={e => set('sort_order', Number(e.target.value))}
-                            />
-                        </Field>
+                    {/* Icon Selection Module */}
+                    <Section title="Symbolic Identifier (Icon)">
+                        <IconPicker selected={form.icon_name} onSelect={name => set('icon_name', name)} />
                     </Section>
                 </div>
 
-                {/* ── Right column: visual ── */}
-                <div className="space-y-4">
-                    {/* Live Preview */}
-                    <Section title="Live Preview">
-                        <LivePreview form={form} />
+                {/* ── Right column: Visual Monitor & Commit Engine ── */}
+                <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+                    {/* Live Telemetry (Preview) */}
+                    <Section title="Real-Time Visual Telemetry">
+                        <div className="p-2 bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border-4 border-slate-800">
+                             <LivePreview form={form} />
+                        </div>
+                        <div className="flex items-center gap-2 mt-4 px-2">
+                            <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rendering Local Buffer</span>
+                        </div>
                     </Section>
 
-                    {/* Gradient */}
-                    <Section title="Gradient Colors">
-                        <div className="grid grid-cols-6 gap-1.5 mb-3">
+                    {/* Gradient Core */}
+                    <Section title="Chroma Engine (Gradients)">
+                        <div className="grid grid-cols-4 gap-2">
                             {PRESET_GRADIENTS.map(g => (
                                 <button
                                     key={g.label}
                                     onClick={() => setForm(prev => ({ ...prev, grad_from: g.from, grad_to: g.to }))}
-                                    title={g.label}
                                     className={cn(
-                                        'h-9 rounded-xl border-2 text-white text-[8px] font-black transition-all',
-                                        form.grad_from === g.from && form.grad_to === g.to
-                                            ? 'border-white ring-2 ring-offset-1 ring-blue-500 scale-105'
-                                            : 'border-transparent hover:scale-105'
+                                        'h-10 rounded-xl transition-all duration-300 border-2',
+                                        form.grad_from === g.from ? 'border-blue-600 scale-105 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'
                                     )}
                                     style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
-                                >
-                                    {g.label}
-                                </button>
+                                />
                             ))}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            {[
-                                { label: 'From', key: 'grad_from' as const },
-                                { label: 'To', key: 'grad_to' as const },
-                            ].map(({ label, key }) => (
-                                <div key={key} className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 h-10">
-                                    <input type="color" value={form[key]} onChange={e => set(key, e.target.value)}
-                                        className="w-6 h-6 rounded cursor-pointer border-none bg-transparent shrink-0" />
-                                    <div>
-                                        <p className="text-[10px] text-slate-400 leading-none">{label}</p>
-                                        <p className="text-xs font-mono text-slate-700">{form[key]}</p>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="grid grid-cols-2 gap-3 mt-4">
+                            <div className="flex flex-col border border-slate-100 rounded-xl p-3 bg-slate-50">
+                                <span className="text-[9px] font-black uppercase text-slate-400 mb-1">Vector From</span>
+                                <input type="color" value={form.grad_from} onChange={e => set('grad_from', e.target.value)} className="w-full h-8 cursor-pointer bg-transparent border-none" />
+                            </div>
+                            <div className="flex flex-col border border-slate-100 rounded-xl p-3 bg-slate-50">
+                                <span className="text-[9px] font-black uppercase text-slate-400 mb-1">Vector To</span>
+                                <input type="color" value={form.grad_to} onChange={e => set('grad_to', e.target.value)} className="w-full h-8 cursor-pointer bg-transparent border-none" />
+                            </div>
                         </div>
                     </Section>
+
+                    {/* Commit Actions */}
+                    <div className="flex flex-col gap-3">
+                        <Button 
+                            className="h-14 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl group"
+                            onClick={() => save('draft')}
+                            disabled={loading}
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" />}
+                            Store Draft Records
+                        </Button>
+                        <Button 
+                            className="h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-blue-500/20 group"
+                            onClick={() => save('published')}
+                            disabled={loading}
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />}
+                            Commit to Production
+                        </Button>
+                    </div>
                 </div>
-            </div>
-
-            {/* Icon Picker — full width */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <IconPicker selected={form.icon_name} onSelect={name => set('icon_name', name)} />
-            </div>
-
-            {/* Save Buttons */}
-            <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1 sm:flex-none sm:px-8 rounded-xl font-bold border-slate-200 h-11"
-                    onClick={() => navigate('/admin/banners')}>
-                    Cancel
-                </Button>
-                <Button variant="outline" className="flex-1 sm:flex-none sm:px-8 rounded-xl font-bold h-11 border-slate-300"
-                    onClick={() => save('draft')} disabled={loading}>
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save Draft
-                </Button>
-                <Button className="flex-1 sm:flex-none sm:px-8 rounded-xl font-black h-11 bg-blue-600 hover:bg-blue-700 text-white shadow"
-                    onClick={() => save('published')} disabled={loading}>
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Globe className="w-4 h-4 mr-2" />}
-                    Publish
-                </Button>
             </div>
         </div>
     );
