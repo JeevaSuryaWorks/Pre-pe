@@ -34,14 +34,47 @@ const NetworkDiagnostics = () => {
         setLoading(true);
         try {
             const response = await fetch('/api/kwik-ip');
+            
+            if (!response.ok) {
+                throw new Error(`API returned status ${response.status}`);
+            }
+            
             const result = await response.json();
             setData(result);
             if (result.proxy_active) {
                 toast.success("Static IP Proxy is Active");
             }
         } catch (e) {
-            toast.error("Failed to fetch network diagnostics");
-            console.error(e);
+            console.warn('[NetworkDiagnostics] Backend API unavailable, checking environment...');
+            
+            // Check if we are running locally (Development Fix)
+            const isLocal = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1' || 
+                            window.location.port === '8080';
+
+            if (isLocal) {
+                try {
+                    // Fallback to client-side IP detection to keep UI functional
+                    const fallbackRes = await fetch('https://api.ipify.org?format=json');
+                    const fallbackData = await fallbackRes.json();
+                    
+                    setData({
+                        message: "LOCAL PREVIEW: Serverless functions are not available under 'npm run dev'.",
+                        outbound_ip: fallbackData.ip,
+                        proxy_configured: false,
+                        proxy_active: false,
+                        your_browser_ip: fallbackData.ip,
+                        vercel_region: "Local Mode",
+                        instruction: "In local development, the 'Outbound IP' is your own internet IP. Use 'vercel dev' to test serverless functions."
+                    });
+                    toast.info("Switched to Local Preview Mode");
+                } catch (err) {
+                    toast.error("Could not detect IP address");
+                }
+            } else {
+                toast.error("Failed to fetch server network diagnostics");
+                console.error(e);
+            }
         } finally {
             setLoading(false);
         }
@@ -77,6 +110,18 @@ const NetworkDiagnostics = () => {
                     Refresh Status
                 </Button>
             </div>
+
+            {data?.vercel_region === "Local Mode" && (
+                <div className="p-4 rounded-3xl bg-blue-50 border border-blue-100 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="text-sm font-bold text-blue-900">Local Development Environment Detected</p>
+                        <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                            The system is currently running on <strong>localhost</strong>. True server-side IP detection and outbound proxies (Fixie) only work when deployed to Vercel or when using the <code>vercel dev</code> command.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Outbound IP Card */}
