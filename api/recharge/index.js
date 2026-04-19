@@ -136,7 +136,20 @@ export default async function handler(req, res) {
 
     let kwikResponse;
     try {
-      const response = await fetch(`${kwikUrl}?${kwikParams.toString()}`);
+      let fetchOptions = {};
+      
+      // Support for Outbound Proxy (Static IP)
+      if (process.env.OUTBOUND_PROXY_URL) {
+        try {
+          const { HttpsProxyAgent } = await import('https-proxy-agent');
+          fetchOptions.agent = new HttpsProxyAgent(process.env.OUTBOUND_PROXY_URL);
+          console.log('[recharge] Using Outbound Proxy:', process.env.OUTBOUND_PROXY_URL.split('@').pop());
+        } catch (proxyError) {
+          console.error('[recharge] Proxy agent initialization failed:', proxyError);
+        }
+      }
+
+      const response = await fetch(`${kwikUrl}?${kwikParams.toString()}`, fetchOptions);
       const rawText = await response.text();
       console.log('[recharge] KWIK raw response:', rawText);
       

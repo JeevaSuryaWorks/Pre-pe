@@ -40,6 +40,7 @@ import AdminTasks from "./pages/admin/AdminTasks";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
+import NetworkDiagnostics from "./pages/admin/NetworkDiagnostics";
 
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
@@ -171,6 +172,7 @@ const App = () => (
                 <Route path="banners" element={<AdminBanners />} />
                 <Route path="banners/new" element={<AdminBannerEditor />} />
                 <Route path="banners/:id" element={<AdminBannerEditor />} />
+                <Route path="network" element={<NetworkDiagnostics />} />
               </Route>
             </Route>
 

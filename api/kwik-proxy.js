@@ -1,3 +1,6 @@
+import fetch from 'node-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -9,16 +12,30 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing endpoint' });
   }
 
-  // Ensure KWIK API KEY is always used from the backend
-  const kwikApiKey = process.env.KWIK_API_KEY;
+  const kwikApiKey = process.env.KWIK_API_KEY || process.env.VITE_KWIK_API_KEY;
   if (!kwikApiKey) {
-    return res.status(500).json({ error: 'Server config error' });
+    return res.status(500).json({ error: 'KWIK_API_KEY not configured in environment' });
   }
 
   try {
     const baseUrl = 'https://www.kwikapi.com/api/v2';
     let url = `${baseUrl}${endpoint}`;
-    let options = { method };
+    let options = { 
+      method,
+      timeout: 10000 // 10s timeout
+    };
+    
+    // Configure Proxy if available
+    const proxyUrl = process.env.OUTBOUND_PROXY_URL || process.env.FIXIE_URL;
+    if (proxyUrl) {
+      try {
+        options.agent = new HttpsProxyAgent(proxyUrl);
+        console.log('[kwik-proxy] Using Proxy:', proxyUrl.split('@').pop());
+      } catch (proxyError) {
+        console.error('[kwik-proxy] Proxy agent initialization failed:', proxyError);
+      }
+    }
+
 
     if (method === 'GET') {
       const sp = new URLSearchParams();
@@ -43,15 +60,28 @@ export default async function handler(req, res) {
 
     const apiRes = await fetch(url, options);
     const text = await apiRes.text();
+    
     let data;
     try {
       data = JSON.parse(text);
     } catch(e) {
-      return res.status(200).json({ error: 'Parse Error', raw: text });
+      return res.status(200).json({ 
+        error: 'Parse Error', 
+        raw: text,
+        proxy_active: !!options.agent
+      });
     }
-    return res.status(200).json(data);
+
+    return res.status(200).json({
+      ...data,
+      proxy_active: !!options.agent
+    });
   } catch (error) {
     console.error('KWIK Proxy Error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      error: error.message,
+      proxy_active: !!process.env.OUTBOUND_PROXY_URL
+    });
   }
 }
+
