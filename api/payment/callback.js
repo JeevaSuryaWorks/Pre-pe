@@ -6,6 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+
   try {
     const { payid, client_id, operator_ref, status } = req.query;
 
@@ -69,10 +70,10 @@ export default async function handler(req, res) {
     } else {
       console.log(`Orders update result for ${client_id}:`, orderData);
     }
-    
+
     // Always return 200 per KWIK requirements
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       message: 'Callback processed',
       context: { client_id, status, operator_ref }
     });
