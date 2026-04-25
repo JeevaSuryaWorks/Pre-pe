@@ -47,7 +47,8 @@ import {
     Play,
     Image,
     Lock,
-    ShieldCheck
+    ShieldCheck,
+    Home
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -283,9 +284,30 @@ export default function RewardsDashboard() {
   return (
     <Layout title="Executive Rewards">
       <div className="min-h-screen bg-[#F8FAFC]">
-        <div className="max-w-md mx-auto py-8">
+        <div className="max-w-lg mx-auto py-8">
           
-          {/* Header Stats */}
+          {/* Top Actions */}
+          <div className="flex items-center justify-between px-6 mb-6">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/')}
+                className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-2xl px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all"
+              >
+                <Home className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
+                Home
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/rewards/history')}
+                className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-2xl px-4 py-2 font-black uppercase text-[10px] tracking-widest transition-all"
+              >
+                <History className="w-4 h-4 transition-transform group-hover:rotate-12" />
+                History
+              </Button>
+          </div>
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -302,21 +324,11 @@ export default function RewardsDashboard() {
                           <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
                           <span className="tracking-widest uppercase text-[9px] font-black text-indigo-200">Executive Rewards</span>
                       </div>
-                       <div className="flex items-baseline justify-center gap-2 relative group">
+                       <div className="flex items-baseline justify-center gap-2 relative">
                            <h2 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
                                {totalPoints.toLocaleString()}
                            </h2>
                            <span className="text-sm text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
-                           
-                           <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => navigate('/rewards/history')}
-                                className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-2xl h-10 w-10 flex-shrink-0 border border-white/10 opacity-60 group-hover:opacity-100 transition-opacity"
-                                title="Points History"
-                           >
-                                <History className="w-5 h-5" />
-                           </Button>
                        </div>
 
                       {/* Redeem Button */}
@@ -526,7 +538,7 @@ export default function RewardsDashboard() {
                    animate={{ opacity: 1, scale: 1 }}
                    className="flex flex-col items-center"
                  >
-                    <Card className="border-none shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/70 backdrop-blur-3xl rounded-[4rem] p-10 w-full max-w-4xl border border-white/50">
+                    <Card className="border-none shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/70 backdrop-blur-3xl rounded-[4rem] p-6 sm:p-10 w-full max-w-lg border border-white/50 overflow-hidden">
                        <CardContent className="pt-10 pb-16 flex flex-col items-center">
                            <div className="text-center space-y-4 mb-20">
                               <div className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 shadow-xl shadow-indigo-200 text-white rounded-full text-[10px] font-black uppercase tracking-widest ring-4 ring-indigo-50">
