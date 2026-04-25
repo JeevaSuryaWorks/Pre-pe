@@ -92,6 +92,8 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string
+          custom_spin_limit: number | null
+          plan_type: string | null
         }
         Insert: {
           created_at?: string
@@ -101,6 +103,8 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id: string
+          custom_spin_limit?: number | null
+          plan_type?: string | null
         }
         Update: {
           created_at?: string
@@ -110,6 +114,8 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+          custom_spin_limit?: number | null
+          plan_type?: string | null
         }
         Relationships: []
       }

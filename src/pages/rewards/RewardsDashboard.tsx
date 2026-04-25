@@ -6,14 +6,14 @@ import {
     getUserTotalPoints, 
     getUserTotalCashback, 
     getUserStreak, 
-    canUserSpinToday, 
-    getLastSpinTimestamp,
+    getSpinWheelStatus,
     getUserScratchCards,
     claimScratchCard,
     redeemRewardPoints,
     getAvailableTasks,
     getUserCompletedTasks,
-    claimTaskReward
+    claimTaskReward,
+    addRewardPoints
 } from '@/services/rewards.service';
 import { 
     Sparkles, 
@@ -91,7 +91,8 @@ export default function RewardsDashboard() {
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [canSpin, setCanSpin] = useState(false);
-  const [lastSpinTime, setLastSpinTime] = useState<string | null>(null);
+  const [remainingSpins, setRemainingSpins] = useState(0);
+  const [nextResetTime, setNextResetTime] = useState<string | null>(null);
   const [scratchCards, setScratchCards] = useState<any[]>([]);
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
@@ -105,12 +106,11 @@ export default function RewardsDashboard() {
     if (!silent) setLoading(true);
     
     try {
-      const [points, cb, strk, spinPossible, lastSpin, cards, availableTasks, completedIds] = await Promise.all([
+      const [points, cb, strk, spinStatus, cards, availableTasks, completedIds] = await Promise.all([
         getUserTotalPoints(user.id),
         getUserTotalCashback(user.id),
         getUserStreak(user.id),
-        canUserSpinToday(user.id),
-        getLastSpinTimestamp(user.id),
+        getSpinWheelStatus(user.id),
         getUserScratchCards(user.id),
         getAvailableTasks(),
         getUserCompletedTasks(user.id)
@@ -119,8 +119,9 @@ export default function RewardsDashboard() {
       setTotalPoints(points);
       setCashback(cb);
       setStreak(strk);
-      setCanSpin(spinPossible);
-      setLastSpinTime(lastSpin);
+      setCanSpin(spinStatus.canSpin);
+      setRemainingSpins(spinStatus.remainingSpins);
+      setNextResetTime(spinStatus.nextResetTime);
       setScratchCards(cards);
       setTasks(availableTasks);
       setCompletedTaskIds(completedIds);
@@ -139,7 +140,7 @@ export default function RewardsDashboard() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
     } catch (error) {
       console.error("Error loading rewards data:", error);
     } finally {
@@ -204,11 +205,29 @@ export default function RewardsDashboard() {
   };
 
   const handleSpinComplete = async (points: number) => {
-    toast({
-      title: "Wheel Result",
-      description: points > 0 ? `Congratulations! You won ${points} points!` : "Better luck next time!",
-    });
-    loadData(true);
+    if (!user) return;
+    
+    // Even if 0 points, we add a record to track the spin attempt (spins remaining logic depends on ledger)
+    const success = await addRewardPoints(
+        user.id, 
+        points, 
+        'SPIN_WHEEL', 
+        points > 0 ? `Won ${points} points from Mega Fortune Wheel` : "Better luck next time (0 points won)"
+    );
+
+    if (success) {
+        toast({
+          title: "Wheel Result",
+          description: points > 0 ? `Congratulations! You won ${points} points!` : "Better luck next time!",
+        });
+        loadData(true);
+    } else {
+        toast({
+          title: "Error",
+          description: "Failed to record spin result. Please contact support.",
+          variant: "destructive"
+        });
+    }
   };
 
   const handleScratchComplete = async (id: string, result: any) => {
@@ -512,7 +531,7 @@ export default function RewardsDashboard() {
                            <div className="text-center space-y-4 mb-20">
                               <div className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 shadow-xl shadow-indigo-200 text-white rounded-full text-[10px] font-black uppercase tracking-widest ring-4 ring-indigo-50">
                                  <Sparkles className="w-3 h-3" />
-                                 1x Spin per day
+                                 Daily Lucky Spin
                               </div>
                               <h3 className="text-5xl font-black text-slate-900 tracking-tighter">Mega Fortune Wheel</h3>
                               <p className="text-slate-500 max-w-md mx-auto font-medium leading-relaxed">
@@ -522,7 +541,8 @@ export default function RewardsDashboard() {
                             <SpinWheel 
                                onSpinComplete={handleSpinComplete} 
                                disabled={!canSpin} 
-                               lastSpinTime={lastSpinTime}
+                               remainingSpins={remainingSpins}
+                               nextResetTime={nextResetTime}
                             />
                        </CardContent>
                     </Card>

@@ -262,8 +262,8 @@ const RewardsManager = () => {
             {/* Plan Specific Multipliers */}
             <div className="space-y-6">
                 <div>
-                    <h3 className="text-2xl font-bold text-slate-800">Plan-Based Multipliers</h3>
-                    <p className="text-slate-500 font-medium">Amplify rewards for users on premium subscription plans.</p>
+                    <h3 className="text-2xl font-bold text-slate-800">Plan-Based Multipliers & Spin Limits</h3>
+                    <p className="text-slate-500 font-medium">Amplify rewards and spin limits for users on premium subscription plans.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -277,34 +277,76 @@ const RewardsManager = () => {
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Points Multiplier</Label>
-                                        <div className="flex items-center gap-1 text-blue-600 font-black text-xs">
-                                            <CheckCircle2 className="w-3 h-3" /> Enabled
+                                <div className="space-y-4">
+                                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Points Multiplier</Label>
+                                            <div className="flex items-center gap-1 text-blue-600 font-black text-xs">
+                                                <CheckCircle2 className="w-3 h-3" /> Enabled
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Input 
+                                                type="number"
+                                                step="0.1"
+                                                value={plan.reward_config?.points_multiplier || 1.0}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setPlans(plans.map(p => p.id === plan.id ? { ...p, reward_config: { ...p.reward_config, points_multiplier: val } } : p));
+                                                }}
+                                                className="h-10 rounded-xl bg-white border-slate-200 font-black text-blue-600"
+                                            />
+                                            <Button 
+                                                size="sm"
+                                                className="rounded-xl h-10 px-4 bg-blue-600 hover:bg-blue-700"
+                                                onClick={() => handleUpdatePlanReward(plan.id, plan.reward_config?.points_multiplier || 1.0)}
+                                            >
+                                                Update
+                                            </Button>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium italic px-1">Example: 100 Pts &times; {plan.reward_config?.points_multiplier || 1.0} = {(100 * (plan.reward_config?.points_multiplier || 1.0)).toFixed(0)} Pts</p>
+                                    </div>
+
+                                    {/* Spin Wheel Limit */}
+                                    <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Daily Spin Limit</Label>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Input 
+                                                type="number"
+                                                min="0"
+                                                value={globalSettings[`spin_limit_${plan.name.toUpperCase()}`] ?? 1}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    setGlobalSettings({
+                                                        ...globalSettings,
+                                                        [`spin_limit_${plan.name.toUpperCase()}`]: val
+                                                    });
+                                                }}
+                                                className="h-10 rounded-xl bg-white border-indigo-200 font-black text-indigo-600"
+                                            />
+                                            <Button 
+                                                size="sm"
+                                                className="rounded-xl h-10 px-4 bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20"
+                                                onClick={async () => {
+                                                    setSaving(true);
+                                                    try {
+                                                        await adminService.updateRewardSetting(`spin_limit_${plan.name.toUpperCase()}`, globalSettings[`spin_limit_${plan.name.toUpperCase()}`] ?? 1);
+                                                        toast.success(`${plan.name} Spin Limit updated`);
+                                                    } catch(e) {
+                                                        toast.error("Failed to update spin limit");
+                                                    } finally {
+                                                        setSaving(false);
+                                                    }
+                                                }}
+                                                disabled={saving}
+                                            >
+                                                Save
+                                            </Button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <Input 
-                                            type="number"
-                                            step="0.1"
-                                            value={plan.reward_config?.points_multiplier || 1.0}
-                                            onChange={(e) => {
-                                                const val = parseFloat(e.target.value);
-                                                setPlans(plans.map(p => p.id === plan.id ? { ...p, reward_config: { ...p.reward_config, points_multiplier: val } } : p));
-                                            }}
-                                            className="h-10 rounded-xl bg-white border-slate-200 font-black text-blue-600"
-                                        />
-                                        <Button 
-                                            size="sm"
-                                            className="rounded-xl h-10 px-4 bg-blue-600 hover:bg-blue-700"
-                                            onClick={() => handleUpdatePlanReward(plan.id, plan.reward_config?.points_multiplier || 1.0)}
-                                        >
-                                            Update
-                                        </Button>
-                                    </div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 font-medium italic px-1">Example: 100 Base Pts \u00d7 {plan.reward_config?.points_multiplier || 1.0} = {(100 * (plan.reward_config?.points_multiplier || 1.0)).toFixed(0)} Pts</p>
                             </CardContent>
                         </Card>
                     ))}

@@ -66,13 +66,17 @@ export const adminService = {
     },
 
     async toggleUserStatus(userId: string, isActive: boolean) {
-        // Note: 'is_active' column might need to be added to profiles or auth.users meta
-        // For now, we simulate this or check if column exists.
-        // Assuming profiles has 'is_active' or similar. 
-        // If not, we might need to add it to migration. 
-        // Let's assume we use 'metadata' or strict role management.
         console.log("Toggle user status placeholders", userId, isActive);
-        // Real impl: await supabase.auth.admin.updateUserById(userId, { user_metadata: { is_active: isActive } });
+    },
+
+    async updateProfile(userId: string, updates: any) {
+        const { error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('user_id', userId);
+        
+        if (error) throw error;
+        return true;
     },
 
     // Wallet Adjustments

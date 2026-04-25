@@ -40,6 +40,7 @@ model profiles {
   phone             String?
   plan_type         String?  @default("BASIC") @db.VarChar(20)
   whatsapp_consent  Boolean?
+  custom_spin_limit Int?     
   created_at        DateTime @db.Timestamptz
   updated_at        DateTime @db.Timestamptz
 
@@ -52,6 +53,7 @@ model profiles {
   kyc_verifications    kyc_verifications[]
   reward_points        reward_points_ledger[]
   scratch_cards        scratch_cards[]
+  gift_card_vouchers   gift_card_vouchers[]
 
   @@map("profiles")
 }
@@ -275,4 +277,29 @@ model scratch_cards {
   profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@map("scratch_cards")
+}
+
+//////////////////////////////////////
+// GIFT CARD VOUCHERS (Hubble etc)
+//////////////////////////////////////
+model gift_card_vouchers {
+  id               String   @id @default(uuid()) @db.Uuid
+  user_id          String   @db.Uuid
+  brand_name       String
+  brand_logo_url   String?
+  amount           Decimal  @db.Decimal(15,2)
+  status           String   @default("ACTIVE") @db.VarChar(20) // ACTIVE, REDEEMED, EXPIRED
+  voucher_code     String?  // The actual gift card code
+  voucher_pin      String?  // The actual gift card PIN
+  reference_id     String?  // Provider reference ID
+  provider         String   @default("HUBBLE") @db.VarChar(50)
+  expiry_date      DateTime? @db.Timestamptz
+  purchase_type    String   @default("POINTS") @db.VarChar(20) // POINTS, WALLET
+  purchase_cost    Decimal  @db.Decimal(15,2) // The points or wallet amount deducted
+  created_at       DateTime @default(now()) @db.Timestamptz
+  updated_at       DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("gift_card_vouchers")
 }

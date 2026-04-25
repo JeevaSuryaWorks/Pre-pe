@@ -12,7 +12,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Ban, CheckCircle, CreditCard, History, MoreVertical } from "lucide-react";
+import { Loader2, Search, Ban, CheckCircle, CreditCard, History, MoreVertical, Star } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -47,6 +47,11 @@ const UserManagement = () => {
     const [adjReason, setAdjReason] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
+    // Spin Limit Form
+    const [spinLimitDialog, setSpinLimitDialog] = useState(false);
+    const [customSpinLimit, setCustomSpinLimit] = useState("");
+
+
     useEffect(() => {
         fetchUsers();
     }, [page, search]);
@@ -75,6 +80,22 @@ const UserManagement = () => {
             setAdjReason("");
         } catch (e: any) {
             toast.error(e.message || "Adjustment failed");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleSpinLimitUpdate = async () => {
+        if (!selectedUser) return;
+        setSubmitting(true);
+        try {
+            const limitVal = customSpinLimit === "" ? null : parseInt(customSpinLimit);
+            await adminService.updateProfile(selectedUser.user_id, { custom_spin_limit: limitVal });
+            toast.success("Spin limit updated successfully");
+            setSpinLimitDialog(false);
+            fetchUsers();
+        } catch (e: any) {
+            toast.error(e.message || "Failed to update limit");
         } finally {
             setSubmitting(false);
         }
@@ -142,6 +163,11 @@ const UserManagement = () => {
                                                         <div className="font-bold text-slate-900">{user.full_name || 'Anonymous User'}</div>
                                                         <div className="text-sm text-slate-500 font-medium">{user.email}</div>
                                                         <div className="text-[11px] font-mono text-slate-400 mt-0.5">{user.phone || 'No phone'}</div>
+                                                        {user.custom_spin_limit !== null && (
+                                                            <Badge variant="outline" className="mt-1 bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] px-1.5 py-0 uppercase">
+                                                                Spins: {user.custom_spin_limit}/day
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -184,6 +210,25 @@ const UserManagement = () => {
                                                     >
                                                         <CreditCard className="h-4 w-4 mr-1.5" /> Adjust Balance
                                                     </Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="outline" size="sm" className="rounded-xl border-slate-200 shadow-sm w-9 px-0">
+                                                                <MoreVertical className="h-4 w-4 text-slate-600" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-xl">
+                                                            <DropdownMenuItem 
+                                                                className="cursor-pointer font-medium py-2 text-indigo-600"
+                                                                onClick={() => { 
+                                                                    setSelectedUser(user); 
+                                                                    setCustomSpinLimit(user.custom_spin_limit !== null ? String(user.custom_spin_limit) : ""); 
+                                                                    setSpinLimitDialog(true); 
+                                                                }}
+                                                            >
+                                                                <Star className="h-4 w-4 mr-2" /> Spin Limits
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -248,6 +293,44 @@ const UserManagement = () => {
                                 }`}
                         >
                             {submitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Confirm Adjustment"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Spin Limit Dialog */}
+            <Dialog open={spinLimitDialog} onOpenChange={setSpinLimitDialog}>
+                <DialogContent className="sm:max-w-sm rounded-[24px] border-none shadow-2xl p-6">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">User Spin Limit</DialogTitle>
+                        <DialogDescription className="text-slate-500 mt-2 leading-relaxed">
+                            Override the default plan spin limit for <span className="font-bold text-slate-700">{selectedUser?.full_name || selectedUser?.email}</span>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Custom Daily Limit</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                value={customSpinLimit}
+                                onChange={(e) => setCustomSpinLimit(e.target.value)}
+                                placeholder="Leave blank for Plan Default"
+                                className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-indigo-500 transition-colors font-bold text-lg"
+                            />
+                            <p className="text-[10px] text-slate-400 font-medium italic">If blank, the user's base plan limit will be used.</p>
+                        </div>
+                    </div>
+                    <DialogFooter className="mt-6 gap-3 sm:gap-0">
+                        <Button variant="ghost" onClick={() => setSpinLimitDialog(false)} className="rounded-xl font-semibold text-slate-500 h-11 hover:bg-slate-100">
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSpinLimitUpdate}
+                            disabled={submitting}
+                            className="rounded-xl font-bold h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all"
+                        >
+                            {submitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Save Limit"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

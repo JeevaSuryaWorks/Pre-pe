@@ -45,16 +45,65 @@ async function getRewardConfig(key: string, defaultValue: any): Promise<any> {
   }
 }
 
+export async function getUserSpinLimit(userId: string): Promise<number> {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('custom_spin_limit, plan_type')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!profile) return 1;
+
+    // Check custom limit first
+    if (profile.custom_spin_limit !== null && profile.custom_spin_limit !== undefined) {
+      return profile.custom_spin_limit;
+    }
+
+    // Fallback to plan limit
+    const planType = profile.plan_type || 'BASIC';
+    const planLimitKey = `spin_limit_${planType.toUpperCase()}`;
+    return await getRewardConfig(planLimitKey, 1);
+  } catch (err) {
+    return 1;
+  }
+}
+
+export async function getSpinWheelStatus(userId: string): Promise<{ canSpin: boolean; remainingSpins: number; nextResetTime: string }> {
+  const limit = await getUserSpinLimit(userId);
+
+  // Calculate start of current calendar day
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  // Count spins today
+  const { count } = await supabase
+    .from('reward_points_ledger' as never)
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('event_type', 'SPIN_WHEEL')
+    .gte('created_at', startOfDay.toISOString());
+
+  const spinsTaken = count || 0;
+  const remainingSpins = Math.max(0, limit - spinsTaken);
+  
+  // Next reset is midnight tonight
+  const nextReset = new Date();
+  nextReset.setHours(24, 0, 0, 0);
+
+  return {
+    canSpin: remainingSpins > 0,
+    remainingSpins,
+    nextResetTime: nextReset.toISOString()
+  };
+}
+
 /**
- * Check if a user can spin today (Rolling 24-hour window)
+ * Check if a user can spin today (Calendar Day Window)
  */
 export async function canUserSpinToday(userId: string): Promise<boolean> {
-  const lastTime = await getLastSpinTimestamp(userId);
-  if (!lastTime) return true;
-  
-  const lastSpin = new Date(lastTime).getTime();
-  const nextAvailable = lastSpin + (24 * 60 * 60 * 1000);
-  return Date.now() >= nextAvailable;
+  const status = await getSpinWheelStatus(userId);
+  return status.canSpin;
 }
 
 /**

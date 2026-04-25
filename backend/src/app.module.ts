@@ -4,9 +4,10 @@ import { WalletModule } from './wallet/wallet.module';
 import { RechargeModule } from './recharge/recharge.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoanModule } from './loan/loan.module';
+import { HubbleModule } from './hubble/hubble.module';
 
 @Module({
-    imports: [PrismaModule, AuthModule, WalletModule, RechargeModule, LoanModule],
+    imports: [PrismaModule, AuthModule, WalletModule, RechargeModule, LoanModule, HubbleModule],
     controllers: [],
     providers: [],
 })
