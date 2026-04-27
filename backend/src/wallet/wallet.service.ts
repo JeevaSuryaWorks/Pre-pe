@@ -27,53 +27,63 @@ export class WalletService {
         return wallet;
     }
 
-    async createOrder(userId: string, amount: number) {
-        // Enforce limits based on KYC
-        // amount here is totalPayable (base + 2.5% charges)
-        const baseAmount = Math.floor(amount / 1.025);
+    // UPI Intent for Wallet Top-up
+    async createUpiIntent(userId: string, amount: number) {
+        const upiHandle = this.configService.get<string>('UPI_VPA') || 'merchant@upi';
+        const merchantName = 'Pre-pe';
+        const upiRef = `TXN${Date.now()}`;
 
-        const kycRecord = await this.prisma.kyc_verifications.findFirst({
-            where: { user_id: userId },
-            orderBy: { created_at: 'desc' },
+        const txn = await this.prisma.upi_transactions.create({
+            data: {
+                user_id: userId,
+                amount: new Decimal(amount),
+                upi_ref_id: upiRef,
+                gateway_status: 'PENDING',
+                created_at: new Date(),
+                updated_at: new Date(),
+            }
         });
 
-        const status = kycRecord?.status || null;
-        const limit = status === 'APPROVED' ? 5000 : 2000;
+        const upiUrl = `upi://pay?pa=${upiHandle}&pn=${encodeURIComponent(merchantName)}&tr=${upiRef}&am=${amount}&cu=INR`;
 
-        if (baseAmount > limit) {
-            throw new BadRequestException(
-                `Amount ₹${baseAmount} exceeds your current limit of ₹${limit}. ${status === 'APPROVED'
-                    ? 'Maximum allowed is ₹5,000 for verified accounts.'
-                    : status === 'PENDING'
-                        ? 'Maximum allowed is ₹2,000 while verification is pending.'
-                        : 'Maximum allowed is ₹2,000. Please submit KYC to increase limits.'
-                }`
-            );
-        }
-
-        const options = {
-            amount: Math.round(amount * 100),
-            currency: "INR",
-            receipt: `rcpt_${Date.now()}`,
+        return {
+            intentUrl: upiUrl,
+            upiRef: upiRef,
+            transactionId: txn.id,
+            qrCode: upiUrl
         };
-        try {
-            return await this.razorpay.orders.create(options);
-        } catch (error) {
-            console.error(error);
-            throw new BadRequestException('Failed to create Razorpay order');
-        }
     }
 
-    async verifyAndCredit(userId: string, paymentDetails: {
+    async verifyUpiPayment(userId: string, upiRef: string) {
+        // In a real app, you'd check with your bank/gateway API here.
+        // For now, we simulate a success check.
+        const txn = await this.prisma.upi_transactions.findFirst({
+            where: { upi_ref_id: upiRef, user_id: userId }
+        });
+
+        if (!txn) throw new NotFoundException('Transaction not found');
+        if (txn.gateway_status === 'SUCCESS') return { status: 'SUCCESS' };
+
+        // Process credit
+        await this.prisma.upi_transactions.update({
+            where: { id: txn.id },
+            data: { gateway_status: 'SUCCESS', updated_at: new Date() }
+        });
+
+        return await this.credit(userId, Number(txn.amount), `UPI Topup: ${upiRef}`);
+    }
+
+
+    async verifyAndSubscribe(userId: string, paymentDetails: {
         razorpay_order_id: string;
         razorpay_payment_id: string;
         razorpay_signature: string;
-        amount: number;
+        plan_name: string;
     }) {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = paymentDetails;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan_name } = paymentDetails;
 
         const generated_signature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .createHmac('sha256', this.configService.get<string>('RAZORPAY_KEY_SECRET'))
             .update(razorpay_order_id + "|" + razorpay_payment_id)
             .digest('hex');
 
@@ -81,7 +91,14 @@ export class WalletService {
             throw new BadRequestException('Invalid payment signature');
         }
 
-        return await this.credit(userId, amount, `Razorpay: ${razorpay_payment_id}`);
+        // Update profile plan_type
+        return await this.prisma.profiles.update({
+            where: { user_id: userId },
+            data: {
+                plan_type: plan_name,
+                updated_at: new Date(),
+            },
+        });
     }
 
     async credit(userId: string, amount: number, description?: string) {

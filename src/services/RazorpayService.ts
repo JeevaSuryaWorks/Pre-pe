@@ -45,7 +45,7 @@ export class RazorpayService {
   }
 
   static async createOrder(options: RazorpayOptions) {
-    const response = await fetch('/api/razorpay/create-order', {
+    const response = await fetch('/api/wallet/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options),
@@ -60,7 +60,7 @@ export class RazorpayService {
   }
 
   static async verifyPayment(paymentData: any) {
-    const response = await fetch('/api/razorpay/verify-payment', {
+    const response = await fetch('/api/wallet/verify-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(paymentData),
@@ -69,6 +69,21 @@ export class RazorpayService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Payment verification failed');
+    }
+
+    return response.json();
+  }
+
+  static async verifySubscription(paymentData: any) {
+    const response = await fetch('/api/wallet/subscribe-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(paymentData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Subscription verification failed');
     }
 
     return response.json();
@@ -96,14 +111,21 @@ export class RazorpayService {
       order_id: order.id,
       handler: async (response: any) => {
         try {
-          await this.verifyPayment({
-            ...response,
-            user_id: (window as any).userId, // Assuming global or passed via context
-            metadata: {
-                amount: options.amount,
-                ...options.notes
-            }
-          });
+          if (options.notes?.plan_name) {
+            await this.verifySubscription({
+              ...response,
+              plan_name: options.notes.plan_name
+            });
+          } else {
+            await this.verifyPayment({
+              ...response,
+              amount: options.amount,
+              metadata: {
+                  amount: options.amount,
+                  ...options.notes
+              }
+            });
+          }
           onSuccess(response);
         } catch (error) {
           console.error('Verification error:', error);

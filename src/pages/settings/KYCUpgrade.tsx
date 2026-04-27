@@ -184,7 +184,8 @@ const KYCUpgrade = () => {
                                     }
                                 },
                                 notes: {
-                                    purpose: 'international_upgrade'
+                                    purpose: 'international_upgrade',
+                                    plan_name: 'GLOBAL_PREMIUM'
                                 }
                             }}
                         />

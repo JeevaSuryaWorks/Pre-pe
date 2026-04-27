@@ -38,16 +38,8 @@ export const FundRequestPage = () => {
     const isBasic = planId.toUpperCase() === "BASIC";
     const hasBNPL = limits.features.bnpl;
 
-    // Razorpay script loader
-    const loadRazorpay = () => {
-        return new Promise((resolve) => {
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.onload = () => resolve(true);
-            script.onerror = () => resolve(false);
-            document.body.appendChild(script);
-        });
-    };
+    const [upiData, setUpiData] = useState<any>(null);
+    const [isChecking, setIsChecking] = useState(false);
 
     const handleInitiatePayment = async () => {
         if (!user || !isApproved) {
@@ -62,57 +54,40 @@ export const FundRequestPage = () => {
 
         setLoading(true);
         try {
-            const orderData = await backendWalletService.createOrder(baseAmount);
-            const res = await loadRazorpay();
-
-            if (!res) {
-                toast.error('Razorpay SDK failed to load.');
-                return;
+            const data = await backendWalletService.createUpiIntent(baseAmount);
+            setUpiData(data);
+            
+            // Try to open UPI Intent (mobile only)
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                window.location.href = data.intentUrl;
+            } else {
+                // Desktop - show QR fallback automatically
+                setIsFallback(true);
             }
-
-            const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY || "rzp_test_YOUR_KEY_HERE",
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: "PrePe Executive Wallet",
-                description: `Topup: ₹${baseAmount}`,
-                image: "/icon.png",
-                order_id: orderData.id,
-                handler: async function (response: any) {
-                    try {
-                        const verification = await backendWalletService.verifyPayment({
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_signature: response.razorpay_signature,
-                            amount: baseAmount
-                        });
-
-                        if (verification) {
-                            toast.success(`Wallet credited with ₹${baseAmount}.`);
-                            refetchWallet();
-                            navigate('/home');
-                        }
-                    } catch (error: any) {
-                        toast.error(error.message || "Payment verification failed");
-                    }
-                },
-                prefill: {
-                    name: user?.user_metadata?.full_name || "User",
-                    email: user?.email,
-                    contact: user?.phone || ""
-                },
-                theme: { color: "#065f46" }
-            };
-
-            const paymentObject = new (window as any).Razorpay(options);
-            paymentObject.open();
-
         } catch (e: any) {
             console.error(e);
-            toast.error(e.message || "Integration error. Use QR fallback.");
-            setIsFallback(true);
+            toast.error(e.message || "Failed to initiate UPI payment");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const checkUpiStatus = async () => {
+        if (!upiData) return;
+        setIsChecking(true);
+        try {
+            const res = await backendWalletService.verifyUpi(upiData.upiRef);
+            if (res.status === 'SUCCESS' || res.wallet) {
+                toast.success("Wallet credited successfully!");
+                refetchWallet();
+                navigate('/home');
+            } else {
+                toast.error("Payment not yet received.");
+            }
+        } catch (e: any) {
+            toast.error(e.message || "Verification failed");
+        } finally {
+            setIsChecking(false);
         }
     };
 
@@ -213,39 +188,49 @@ export const FundRequestPage = () => {
                             >
                                 <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[32px] overflow-hidden">
                                     <CardContent className="p-8 pt-10">
-                                        {isFallback ? (
+                                        {isFallback || upiData ? (
                                             <div className="space-y-8 flex flex-col items-center">
                                                 <div className="bg-slate-50 p-6 rounded-[40px] border-2 border-dashed border-slate-200">
                                                     <img
-                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=jeevasuriya2007-1@okicici&pn=PrePe&am=${baseAmount}&cu=INR`)}`}
+                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiData?.qrCode || `upi://pay?pa=jeevasuriya2007-1@okicici&pn=PrePe&am=${baseAmount}&cu=INR`)}`}
                                                         alt="UPI QR Code"
                                                         className="w-48 h-48 opacity-80"
                                                     />
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">UPI ID</p>
-                                                    <p className="text-sm font-black text-slate-800">jeevasuriya2007-1@okicici</p>
+                                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Status</p>
+                                                    <p className="text-sm font-black text-slate-800">Scan & Pay ₹{baseAmount}</p>
                                                 </div>
                                                 <div className="w-full space-y-4">
+                                                    {upiData && (
+                                                        <Button 
+                                                            className="w-full h-16 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 active:scale-95"
+                                                            onClick={checkUpiStatus}
+                                                            disabled={isChecking}
+                                                        >
+                                                            {isChecking ? <Loader2 className="animate-spin" /> : "I have paid • Verify Status"}
+                                                        </Button>
+                                                    )}
+                                                    
+                                                    <div className="relative">
+                                                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100" /></div>
+                                                        <div className="relative flex justify-center text-[9px] uppercase font-black text-slate-300"><span className="bg-white px-2">OR MANUAL UTR</span></div>
+                                                    </div>
+
                                                     <Input
                                                         placeholder="Transaction ID (UTR)"
                                                         value={transactionId}
                                                         onChange={(e) => setTransactionId(e.target.value)}
-                                                        className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-bold px-6"
+                                                        className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-bold px-6 text-center"
                                                     />
                                                     <Button 
-                                                        className="w-full h-16 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 active:scale-95"
+                                                        variant="ghost"
+                                                        className="w-full h-14 text-slate-400 font-black rounded-2xl active:scale-95"
                                                         onClick={handleManualSubmit}
                                                         disabled={loading || !transactionId}
                                                     >
-                                                        {loading ? <Loader2 className="animate-spin" /> : "Submit Request"}
+                                                        {loading ? <Loader2 className="animate-spin" /> : "Submit UTR Manually"}
                                                     </Button>
-                                                    <button 
-                                                        className="w-full text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-emerald-700 transition-colors"
-                                                        onClick={() => setIsFallback(false)}
-                                                    >
-                                                        Retry Online Gateway
-                                                    </button>
                                                 </div>
                                             </div>
                                         ) : (

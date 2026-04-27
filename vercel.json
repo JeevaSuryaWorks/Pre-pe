@@ -21,12 +21,8 @@
             "destination": "/api/recharge/status.js"
         },
         {
-            "source": "/api/razorpay/create-order",
-            "destination": "/api/razorpay.js?action=create-order"
-        },
-        {
-            "source": "/api/razorpay/verify-payment",
-            "destination": "/api/razorpay.js?action=verify-payment"
+            "source": "/api/wallet/(.*)",
+            "destination": "http://64.227.151.233:3000/api/wallet/$1"
         },
         {
             "source": "/api/kwik-ip",
