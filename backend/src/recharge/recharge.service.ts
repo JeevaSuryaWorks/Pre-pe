@@ -66,14 +66,26 @@ export class RechargeService {
                 order_id: orderId,
             });
 
-            this.logger.log(`Initiating recharge via KwikAPI for ${mobileNumber}`);
+            this.logger.log(`Initiating recharge via KwikAPI for ${mobileNumber} | Amount: ${amount}`);
             const response = await fetch(`${baseUrl}/recharge.php?${params.toString()}`);
-            const data = await response.json();
+            const text = await response.text();
             
-            this.logger.debug(`KwikAPI Response: ${JSON.stringify(data)}`);
-            return data.status === 'SUCCESS';
+            this.logger.log(`KwikAPI Raw Response: ${text}`);
+            
+            try {
+                const data = JSON.parse(text);
+                if (data.status === 'SUCCESS' || data.status === 'PENDING') {
+                    return true;
+                }
+                this.logger.warn(`Recharge failed: ${data.message || data.error || 'Unknown error'}`);
+                return false;
+            } catch (e) {
+                // If it's not JSON, it might be an error page or raw string
+                this.logger.error(`Failed to parse KwikAPI response: ${text}`);
+                return false;
+            }
         } catch (error) {
-            this.logger.error(`KwikAPI call failed: ${error.message}`);
+            this.logger.error(`KwikAPI network call failed: ${error.message}`);
             return false;
         }
     }

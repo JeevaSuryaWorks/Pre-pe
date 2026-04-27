@@ -10,7 +10,7 @@
         },
         {
             "source": "/api/recharge",
-            "destination": "/api/recharge/index.js"
+            "destination": "http://64.227.151.233:3000/api/recharge"
         },
         {
             "source": "/api/recharge/detect-operator",
