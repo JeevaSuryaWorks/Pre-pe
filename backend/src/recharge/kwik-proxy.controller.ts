@@ -1,7 +1,12 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-@Controller('kwik-proxy')
+@Controller('api/kwik-proxy')
 export class KwikProxyController {
+    private readonly logger = new Logger(KwikProxyController.name);
+
+    constructor(private configService: ConfigService) { }
+
     @Post()
     async handleProxy(@Body() body: { endpoint: string, params?: Record<string, any>, method?: 'GET' | 'POST' }) {
         const { endpoint, params, method = 'GET' } = body;
@@ -10,8 +15,9 @@ export class KwikProxyController {
             throw new HttpException('Missing endpoint', HttpStatus.BAD_REQUEST);
         }
 
-        const kwikApiKey = process.env.KWIK_API_KEY;
+        const kwikApiKey = this.configService.get<string>('KWIK_API_KEY');
         if (!kwikApiKey) {
+            this.logger.error('KWIK_API_KEY is not defined in environment variables');
             throw new HttpException('Server config error: Missing API Key', HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
@@ -41,8 +47,12 @@ export class KwikProxyController {
                 options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
             }
 
+            this.logger.log(`Forwarding ${method} request to KwikAPI: ${endpoint}`);
             const apiRes = await fetch(url, options);
             const text = await apiRes.text();
+
+            // Log the raw response to catch any errors from KwikAPI (like IP not whitelisted)
+            this.logger.debug(`KwikAPI Raw Response: ${text}`);
             
             try {
                 return JSON.parse(text);
@@ -50,7 +60,7 @@ export class KwikProxyController {
                 return { error: 'Parse Error', raw: text };
             }
         } catch (error) {
-            console.error('KWIK Proxy Controller Error:', error);
+            this.logger.error('KWIK Proxy Controller Error:', error.message);
             throw new HttpException(error.message || 'Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
