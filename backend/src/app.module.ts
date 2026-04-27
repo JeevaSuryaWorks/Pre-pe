@@ -6,9 +6,25 @@ import { RechargeModule } from './recharge/recharge.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoanModule } from './loan/loan.module';
 import { HubbleModule } from './hubble/hubble.module';
+import * as path from 'path';
 
 @Module({
-    imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, WalletModule, RechargeModule, LoanModule, HubbleModule],
+    imports: [
+        ConfigModule.forRoot({ 
+            isGlobal: true,
+            envFilePath: [
+                path.resolve(process.cwd(), '.env'),
+                path.resolve(process.cwd(), '.env.production'),
+                '.env'
+            ]
+        }), 
+        PrismaModule, 
+        AuthModule, 
+        WalletModule, 
+        RechargeModule, 
+        LoanModule, 
+        HubbleModule
+    ],
     controllers: [],
     providers: [],
 })

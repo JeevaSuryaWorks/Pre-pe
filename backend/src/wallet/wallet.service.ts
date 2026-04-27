@@ -13,9 +13,16 @@ export class WalletService {
         private prisma: PrismaService,
         private configService: ConfigService,
     ) {
+        const key_id = this.configService.get<string>('RAZORPAY_KEY_ID');
+        const key_secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+
+        if (!key_id || !key_secret) {
+            console.error('RAZORPAY ERROR: key_id or key_secret is missing from environment variables');
+        }
+
         this.razorpay = new Razorpay({
-            key_id: this.configService.get<string>('RAZORPAY_KEY_ID'),
-            key_secret: this.configService.get<string>('RAZORPAY_KEY_SECRET'),
+            key_id: key_id || 'placeholder',
+            key_secret: key_secret || 'placeholder',
         });
     }
 
