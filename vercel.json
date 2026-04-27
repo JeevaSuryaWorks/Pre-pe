@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/api/payment/callback",
-            "destination": "/api/payment/callback.js"
+            "destination": "http://64.227.151.233:3000/api/payment/callback"
         },
         {
             "source": "/api/payment/test",
@@ -34,7 +34,7 @@
         },
         {
             "source": "/api/kwik-proxy",
-            "destination": "/api/kwik-proxy.js"
+            "destination": "http://64.227.151.233:3000/api/kwik-proxy"
         },
         {
             "source": "/(.*)",
