@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-@Controller('api/kwik-proxy')
+@Controller('kwik-proxy')
 export class KwikProxyController {
     private readonly logger = new Logger(KwikProxyController.name);
 
