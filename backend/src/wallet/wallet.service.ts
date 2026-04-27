@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import Razorpay from 'razorpay';
@@ -8,10 +9,13 @@ import * as crypto from 'crypto';
 export class WalletService {
     private razorpay: Razorpay;
 
-    constructor(private prisma: PrismaService) {
+    constructor(
+        private prisma: PrismaService,
+        private configService: ConfigService,
+    ) {
         this.razorpay = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID,
-            key_secret: process.env.RAZORPAY_KEY_SECRET,
+            key_id: this.configService.get<string>('RAZORPAY_KEY_ID'),
+            key_secret: this.configService.get<string>('RAZORPAY_KEY_SECRET'),
         });
     }
 
