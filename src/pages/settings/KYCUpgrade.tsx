@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useKYC } from "@/hooks/useKYC";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { PaymentButton } from "@/components/payment/PaymentButton";
+
 
 const KYCUpgrade = () => {
     const navigate = useNavigate();
@@ -111,6 +113,82 @@ const KYCUpgrade = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Wallet Top-up Section */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="w-full bg-indigo-50/50 rounded-[2.5rem] p-6 border border-indigo-100/50 space-y-4"
+                    >
+                        <div className="text-left">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Add Funds</h3>
+                            <p className="text-[10px] font-bold text-slate-500 mt-1 leading-relaxed">
+                                Instant wallet top-up via UPI, Cards, or NetBanking.
+                            </p>
+                        </div>
+                        
+                        <PaymentButton 
+                            label="Top up ₹500"
+                            className="w-full"
+                            options={{
+                                amount: 500,
+                                currency: 'INR',
+                                name: 'Pre-pe Wallet',
+                                description: 'Wallet Top-up',
+                                prefill: {
+                                    name: 'Gaurav Kumar', // Should be dynamic
+                                    email: 'gaurav.kumar@example.com',
+                                    contact: '9123456780'
+                                },
+                                notes: {
+                                    purpose: 'wallet_topup'
+                                }
+                            }}
+                        />
+                    </motion.div>
+
+                    {/* International Subscription Section */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="w-full bg-amber-50/50 rounded-[2.5rem] p-6 border border-amber-100/50 space-y-4"
+                    >
+                        <div className="text-left">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Global Premium</h3>
+                            <p className="text-[10px] font-bold text-slate-500 mt-1 leading-relaxed">
+                                Access international rewards and global services.
+                            </p>
+                        </div>
+                        
+                        <PaymentButton 
+                            label="Upgrade for $10"
+                            className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                            options={{
+                                amount: 10,
+                                currency: 'USD',
+                                name: 'Pre-pe Global',
+                                description: 'International Subscription',
+                                customer_details: {
+                                    name: 'Gaurav Kumar',
+                                    email: 'gaurav.kumar@example.com',
+                                    contact: '9123456780',
+                                    shipping_address: {
+                                        line1: 'Mantri Apartment',
+                                        line2: 'Koramangala',
+                                        city: 'Bengaluru',
+                                        country: 'IND',
+                                        state: 'Karnataka',
+                                        zipcode: '560032'
+                                    }
+                                },
+                                notes: {
+                                    purpose: 'international_upgrade'
+                                }
+                            }}
+                        />
+                    </motion.div>
 
                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Official Pre-pe Certification</p>
                 </div>

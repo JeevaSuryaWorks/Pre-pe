@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  app:
+    build: .
+    container_name: prepe_backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://prepe_user:prepe_password@postgres:5432/prepe_db
+      - REDIS_URL=redis://redis:6379
+      - KWIK_API_KEY=${KWIK_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+
   postgres:
     image: postgres:15-alpine
     container_name: prepe_postgres
