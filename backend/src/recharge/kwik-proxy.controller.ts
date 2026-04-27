@@ -1,9 +1,14 @@
 import { Controller, Post, Body, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import https from 'https';
 
 @Controller('kwik-proxy')
 export class KwikProxyController {
     private readonly logger = new Logger(KwikProxyController.name);
+    private readonly agent = new https.Agent({
+        keepAlive: true,
+        rejectUnauthorized: false
+    });
 
     constructor(private configService: ConfigService) { }
 
@@ -48,12 +53,16 @@ export class KwikProxyController {
             }
 
             this.logger.log(`Forwarding ${method} request to KwikAPI: ${endpoint}`);
-            const apiRes = await fetch(url, options);
+            const apiRes = await fetch(url, {
+                ...options,
+                agent: this.agent as any
+            } as any);
+
             const text = await apiRes.text();
 
             // Log the raw response to catch any errors from KwikAPI (like IP not whitelisted)
             this.logger.debug(`KwikAPI Raw Response: ${text}`);
-            
+
             try {
                 return JSON.parse(text);
             } catch (e) {
