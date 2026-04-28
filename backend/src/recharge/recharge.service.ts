@@ -3,19 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RechargeStatus } from '../prisma/prisma.service';
-import axios from 'axios';
-import https from 'https';
 
 @Injectable()
 export class RechargeService {
     private readonly logger = new Logger(RechargeService.name);
-
-    // FORCE IPv4 for KwikAPI requests
-    private readonly agent = new https.Agent({
-        family: 4,
-        keepAlive: true,
-        rejectUnauthorized: false,
-    });
 
     constructor(
         private prisma: PrismaService,
@@ -27,16 +18,14 @@ export class RechargeService {
         userId: string,
         amount: number,
         mobileNumber: string,
-        operator: string
+        operator: string,
     ) {
         const referenceId = `RECHARGE_${Date.now()}_${mobileNumber}`;
 
         try {
             await this.walletService.debit(userId, amount, referenceId);
         } catch (e) {
-            throw new BadRequestException(
-                'Insufficient balance or wallet error'
-            );
+            throw new BadRequestException('Insufficient balance or wallet error');
         }
 
         const transaction = await this.prisma.transactions.create({
@@ -53,29 +42,29 @@ export class RechargeService {
             },
         });
 
-        this.callKwikApi(
-            amount,
-            mobileNumber,
-            operator,
-            transaction.id
-        ).then(async (success) => {
-            const status = success
-                ? RechargeStatus.SUCCESS
-                : RechargeStatus.FAILED;
+        this.callKwikApi(amount, mobileNumber, operator, transaction.id).then(
+            async (success) => {
+                const status = success
+                    ? RechargeStatus.SUCCESS
+                    : RechargeStatus.FAILED;
 
-            await this.prisma.transactions.update({
-                where: { id: transaction.id },
-                data: { status },
-            });
+                await this.prisma.transactions.update({
+                    where: { id: transaction.id },
+                    data: {
+                        status,
+                        updated_at: new Date(),
+                    },
+                });
 
-            if (status === RechargeStatus.FAILED) {
-                await this.walletService.credit(
-                    userId,
-                    amount,
-                    `REFUND_${transaction.id}`
-                );
-            }
-        });
+                if (status === RechargeStatus.FAILED) {
+                    await this.walletService.credit(
+                        userId,
+                        amount,
+                        `REFUND_${transaction.id}`,
+                    );
+                }
+            },
+        );
 
         return transaction;
     }
@@ -84,39 +73,45 @@ export class RechargeService {
         amount: number,
         mobileNumber: string,
         operator: string,
-        orderId: string
+        orderId: string,
     ): Promise<boolean> {
-        const apiKey = this.configService.get<string>('KWIK_API_KEY');
-
-        const baseUrl =
-            this.configService.get<string>('KWIK_API_BASE_URL') ||
-            'https://www.kwikapi.com/api/v2';
-
         try {
-            const params = new URLSearchParams({
-                api_key: apiKey,
-                number: mobileNumber,
-                amount: amount.toString(),
-                opid: operator,
-                order_id: orderId,
-            });
-
-            const url = `${baseUrl}/recharge.php?${params.toString()}`;
-
             this.logger.log(
-                `Initiating recharge via KwikAPI for ${mobileNumber} | Amount: ${amount}`
+                `Recharge via local proxy | Number: ${mobileNumber} | Amount: ${amount}`,
             );
 
-            const response = await axios.get(url, {
-                httpsAgent: this.agent, // FORCE IPv4
-                timeout: 30000,
-            });
-
-            const data = response.data;
-
-            this.logger.log(
-                `KwikAPI Response: ${JSON.stringify(data)}`
+            const response = await fetch(
+                'http://127.0.0.1:3000/api/kwik-proxy',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        endpoint: '/recharge.php',
+                        method: 'GET',
+                        params: {
+                            number: mobileNumber,
+                            amount: amount.toString(),
+                            opid: operator,
+                            order_id: orderId,
+                        },
+                    }),
+                },
             );
+
+            const text = await response.text();
+
+            this.logger.log(`Kwik Proxy Raw Response: ${text}`);
+
+            let data: any;
+
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                this.logger.error(`Invalid JSON response: ${text}`);
+                return false;
+            }
 
             if (
                 data.status === 'SUCCESS' ||
@@ -126,16 +121,13 @@ export class RechargeService {
             }
 
             this.logger.warn(
-                `Recharge failed: ${data.message ||
-                data.error ||
-                'Unknown error'
-                }`
+                `Recharge failed: ${data.message || data.error || 'Unknown error'}`,
             );
 
             return false;
-        } catch (error: any) {
+        } catch (error) {
             this.logger.error(
-                `KwikAPI network call failed: ${error.message}`
+                `Recharge proxy request failed: ${error.message}`,
             );
             return false;
         }
