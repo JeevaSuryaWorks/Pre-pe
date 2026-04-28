@@ -7,7 +7,8 @@ export class KwikProxyController {
     private readonly logger = new Logger(KwikProxyController.name);
     private readonly agent = new https.Agent({
         keepAlive: true,
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        family: 4
     });
 
     constructor(private configService: ConfigService) { }
