@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import https from 'https';
 
-@Controller('api/kwik-proxy')
+@Controller('kwik-proxy')
 export class KwikProxyController {
     private readonly logger = new Logger(KwikProxyController.name);
 
