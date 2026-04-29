@@ -3,143 +3,265 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, FileText, Receipt, CheckCircle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2,
+  FileText,
+  Receipt,
+  CheckCircle,
+} from 'lucide-react';
+
 import { getOperators } from '@/services/operator.service';
-import { fetchBillDetails, processPostpaidBill } from '@/services/recharge.service';
+import {
+  fetchBillDetails,
+  processPostpaidBill,
+} from '@/services/recharge.service';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { useKYC } from '@/hooks/useKYC';
 import { useToast } from '@/hooks/use-toast';
+
 import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
-import type { Operator, BillDetails } from '@/types/recharge.types';
+
+import type {
+  Operator,
+  BillDetails,
+} from '@/types/recharge.types';
 
 export function PostpaidBillForm() {
   const { user } = useAuth();
-  const { availableBalance, refetch: refetchWallet } = useWallet();
+  const { availableBalance, refetch } =
+    useWallet();
   const { isApproved } = useKYC();
   const { toast } = useToast();
 
-  const [showKYCNudge, setShowKYCNudge] = useState(false);
+  const [showKYCNudge, setShowKYCNudge] =
+    useState(false);
 
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [selectedOperator, setSelectedOperator] = useState<string>('');
-  const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
+  const [mobileNumber, setMobileNumber] =
+    useState('');
 
-  const [operators, setOperators] = useState<Operator[]>([]);
+  const [selectedOperator, setSelectedOperator] =
+    useState('');
 
-  const [loading, setLoading] = useState(false);
-  const [fetchingBill, setFetchingBill] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [operators, setOperators] = useState<
+    Operator[]
+  >([]);
 
-  // Load postpaid operators
+  const [billDetails, setBillDetails] =
+    useState<BillDetails | null>(null);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [fetchingBill, setFetchingBill] =
+    useState(false);
+
+  const [processing, setProcessing] =
+    useState(false);
+
+  /* --------------------------
+     Load Operators
+  --------------------------- */
   useEffect(() => {
-    const loadData = async () => {
+    const loadOperators = async () => {
       setLoading(true);
-      const ops = await getOperators('postpaid');
-      setOperators(ops);
+
+      const data =
+        await getOperators('postpaid');
+
+      setOperators(data || []);
+
       setLoading(false);
     };
-    loadData();
+
+    loadOperators();
   }, []);
 
-  const handleFetchBill = async () => {
-    if (!mobileNumber || mobileNumber.length !== 10) {
-      toast({
-        title: 'Invalid mobile number',
-        description: 'Please enter a valid 10-digit mobile number',
-        variant: 'destructive',
-      });
-      return;
-    }
+  /* --------------------------
+     Fetch Bill
+  --------------------------- */
+  const handleFetchBill =
+    async () => {
+      if (
+        !mobileNumber ||
+        mobileNumber.length !== 10
+      ) {
+        toast({
+          title:
+            'Invalid mobile number',
+          description:
+            'Enter valid 10 digit mobile number',
+          variant:
+            'destructive',
+        });
+        return;
+      }
 
-    if (!selectedOperator) {
-      toast({
-        title: 'Select operator',
-        description: 'Please select your postpaid operator',
-        variant: 'destructive',
-      });
-      return;
-    }
+      if (!selectedOperator) {
+        toast({
+          title:
+            'Select operator',
+          description:
+            'Choose operator first',
+          variant:
+            'destructive',
+        });
+        return;
+      }
 
-    setFetchingBill(true);
-    const result = await fetchBillDetails(selectedOperator, mobileNumber);
-    setFetchingBill(false);
+      if (!user) {
+        toast({
+          title:
+            'Login required',
+          description:
+            'Please login first',
+          variant:
+            'destructive',
+        });
+        return;
+      }
 
-    if (result.status === 'SUCCESS' && result.data) {
-      setBillDetails(result.data);
-      toast({
-        title: 'Bill fetched',
-        description: 'Your bill details have been loaded',
-      });
-    } else {
-      toast({
-        title: 'Failed to fetch bill',
-        description: result.message,
-        variant: 'destructive',
-      });
-    }
-  };
+      setFetchingBill(true);
 
-  const handlePayBill = async () => {
-    if (!user) {
-      toast({
-        title: 'Please sign in',
-        description: 'You need to sign in to pay bills',
-        variant: 'destructive',
-      });
-      return;
-    }
+      const result =
+        await fetchBillDetails(
+          selectedOperator,
+          mobileNumber,
+          user.id
+        );
 
-    if (!isApproved) {
-      setShowKYCNudge(true);
-      return;
-    }
+      setFetchingBill(false);
 
-    if (!billDetails) {
-      toast({
-        title: 'Fetch bill first',
-        description: 'Please fetch your bill details first',
-        variant: 'destructive',
-      });
-      return;
-    }
+      if (
+        result.status ===
+        'SUCCESS' &&
+        result.data
+      ) {
+        setBillDetails(
+          result.data
+        );
 
-    if (billDetails.amount > availableBalance) {
-      toast({
-        title: 'Insufficient balance',
-        description: 'Please add money to your wallet',
-        variant: 'destructive',
-      });
-      return;
-    }
+        toast({
+          title:
+            'Bill fetched',
+          description:
+            'Bill details loaded',
+        });
+      } else {
+        toast({
+          title:
+            'Failed to fetch bill',
+          description:
+            result.message,
+          variant:
+            'destructive',
+        });
+      }
+    };
 
-    setProcessing(true);
-    const result = await processPostpaidBill(user.id, billDetails);
-    setProcessing(false);
+  /* --------------------------
+     Pay Bill
+  --------------------------- */
+  const handlePayBill =
+    async () => {
+      if (!user) {
+        toast({
+          title:
+            'Login required',
+          description:
+            'Please login',
+          variant:
+            'destructive',
+        });
+        return;
+      }
 
-    if (result.status === 'SUCCESS') {
-      toast({
-        title: 'Bill Paid Successfully!',
-        description: `₹${billDetails.amount} paid for ${mobileNumber}`,
-      });
-      refetchWallet();
-      setBillDetails(null);
-      setMobileNumber('');
-    } else {
-      toast({
-        title: 'Payment Failed',
-        description: result.message,
-        variant: 'destructive',
-      });
-    }
-  };
+      if (!isApproved) {
+        setShowKYCNudge(true);
+        return;
+      }
 
+      if (!billDetails) {
+        toast({
+          title:
+            'No bill found',
+          description:
+            'Fetch bill first',
+          variant:
+            'destructive',
+        });
+        return;
+      }
+
+      if (
+        billDetails.amount >
+        availableBalance
+      ) {
+        toast({
+          title:
+            'Insufficient balance',
+          description:
+            'Add wallet balance',
+          variant:
+            'destructive',
+        });
+        return;
+      }
+
+      setProcessing(true);
+
+      const result =
+        await processPostpaidBill(
+          user.id,
+          billDetails
+        );
+
+      setProcessing(false);
+
+      if (
+        result.status ===
+        'SUCCESS' ||
+        result.status ===
+        'PENDING'
+      ) {
+        toast({
+          title:
+            'Bill Payment Success',
+          description: `₹${billDetails.amount} paid successfully`,
+        });
+
+        refetch();
+
+        setBillDetails(null);
+        setMobileNumber('');
+      } else {
+        toast({
+          title:
+            'Payment Failed',
+          description:
+            result.message,
+          variant:
+            'destructive',
+        });
+      }
+    };
+
+  /* --------------------------
+     Loading
+  --------------------------- */
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CardContent className="py-10 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </CardContent>
       </Card>
     );
@@ -147,7 +269,7 @@ export function PostpaidBillForm() {
 
   return (
     <div className="space-y-6">
-      {/* Input Form */}
+      {/* FORM */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -155,49 +277,91 @@ export function PostpaidBillForm() {
             Postpaid Bill Payment
           </CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
             {/* Operator */}
             <div className="space-y-2">
-              <Label>Operator</Label>
-              <Select value={selectedOperator} onValueChange={setSelectedOperator}>
+              <Label>
+                Operator
+              </Label>
+
+              <Select
+                value={
+                  selectedOperator
+                }
+                onValueChange={
+                  setSelectedOperator
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select operator" />
                 </SelectTrigger>
+
                 <SelectContent>
-                  {operators.map((op) => (
-                    <SelectItem key={op.id} value={op.id}>
-                      {op.name}
-                    </SelectItem>
-                  ))}
+                  {operators.map(
+                    (
+                      item
+                    ) => (
+                      <SelectItem
+                        key={
+                          item.id
+                        }
+                        value={
+                          item.id
+                        }
+                      >
+                        {
+                          item.name
+                        }
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Mobile Number */}
+            {/* Mobile */}
             <div className="space-y-2">
-              <Label htmlFor="mobile">Mobile Number</Label>
+              <Label>
+                Mobile Number
+              </Label>
+
               <Input
-                id="mobile"
-                type="tel"
-                placeholder="Enter 10-digit number"
-                maxLength={10}
-                value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+                maxLength={
+                  10
+                }
+                value={
+                  mobileNumber
+                }
+                placeholder="Enter mobile number"
+                onChange={(
+                  e
+                ) =>
+                  setMobileNumber(
+                    e.target.value.replace(
+                      /\D/g,
+                      ''
+                    )
+                  )
+                }
               />
             </div>
           </div>
 
           <Button
-            onClick={handleFetchBill}
-            variant="secondary"
-            disabled={fetchingBill || !mobileNumber || !selectedOperator}
-            className="w-full sm:w-auto"
+            className="w-full"
+            onClick={
+              handleFetchBill
+            }
+            disabled={
+              fetchingBill
+            }
           >
             {fetchingBill ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Fetching Bill...
+                Fetching...
               </>
             ) : (
               <>
@@ -209,62 +373,111 @@ export function PostpaidBillForm() {
         </CardContent>
       </Card>
 
-      {/* Bill Details */}
+      {/* BILL DETAILS */}
       {billDetails && (
         <Card className="border-primary">
-          <CardHeader className="bg-primary/5">
-            <CardTitle className="flex items-center gap-2 text-primary">
+          <CardHeader>
+            <CardTitle className="flex gap-2 text-primary">
               <Receipt className="h-5 w-5" />
               Bill Details
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 gap-4 mb-6">
+
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-sm text-muted-foreground">Customer Name</p>
-                <p className="font-medium">{billDetails.customer_name}</p>
+                <p className="text-muted-foreground">
+                  Customer
+                </p>
+                <p className="font-semibold">
+                  {
+                    billDetails.customer_name
+                  }
+                </p>
               </div>
+
               <div>
-                <p className="text-sm text-muted-foreground">Mobile Number</p>
-                <p className="font-medium">{billDetails.mobile_number}</p>
+                <p className="text-muted-foreground">
+                  Mobile
+                </p>
+                <p className="font-semibold">
+                  {
+                    billDetails.mobile_number
+                  }
+                </p>
               </div>
+
               <div>
-                <p className="text-sm text-muted-foreground">Bill Number</p>
-                <p className="font-medium">{billDetails.bill_number}</p>
+                <p className="text-muted-foreground">
+                  Bill No
+                </p>
+                <p className="font-semibold">
+                  {
+                    billDetails.bill_number
+                  }
+                </p>
               </div>
+
               <div>
-                <p className="text-sm text-muted-foreground">Due Date</p>
-                <p className="font-medium">{billDetails.due_date}</p>
+                <p className="text-muted-foreground">
+                  Due Date
+                </p>
+                <p className="font-semibold">
+                  {
+                    billDetails.due_date
+                  }
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-accent rounded-lg mb-6">
-              <span className="text-lg font-medium">Amount Due</span>
-              <span className="text-2xl font-bold text-primary">₹{billDetails.amount}</span>
+            <div className="p-4 rounded-lg bg-accent flex justify-between">
+              <span>
+                Amount Due
+              </span>
+              <span className="font-bold text-xl text-primary">
+                ₹
+                {
+                  billDetails.amount
+                }
+              </span>
             </div>
 
             <Button
-              onClick={handlePayBill}
-              disabled={processing}
               className="w-full"
               size="lg"
+              disabled={
+                processing
+              }
+              onClick={
+                handlePayBill
+              }
             >
               {processing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing Payment...
+                  Processing...
                 </>
               ) : (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Pay ₹{billDetails.amount}
+                  Pay ₹
+                  {
+                    billDetails.amount
+                  }
                 </>
               )}
             </Button>
 
             {user && (
-              <p className="text-sm text-muted-foreground text-center mt-4">
-                Wallet Balance: <span className="font-semibold text-foreground">₹{availableBalance.toFixed(2)}</span>
+              <p className="text-center text-sm text-muted-foreground">
+                Wallet
+                Balance:
+                <span className="font-semibold ml-1 text-foreground">
+                  ₹
+                  {availableBalance.toFixed(
+                    2
+                  )}
+                </span>
               </p>
             )}
           </CardContent>
@@ -272,8 +485,14 @@ export function PostpaidBillForm() {
       )}
 
       <KYCNudgeDialog
-        isOpen={showKYCNudge}
-        onClose={() => setShowKYCNudge(false)}
+        isOpen={
+          showKYCNudge
+        }
+        onClose={() =>
+          setShowKYCNudge(
+            false
+          )
+        }
         featureName="Postpaid Bill Payment"
       />
     </div>

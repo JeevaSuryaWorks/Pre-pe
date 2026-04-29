@@ -219,7 +219,8 @@ export async function checkTransactionStatus(
 ========================================================= */
 export async function fetchBillDetails(
   operatorId: string,
-  mobileNumber: string
+  mobileNumber: string,
+  userId: string
 ): Promise<ApiResponse<any>> {
   try {
     const res = await fetch(
@@ -231,8 +232,10 @@ export async function fetchBillDetails(
             'application/json',
         },
         body: JSON.stringify({
-          operator: operatorId,
-          mobile: mobileNumber,
+          number: mobileNumber,
+          opid: operatorId,
+          service_type: 'POSTPAID',
+          user_id: userId,
         }),
       }
     );
@@ -240,17 +243,18 @@ export async function fetchBillDetails(
     const data =
       await res.json();
 
-    if (data?.success === true) {
+    if (
+      data?.success ||
+      data?.status === 'SUCCESS'
+    ) {
       return {
         status: 'SUCCESS',
         transaction_id:
-          data?.transaction_id ||
-          '',
+          data?.transaction_id || '',
         message:
           data?.message ||
-          'Bill details fetched',
-        data:
-          data?.data || data,
+          'Bill fetched',
+        data,
       };
     }
 
@@ -260,7 +264,7 @@ export async function fetchBillDetails(
       message:
         data?.message ||
         data?.error ||
-        'Unable to fetch bill details',
+        'Unable to fetch bill',
       data,
     };
   } catch (error: any) {
