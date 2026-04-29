@@ -44,7 +44,7 @@ export class RechargeService {
             },
         });
 
-        // Max 20 chars safe order id for KwikAPI
+        // KwikAPI order id max safe length
         const shortOrderId =
             Date.now().toString().slice(-12) +
             Math.floor(Math.random() * 999)
@@ -89,9 +89,10 @@ export class RechargeService {
     ): Promise<boolean> {
         try {
             this.logger.log(
-                `Recharge via local proxy | ${mobileNumber} | ₹${amount}`,
+                `Recharge via proxy | ${mobileNumber} | ₹${amount}`,
             );
 
+            // ONLY via localhost proxy (never direct KwikAPI)
             const response = await fetch(
                 'http://127.0.0.1:3000/api/kwik-proxy',
                 {
@@ -114,7 +115,7 @@ export class RechargeService {
 
             const text = await response.text();
 
-            this.logger.log(`Kwik Proxy Response: ${text}`);
+            this.logger.log(`Kwik Proxy Raw Response: ${text}`);
 
             let data: any;
 
@@ -122,11 +123,12 @@ export class RechargeService {
                 data = JSON.parse(text);
             } catch {
                 this.logger.error(
-                    `Invalid JSON from KwikAPI: ${text}`,
+                    `Invalid JSON from proxy: ${text}`,
                 );
                 return false;
             }
 
+            // success states
             if (
                 data.status === 'SUCCESS' ||
                 data.status === 'PENDING'
@@ -134,6 +136,7 @@ export class RechargeService {
                 return true;
             }
 
+            // failed states
             this.logger.warn(
                 `Recharge failed: ${data.message ||
                 data.error ||
@@ -144,7 +147,7 @@ export class RechargeService {
             return false;
         } catch (error) {
             this.logger.error(
-                `Recharge proxy error: ${error.message}`,
+                `Recharge proxy network error: ${error.message}`,
             );
             return false;
         }
