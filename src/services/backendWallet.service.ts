@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://64.227.151.233:3000";
 
 async function getAuthHeaders() {
     const { data } = await supabase.auth.getSession();

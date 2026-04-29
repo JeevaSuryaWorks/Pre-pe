@@ -45,7 +45,7 @@ export const getHubbleBrands = async (category?: string): Promise<HubbleBrand[]>
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return [];
 
-        let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/hubble/brands`;
+        let url = `${import.meta.env.VITE_API_URL || 'http://64.227.151.233:3000'}/hubble/brands`;
         if (category) url += `?category=${encodeURIComponent(category)}`;
 
         const response = await fetch(url, {
@@ -70,7 +70,7 @@ export const purchaseHubbleVoucher = async (productId: string, amount: number): 
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return null;
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/hubble/orders`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://64.227.151.233:3000'}/hubble/orders`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,

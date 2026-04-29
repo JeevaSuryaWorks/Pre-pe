@@ -38,6 +38,10 @@ const NetworkDiagnostics = () => {
             if (!response.ok) {
                 throw new Error(`API returned status ${response.status}`);
             }
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("API did not return JSON. Check if backend is running.");
+            }
             
             const result = await response.json();
             setData(result);

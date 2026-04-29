@@ -26,7 +26,7 @@
         },
         {
             "source": "/api/kwik-ip",
-            "destination": "/api/kwik-ip.js"
+            "destination": "http://64.227.151.233:3000/api/network/ip"
         },
         {
             "source": "/api/kwik-proxy",
