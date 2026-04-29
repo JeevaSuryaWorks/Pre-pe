@@ -19,7 +19,7 @@ export async function processRecharge(
   request: RechargeRequest
 ): Promise<ApiResponse<Transaction | null>> {
   try {
-    const res = await fetch('/api/recharge', {
+    const res = await fetch('https://api.pre-pe.com/recharge', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ export async function fetchBillDetails(
 ): Promise<ApiResponse<any>> {
   try {
     const res = await fetch(
-      '/api/recharge/bill-fetch',
+      'https://api.pre-pe.com/recharge/bill-fetch',
       {
         method: 'POST',
         headers: {
@@ -288,7 +288,7 @@ export async function processPostpaidBill(
 ): Promise<ApiResponse<any>> {
   try {
     const res = await fetch(
-      '/api/recharge',
+      'https://api.pre-pe.com/recharge',
       {
         method: 'POST',
         headers: {
