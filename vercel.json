@@ -9,16 +9,16 @@
             "destination": "/api/payment/test.js"
         },
         {
-            "source": "https://api.pre-pe.com/recharge",
-            "destination": "http://64.227.151.233:3000https://api.pre-pe.com/recharge"
+            "source": "/api/recharge",
+            "destination": "http://64.227.151.233:3000/api/recharge"
         },
         {
-            "source": "https://api.pre-pe.com/recharge/detect-operator",
-            "destination": "https://api.pre-pe.com/recharge/detect-operator.js"
+            "source": "/api/recharge/detect-operator",
+            "destination": "http://64.227.151.233:3000/api/recharge/detect-operator"
         },
         {
-            "source": "https://api.pre-pe.com/recharge/status",
-            "destination": "https://api.pre-pe.com/recharge/status.js"
+            "source": "/api/recharge/status",
+            "destination": "http://64.227.151.233:3000/api/recharge/status"
         },
         {
             "source": "/api/wallet/(.*)",
