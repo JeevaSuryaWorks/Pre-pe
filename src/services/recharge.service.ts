@@ -19,42 +19,52 @@ export async function processRecharge(
   request: RechargeRequest
 ): Promise<ApiResponse<Transaction | null>> {
   try {
-    const res = await fetch('https://api.pre-pe.com/api/recharge', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: request.amount,
-        mobile:
-          request.mobile_number ||
-          request.dth_id,
-        operator:
-          request.operator_id,
-      }),
-    });
+    // ✅ GET SUPABASE JWT
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const token = session?.access_token;
+
+    if (!token) {
+      return {
+        status: 'FAILED',
+        transaction_id: '',
+        message: 'User not authenticated',
+        data: null,
+      };
+    }
+
+    const res = await fetch(
+      'https://api.pre-pe.com/api/recharge',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // ✅ FIX
+        },
+        body: JSON.stringify({
+          amount: request.amount,
+          mobile:
+            request.mobile_number ||
+            request.dth_id,
+          operator:
+            request.operator_id,
+        }),
+      }
+    );
 
     const data = await res.json();
 
-    console.log(
-      '[recharge service] Response:',
-      data
-    );
+    console.log('[recharge service] Response:', data);
 
-    /* ----------------------------
-       SUCCESS CASE (NestJS)
-    ----------------------------- */
     if (
       data?.id &&
       (data?.status === 'PENDING' ||
         data?.status === 'SUCCESS')
     ) {
       return {
-        status:
-          data.status as
-          | 'PENDING'
-          | 'SUCCESS'
-          | 'FAILED',
+        status: data.status,
         transaction_id: data.id,
         message:
           data.status === 'PENDING'
@@ -64,31 +74,6 @@ export async function processRecharge(
       };
     }
 
-    /* ----------------------------
-       SUCCESS CASE (legacy)
-    ----------------------------- */
-    if (data?.success === true) {
-      return {
-        status:
-          (data.status ||
-            'SUCCESS') as
-          | 'PENDING'
-          | 'SUCCESS'
-          | 'FAILED',
-        transaction_id:
-          data.data
-            ?.transaction_id || '',
-        message:
-          data.message ||
-          'Recharge successful',
-        data:
-          data.data || null,
-      };
-    }
-
-    /* ----------------------------
-       FAILED
-    ----------------------------- */
     return {
       status: 'FAILED',
       transaction_id: '',
@@ -99,11 +84,6 @@ export async function processRecharge(
       data,
     };
   } catch (error: any) {
-    console.error(
-      '[recharge service] Error',
-      error
-    );
-
     return {
       status: 'FAILED',
       transaction_id: '',
