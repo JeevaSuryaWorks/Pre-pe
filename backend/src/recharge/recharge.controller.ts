@@ -1,9 +1,9 @@
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { RechargeService } from './recharge.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SupabaseAuthGuard } from '../auth/supabase.guard';
 
 @Controller('recharge')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SupabaseAuthGuard)
 export class RechargeController {
     constructor(private readonly rechargeService: RechargeService) { }
 
