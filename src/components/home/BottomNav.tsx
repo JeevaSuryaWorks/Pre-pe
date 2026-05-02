@@ -1,4 +1,4 @@
-import { Home, Heart, BadgePercent, Zap, SlidersHorizontal, Bot, Settings } from "lucide-react";
+import { Home, Heart, BadgePercent, Zap, Bot } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +15,9 @@ export const BottomNav = () => {
     const navItems = [
         { icon: Home, label: "Home", path: "/home" },
         { icon: Heart, label: "Saved", path: "/saved" },
+        { icon: Bot, label: "AI", path: "/ai-chat", isAI: true },
         { icon: BadgePercent, label: "Rewards", path: "/rewards" },
-        { icon: Bot, label: "AI Chat", path: "/ai-chat", isAI: true },
         { icon: Zap, label: "Upgrade", path: "/upgrade" },
-        { icon: Settings, label: "Settings", path: "/profile" },
     ];
 
     return (
@@ -27,7 +26,7 @@ export const BottomNav = () => {
                 
                 {/* Main Navigation Bar */}
                 <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-2 py-2 pb-safe-area-bottom">
-                    <div className="grid grid-cols-6 items-end gap-1">
+                    <div className="grid grid-cols-5 items-end gap-1">
                         {navItems.map((item, index) => {
                             const active = isActive(item.path);
                             
@@ -49,7 +48,7 @@ export const BottomNav = () => {
                                             )}
                                         </button>
                                         <span className={cn(
-                                            "absolute -bottom-1 text-[10px] font-bold uppercase tracking-tight transition-colors whitespace-nowrap",
+                                            "absolute bottom-0 text-[9px] font-bold uppercase tracking-tight transition-colors whitespace-nowrap",
                                             active ? "text-blue-600" : "text-slate-400"
                                         )}>
                                             AI
