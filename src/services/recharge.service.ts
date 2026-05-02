@@ -18,15 +18,10 @@ async function getAuthToken(): Promise<string> {
 /* =========================================================
    🚀 PROCESS RECHARGE
 ========================================================= */
-export async function processRecharge({
-  amount,
-  mobile,
-  operator,
-}: {
-  amount: number
-  mobile: string
-  operator: string
-}) {
+export async function processRecharge(
+  userId: string,
+  details: any
+) {
   try {
     const token = await getAuthToken()
 
@@ -34,18 +29,15 @@ export async function processRecharge({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`, // ✅ REQUIRED
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        amount,
-        mobile,
-        operator,
+        userId,
+        ...details,
       }),
     })
 
     const data = await res.json()
-
-    console.log('Recharge Response:', data)
 
     if (!res.ok) {
       throw new Error(data?.message || 'Recharge failed')
@@ -55,6 +47,59 @@ export async function processRecharge({
   } catch (err: any) {
     console.error('Recharge Error:', err)
     throw err
+  }
+}
+
+/* =========================================================
+   📑 FETCH BILL DETAILS
+========================================================= */
+export async function fetchBillDetails(
+  operatorId: string,
+  number: string,
+  userId: string
+) {
+  try {
+    const token = await getAuthToken()
+    const res = await fetch('https://api.pre-pe.com/api/recharge/fetch-bill', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ operatorId, number, userId }),
+    })
+
+    const data = await res.json()
+    return data
+  } catch (err: any) {
+    console.error('Fetch Bill Error:', err)
+    return { status: 'FAILED', message: err.message }
+  }
+}
+
+/* =========================================================
+   💳 PROCESS POSTPAID BILL
+========================================================= */
+export async function processPostpaidBill(
+  userId: string,
+  billDetails: any
+) {
+  try {
+    const token = await getAuthToken()
+    const res = await fetch('https://api.pre-pe.com/api/recharge/pay-bill', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId, ...billDetails }),
+    })
+
+    const data = await res.json()
+    return data
+  } catch (err: any) {
+    console.error('Bill Payment Error:', err)
+    return { status: 'FAILED', message: err.message }
   }
 }
 
