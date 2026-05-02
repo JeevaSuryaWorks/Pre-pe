@@ -57,3 +57,30 @@ export async function processRecharge({
     throw err
   }
 }
+
+export async function getTransactionHistory(
+  userId: string,
+  limit: number = 5,
+  serviceType?: string
+) {
+  try {
+    let query = supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (serviceType) {
+      query = query.eq('service_type', serviceType)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+    return data || []
+  } catch (err) {
+    console.error('Error fetching transaction history:', err)
+    return []
+  }
+}
