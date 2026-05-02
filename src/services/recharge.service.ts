@@ -18,6 +18,19 @@ async function getAuthToken(): Promise<string> {
 /* =========================================================
    🚀 PROCESS RECHARGE
 ========================================================= */
+const getBaseUrl = () => {
+  let url = import.meta.env.VITE_API_BASE_URL || "https://api.pre-pe.com";
+  if (!url.endsWith("/api")) {
+    url = url.endsWith("/") ? url + "api" : url + "/api";
+  }
+  return url;
+};
+
+const API_BASE_URL = getBaseUrl();
+
+/* =========================================================
+   🚀 PROCESS RECHARGE
+========================================================= */
 export async function processRecharge(
   userId: string,
   details: any
@@ -25,7 +38,7 @@ export async function processRecharge(
   try {
     const token = await getAuthToken()
 
-    const res = await fetch('https://api.pre-pe.com/api/recharge', {
+    const res = await fetch(`${API_BASE_URL}/recharge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,7 +73,7 @@ export async function fetchBillDetails(
 ) {
   try {
     const token = await getAuthToken()
-    const res = await fetch('https://api.pre-pe.com/api/recharge/fetch-bill', {
+    const res = await fetch(`${API_BASE_URL}/recharge/fetch-bill`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -86,7 +99,7 @@ export async function processPostpaidBill(
 ) {
   try {
     const token = await getAuthToken()
-    const res = await fetch('https://api.pre-pe.com/api/recharge/pay-bill', {
+    const res = await fetch(`${API_BASE_URL}/recharge/pay-bill`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

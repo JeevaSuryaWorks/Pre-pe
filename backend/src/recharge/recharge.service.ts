@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RechargeService {
@@ -13,7 +14,8 @@ export class RechargeService {
   constructor(
     private prisma: PrismaService,
     private walletService: WalletService,
-  ) { }
+    private configService: ConfigService,
+  ) {}
 
   async initiateRecharge(
     userId: string,
@@ -23,16 +25,18 @@ export class RechargeService {
     circleId?: string,
     planId?: string,
   ) {
-    // 🔥 VALIDATION
-    if (!userId) throw new BadRequestException('Invalid user');
+    // 🔥 STEP 1: DEBIT WALLET FIRST
     if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
-    const referenceId = `RECHARGE_${Date.now()}`;
+    const referenceId = `REC${Date.now()}`;
 
-    // 🔥 STEP 1: DEBIT WALLET
-    await this.walletService.debit(userId, amount, referenceId);
+    try {
+      await this.walletService.debit(userId, amount, referenceId);
+    } catch (err) {
+      throw new BadRequestException('Insufficient balance or wallet error');
+    }
 
-    // 🔥 STEP 2: CREATE TRANSACTION
+    // 🔥 STEP 2: LOG TRANSACTION
     const transaction = await this.prisma.transactions.create({
       data: {
         user_id: userId,
@@ -44,7 +48,7 @@ export class RechargeService {
         status: 'PENDING',
         type: 'DEBIT',
         service_type: 'RECHARGE',
-        reference_id: referenceId, // Added reference_id
+        reference_id: referenceId,
         created_at: new Date(),
         updated_at: new Date(),
       } as any,
@@ -55,10 +59,14 @@ export class RechargeService {
       amount,
       mobileNumber,
       operator,
-      transaction.id,
+      referenceId,
     );
 
-    // 🔥 STEP 4: UPDATE STATUS
+    if (!result.success) {
+      await this.walletService.credit(userId, amount, `Refund: ${result.message}`);
+    }
+
+    // 🔥 STEP 4: UPDATE TRANSACTION
     await this.prisma.transactions.update({
       where: { id: transaction.id },
       data: {
@@ -67,19 +75,10 @@ export class RechargeService {
       },
     });
 
-    // 🔥 STEP 5: REFUND IF FAILED
-    if (!result.success) {
-      await this.walletService.credit(
-        userId,
-        amount,
-        `REFUND_${transaction.id}`,
-      );
-    }
-
     return {
-      success: result.success,
-      message: result.message,
+      status: result.success ? 'SUCCESS' : 'FAILED',
       transaction_id: transaction.id,
+      message: result.message,
     };
   }
 
@@ -89,9 +88,11 @@ export class RechargeService {
     operator: string,
     orderId: string,
   ) {
+    const port = this.configService.get<string>('PORT') || '3000';
     try {
+      console.log('Calling KwikAPI Proxy:', { amount, mobileNumber, operator, orderId });
       const response = await fetch(
-        'http://127.0.0.1:3000/api/kwik-proxy',
+        `http://127.0.0.1:${port}/api/kwik-proxy`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -109,13 +110,15 @@ export class RechargeService {
       );
 
       const data = await response.json();
+      console.log('KwikAPI Proxy Response:', data);
 
       if (data.status === 'SUCCESS' || data.status === 'PENDING') {
         return { success: true, message: data.message };
       }
 
-      return { success: false, message: data.message };
+      return { success: false, message: data.message || 'KwikAPI error' };
     } catch (err: any) {
+      console.error('KwikAPI Proxy Exception:', err.message);
       return { success: false, message: err.message };
     }
   }
