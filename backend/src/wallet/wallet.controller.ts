@@ -33,9 +33,18 @@ export class WalletController {
         });
     }
 
-    // Admin only in real app, but exposed for demo
     @Post('credit')
     async credit(@Body() body: { userId: string, amount: number, ref?: string }) {
         return this.walletService.credit(body.userId, body.amount, body.ref);
+    }
+
+    @Post('create-order')
+    async createOrder(@Request() req: any, @Body() body: { amount: number }) {
+        return this.walletService.createRazorpayOrder(req.user.sub, body.amount);
+    }
+
+    @Post('verify-payment')
+    async verifyPayment(@Request() req: any, @Body() body: any) {
+        return this.walletService.verifyRazorpayPayment(req.user.sub, body);
     }
 }

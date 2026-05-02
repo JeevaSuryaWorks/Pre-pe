@@ -41,6 +41,17 @@ export const FundRequestPage = () => {
     const [upiData, setUpiData] = useState<any>(null);
     const [isChecking, setIsChecking] = useState(false);
 
+    // Load Razorpay Script
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        document.body.appendChild(script);
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
     const handleInitiatePayment = async () => {
         if (!user || !isApproved) {
             toast.error("KYC Approval Required for adding funds.");
@@ -54,19 +65,53 @@ export const FundRequestPage = () => {
 
         setLoading(true);
         try {
-            const data = await backendWalletService.createUpiIntent(baseAmount);
-            setUpiData(data);
+            const orderData = await backendWalletService.createRazorpayOrder(baseAmount);
             
-            // Try to open UPI Intent (mobile only)
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                window.location.href = data.intentUrl;
-            } else {
-                // Desktop - show QR fallback automatically
-                setIsFallback(true);
-            }
+            const options = {
+                key: orderData.key,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: "Prepe Wallet",
+                description: "Wallet Top-up",
+                order_id: orderData.id,
+                handler: async function (response: any) {
+                    setLoading(true);
+                    try {
+                        const verifyData = {
+                            ...response,
+                            amount: baseAmount
+                        };
+                        const result = await backendWalletService.verifyRazorpayPayment(verifyData);
+                        if (result.success) {
+                            toast.success("Wallet credited successfully!");
+                            refetchWallet();
+                            navigate('/home');
+                        }
+                    } catch (err: any) {
+                        toast.error(err.message || "Payment verification failed");
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+                prefill: {
+                    name: user.user_metadata?.full_name || "",
+                    email: user.email || "",
+                    contact: user.user_metadata?.phone || ""
+                },
+                theme: {
+                    color: "#059669"
+                }
+            };
+
+            const rzp = new (window as any).Razorpay(options);
+            rzp.on('payment.failed', function (response: any) {
+                toast.error(response.error.description || "Payment failed");
+            });
+            rzp.open();
+
         } catch (e: any) {
             console.error(e);
-            toast.error(e.message || "Failed to initiate UPI payment");
+            toast.error(e.message || "Failed to initiate payment");
         } finally {
             setLoading(false);
         }

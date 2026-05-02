@@ -1,7 +1,5 @@
 import { supabase } from '@/supabase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-
 /* =========================================================
    🔐 GET ACCESS TOKEN
 ========================================================= */
@@ -27,7 +25,7 @@ export async function processRecharge(
   try {
     const token = await getAuthToken()
 
-    const res = await fetch(`${API_BASE_URL}/recharge`, {
+    const res = await fetch('https://api.pre-pe.com/api/recharge', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,7 +60,7 @@ export async function fetchBillDetails(
 ) {
   try {
     const token = await getAuthToken()
-    const res = await fetch(`${API_BASE_URL}/recharge/fetch-bill`, {
+    const res = await fetch('https://api.pre-pe.com/api/recharge/fetch-bill', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -88,7 +86,7 @@ export async function processPostpaidBill(
 ) {
   try {
     const token = await getAuthToken()
-    const res = await fetch(`${API_BASE_URL}/recharge/pay-bill`, {
+    const res = await fetch('https://api.pre-pe.com/api/recharge/pay-bill', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
