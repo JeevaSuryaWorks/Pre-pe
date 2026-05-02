@@ -10,22 +10,22 @@ export class WalletController {
 
     @Get()
     async getBalance(@Request() req: any) {
-        return this.walletService.getBalance(req.user.id);
+        return this.walletService.getBalance(req.user.sub);
     }
 
     @Post('upi/create-intent')
     async createUpiIntent(@Request() req: any, @Body() body: { amount: number }) {
-        return this.walletService.createUpiIntent(req.user.id, body.amount);
+        return this.walletService.createUpiIntent(req.user.sub, body.amount);
     }
 
     @Post('upi/verify')
     async verifyUpi(@Request() req: any, @Body() body: { upiRef: string }) {
-        return this.walletService.verifyUpiPayment(req.user.id, body.upiRef);
+        return this.walletService.verifyUpiPayment(req.user.sub, body.upiRef);
     }
 
     @Post('subscribe-plan')
     async subscribePlan(@Request() req: any, @Body() body: any) {
-        return this.walletService.verifyAndSubscribe(req.user.id, {
+        return this.walletService.verifyAndSubscribe(req.user.sub, {
             razorpay_order_id: body.razorpay_order_id,
             razorpay_payment_id: body.razorpay_payment_id,
             razorpay_signature: body.razorpay_signature,

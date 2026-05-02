@@ -20,6 +20,8 @@ export class RechargeService {
     amount: number,
     mobileNumber: string,
     operator: string,
+    circleId?: string,
+    planId?: string,
   ) {
     // 🔥 VALIDATION
     if (!userId) throw new BadRequestException('Invalid user');
@@ -37,12 +39,15 @@ export class RechargeService {
         amount,
         mobile_number: mobileNumber,
         operator_id: operator,
+        circle_id: circleId,
+        plan_id: planId,
         status: 'PENDING',
         type: 'DEBIT',
         service_type: 'RECHARGE',
+        reference_id: referenceId, // Added reference_id
         created_at: new Date(),
         updated_at: new Date(),
-      },
+      } as any,
     });
 
     // 🔥 STEP 3: CALL API

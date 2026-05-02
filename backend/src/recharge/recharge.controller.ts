@@ -23,8 +23,8 @@ export class RechargeController {
         return this.rechargeService.initiateRecharge(
             userId,
             body.amount,
-            body.mobile,
-            body.operator,
+            body.mobile_number,
+            body.operator_id,
         )
     }
 }

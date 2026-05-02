@@ -9,6 +9,17 @@ import { Decimal } from '@prisma/client/runtime/library';
 export class WalletService {
     constructor(private prisma: PrismaService) { }
 
+    async getBalance(userId: string) {
+        const wallet = await this.prisma.$transaction(async (tx) => {
+            return this.getOrCreateWallet(tx, userId);
+        });
+        return {
+            balance: Number(wallet.balance),
+            locked_balance: Number(wallet.locked_balance),
+            available_balance: Number(wallet.balance) - Number(wallet.locked_balance),
+        };
+    }
+
     // 🔥 ALWAYS ensure wallet exists
     async getOrCreateWallet(tx: any, userId: string) {
         let wallet = await tx.wallets.findUnique({
@@ -86,5 +97,24 @@ export class WalletService {
 
             return updatedWallet;
         });
+    }
+
+    async createUpiIntent(userId: string, amount: number) {
+        // TODO: Implement actual UPI gateway integration
+        return {
+            success: true,
+            intent_url: `upi://pay?pa=test@upi&pn=PrePe&am=${amount}&tr=TXN${Date.now()}`,
+            reference_id: `REF${Date.now()}`
+        };
+    }
+
+    async verifyUpiPayment(userId: string, upiRef: string) {
+        // TODO: Implement actual verification with gateway
+        return { success: true, message: 'Payment verified' };
+    }
+
+    async verifyAndSubscribe(userId: string, data: any) {
+        // TODO: Implement actual subscription logic
+        return { success: true, message: 'Subscribed successfully' };
     }
 }
