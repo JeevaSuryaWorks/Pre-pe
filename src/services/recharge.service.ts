@@ -35,7 +35,7 @@ export async function processRecharge(
   try {
     const token = await getAuthToken()
 
-    const res = await fetch('https://api.pre-pe.com/api/recharge', {
+    const res = await fetch(`${import.meta.env.VITE_RECHARGE_API_BASE_URL}/recharge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export async function fetchBillDetails(
     const token = await getAuthToken()
 
     const res = await fetch(
-      'https://api.pre-pe.com/api/recharge/bill-fetch', // ✅ FIXED (/api added)
+      `${import.meta.env.VITE_RECHARGE_API_BASE_URL}/recharge/bill-fetch`, // ✅ FIXED (/api added)
       {
         method: 'POST',
         headers: {
@@ -216,7 +216,7 @@ export async function processPostpaidBill(
     const token = await getAuthToken()
 
     const res = await fetch(
-      'https://api.pre-pe.com/api/recharge',
+      `${import.meta.env.VITE_RECHARGE_API_BASE_URL}/recharge`,
       {
         method: 'POST',
         headers: {
