@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
-import { RechargeStatus } from '../prisma/prisma.service';
 
 @Injectable()
 export class RechargeService {
@@ -14,7 +13,7 @@ export class RechargeService {
   constructor(
     private prisma: PrismaService,
     private walletService: WalletService,
-  ) {}
+  ) { }
 
   async initiateRecharge(
     userId: string,
@@ -22,23 +21,23 @@ export class RechargeService {
     mobileNumber: string,
     operator: string,
   ) {
-    const referenceId = `RECHARGE_${Date.now()}_${mobileNumber}`;
+    // 🔥 VALIDATION
+    if (!userId) throw new BadRequestException('Invalid user');
+    if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
-    try {
-      await this.walletService.debit(userId, amount, referenceId);
-    } catch {
-      throw new BadRequestException(
-        'Insufficient balance or wallet error',
-      );
-    }
+    const referenceId = `RECHARGE_${Date.now()}`;
 
+    // 🔥 STEP 1: DEBIT WALLET
+    await this.walletService.debit(userId, amount, referenceId);
+
+    // 🔥 STEP 2: CREATE TRANSACTION
     const transaction = await this.prisma.transactions.create({
       data: {
         user_id: userId,
         amount,
         mobile_number: mobileNumber,
         operator_id: operator,
-        status: RechargeStatus.PENDING,
+        status: 'PENDING',
         type: 'DEBIT',
         service_type: 'RECHARGE',
         created_at: new Date(),
@@ -46,31 +45,24 @@ export class RechargeService {
       },
     });
 
-    const orderId =
-      Date.now().toString().slice(-12) +
-      Math.floor(Math.random() * 999)
-        .toString()
-        .padStart(3, '0');
-
+    // 🔥 STEP 3: CALL API
     const result = await this.callKwikApi(
       amount,
       mobileNumber,
       operator,
-      orderId,
+      transaction.id,
     );
 
-    const finalStatus = result.success
-      ? RechargeStatus.SUCCESS
-      : RechargeStatus.FAILED;
-
+    // 🔥 STEP 4: UPDATE STATUS
     await this.prisma.transactions.update({
       where: { id: transaction.id },
       data: {
-        status: finalStatus,
+        status: result.success ? 'SUCCESS' : 'FAILED',
         updated_at: new Date(),
       },
     });
 
+    // 🔥 STEP 5: REFUND IF FAILED
     if (!result.success) {
       await this.walletService.credit(
         userId,
@@ -81,10 +73,8 @@ export class RechargeService {
 
     return {
       success: result.success,
-      status: result.success ? 'SUCCESS' : 'FAILED',
       message: result.message,
       transaction_id: transaction.id,
-      detail: result.raw,
     };
   }
 
@@ -93,15 +83,13 @@ export class RechargeService {
     mobileNumber: string,
     operator: string,
     orderId: string,
-  ): Promise<any> {
+  ) {
     try {
       const response = await fetch(
         'http://127.0.0.1:3000/api/kwik-proxy',
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             endpoint: '/recharge.php',
             method: 'GET',
@@ -115,43 +103,15 @@ export class RechargeService {
         },
       );
 
-      const text = await response.text();
-      this.logger.log(`Kwik Response: ${text}`);
+      const data = await response.json();
 
-      let data: any;
-
-      try {
-        data = JSON.parse(text);
-      } catch {
-        return {
-          success: false,
-          message: 'Invalid provider response',
-          raw: text,
-        };
+      if (data.status === 'SUCCESS' || data.status === 'PENDING') {
+        return { success: true, message: data.message };
       }
 
-      if (
-        data.status === 'SUCCESS' ||
-        data.status === 'PENDING'
-      ) {
-        return {
-          success: true,
-          message: data.message || 'Recharge successful',
-          raw: data,
-        };
-      }
-
-      return {
-        success: false,
-        message: data.message || 'Recharge failed',
-        raw: data,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-        raw: {},
-      };
+      return { success: false, message: data.message };
+    } catch (err: any) {
+      return { success: false, message: err.message };
     }
   }
 }
