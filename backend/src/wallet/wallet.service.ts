@@ -1,6 +1,7 @@
 import {
     Injectable,
     BadRequestException,
+    Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -10,30 +11,47 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class WalletService {
-    private razorpay: any;
+    private razorpay: Razorpay | null = null;
+    private readonly logger = new Logger(WalletService.name);
 
     constructor(
         private prisma: PrismaService,
-        private configService: ConfigService
+        private configService: ConfigService,
     ) {
-        this.razorpay = new Razorpay({
-            key_id: this.configService.get<string>('RAZORPAY_KEY_ID'),
-            key_secret: this.configService.get<string>('RAZORPAY_KEY_SECRET'),
-        });
+        const key = this.configService.get<string>('RAZORPAY_KEY_ID');
+        const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+
+        if (key && secret) {
+            this.razorpay = new Razorpay({
+                key_id: key,
+                key_secret: secret,
+            });
+            this.logger.log('✅ Razorpay initialized');
+        } else {
+            this.logger.warn('⚠️ Razorpay disabled (missing keys)');
+            this.razorpay = null;
+        }
     }
 
+    /* =========================================================
+       💰 GET WALLET BALANCE
+    ========================================================= */
     async getBalance(userId: string) {
         const wallet = await this.prisma.$transaction(async (tx) => {
             return this.getOrCreateWallet(tx, userId);
         });
+
         return {
             balance: Number(wallet.balance),
             locked_balance: Number(wallet.locked_balance),
-            available_balance: Number(wallet.balance) - Number(wallet.locked_balance),
+            available_balance:
+                Number(wallet.balance) - Number(wallet.locked_balance),
         };
     }
 
-    // 🔥 ALWAYS ensure wallet exists
+    /* =========================================================
+       🧠 ENSURE WALLET EXISTS
+    ========================================================= */
     async getOrCreateWallet(tx: any, userId: string) {
         let wallet = await tx.wallets.findUnique({
             where: { user_id: userId },
@@ -54,7 +72,14 @@ export class WalletService {
         return wallet;
     }
 
+    /* =========================================================
+       🔻 DEBIT WALLET (FOR RECHARGE)
+    ========================================================= */
     async debit(userId: string, amount: number, description?: string) {
+        if (!amount || amount <= 0) {
+            throw new BadRequestException('Invalid amount');
+        }
+
         return this.prisma.$transaction(async (tx) => {
             const wallet = await this.getOrCreateWallet(tx, userId);
 
@@ -76,7 +101,7 @@ export class WalletService {
                     type: 'DEBIT',
                     amount: new Decimal(amount),
                     balance_after: updatedWallet.balance,
-                    description: description || 'Debit',
+                    description: description || 'Recharge debit',
                     created_at: new Date(),
                 },
             });
@@ -85,7 +110,14 @@ export class WalletService {
         });
     }
 
+    /* =========================================================
+       🔺 CREDIT WALLET (REFUND / ADD MONEY)
+    ========================================================= */
     async credit(userId: string, amount: number, description?: string) {
+        if (!amount || amount <= 0) {
+            throw new BadRequestException('Invalid amount');
+        }
+
         return this.prisma.$transaction(async (tx) => {
             const wallet = await this.getOrCreateWallet(tx, userId);
 
@@ -103,7 +135,7 @@ export class WalletService {
                     type: 'CREDIT',
                     amount: new Decimal(amount),
                     balance_after: updatedWallet.balance,
-                    description: description || 'Credit',
+                    description: description || 'Wallet credit',
                     created_at: new Date(),
                 },
             });
@@ -112,60 +144,132 @@ export class WalletService {
         });
     }
 
-    async createUpiIntent(userId: string, amount: number) {
-        // TODO: Implement actual UPI gateway integration
-        return {
-            success: true,
-            intent_url: `upi://pay?pa=test@upi&pn=PrePe&am=${amount}&tr=TXN${Date.now()}`,
-            reference_id: `REF${Date.now()}`
-        };
-    }
-
-    async verifyUpiPayment(userId: string, upiRef: string) {
-        // TODO: Implement actual verification with gateway
-        return { success: true, message: 'Payment verified' };
-    }
-
-    async verifyAndSubscribe(userId: string, data: any) {
-        // TODO: Implement actual subscription logic
-        return { success: true, message: 'Subscribed successfully' };
-    }
-
+    /* =========================================================
+       💳 CREATE RAZORPAY ORDER
+    ========================================================= */
     async createRazorpayOrder(userId: string, amount: number) {
+        if (!this.razorpay) {
+            throw new BadRequestException('Razorpay not configured');
+        }
+
+        if (!amount || amount <= 0) {
+            throw new BadRequestException('Invalid amount');
+        }
+
         const options = {
-            amount: amount * 100, // amount in the smallest currency unit
-            currency: "INR",
+            amount: amount * 100,
+            currency: 'INR',
             receipt: `receipt_${Date.now()}`,
         };
 
         try {
             const order = await this.razorpay.orders.create(options);
+
             return {
                 id: order.id,
                 amount: order.amount,
                 currency: order.currency,
-                key: this.configService.get<string>('RAZORPAY_KEY_ID')
+                key: this.configService.get<string>('RAZORPAY_KEY_ID'),
             };
         } catch (error) {
+            this.logger.error('Razorpay order error', error);
             throw new BadRequestException('Failed to create Razorpay order');
         }
     }
 
+    /* =========================================================
+       ✅ VERIFY PAYMENT & CREDIT WALLET
+    ========================================================= */
     async verifyRazorpayPayment(userId: string, data: any) {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = data;
-        const body = razorpay_order_id + "|" + razorpay_payment_id;
+        if (!this.razorpay) {
+            throw new BadRequestException('Razorpay not configured');
+        }
+
+        const {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+            amount,
+        } = data;
+
+        const body = razorpay_order_id + '|' + razorpay_payment_id;
 
         const expectedSignature = crypto
-            .createHmac('sha256', this.configService.get<string>('RAZORPAY_KEY_SECRET')!)
+            .createHmac(
+                'sha256',
+                this.configService.get<string>('RAZORPAY_KEY_SECRET')!,
+            )
             .update(body.toString())
             .digest('hex');
 
-        if (expectedSignature === razorpay_signature) {
-            // Payment verified, credit wallet
-            await this.credit(userId, amount, `Razorpay Top-up: ${razorpay_payment_id}`);
-            return { success: true, message: 'Payment verified and wallet credited' };
-        } else {
+        if (expectedSignature !== razorpay_signature) {
             throw new BadRequestException('Invalid signature');
         }
+
+        await this.credit(
+            userId,
+            Number(amount),
+            `Razorpay Top-up: ${razorpay_payment_id}`,
+        );
+
+        return {
+            success: true,
+            message: 'Payment verified & wallet credited',
+        };
+    }
+
+    /* =========================================================
+       📱 CREATE UPI INTENT
+    ========================================================= */
+    async createUpiIntent(userId: string, amount: number) {
+        if (!amount || amount <= 0) {
+            throw new BadRequestException('Invalid amount');
+        }
+
+        const referenceId = `UPI_${Date.now()}_${Math.floor(
+            Math.random() * 1000,
+        )}`;
+
+        // Mock UPI URL for now
+        const vpa = this.configService.get<string>('UPI_VPA') || 'test@upi';
+        const name = 'PrePe';
+        const intentUrl = `upi://pay?pa=${vpa}&pn=${name}&am=${amount}&tr=${referenceId}&cu=INR`;
+
+        await this.prisma.upi_transactions.create({
+            data: {
+                user_id: userId,
+                amount: new Decimal(amount),
+                upi_ref_id: referenceId,
+                gateway_status: 'PENDING',
+                intent_url: intentUrl,
+                created_at: new Date(),
+                updated_at: new Date(),
+            },
+        });
+
+        return {
+            success: true,
+            intent_url: intentUrl,
+            reference_id: referenceId,
+        };
+    }
+
+    /* =========================================================
+       🔍 GET PAYMENT STATUS (FOR POLLING)
+    ========================================================= */
+    async getPaymentStatus(referenceId: string) {
+        const txn = await this.prisma.upi_transactions.findFirst({
+            where: { upi_ref_id: referenceId },
+            orderBy: { created_at: 'desc' },
+        });
+
+        if (!txn) {
+            return { status: 'NOT_FOUND' };
+        }
+
+        return {
+            status: txn.gateway_status, // PENDING, SUCCESS, FAILED
+            amount: Number(txn.amount),
+        };
     }
 }

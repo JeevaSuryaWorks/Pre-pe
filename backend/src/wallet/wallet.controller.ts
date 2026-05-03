@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { SupabaseAuthGuard } from '../auth/supabase.guard';
-
 
 @Controller('wallet')
 @UseGuards(SupabaseAuthGuard)
@@ -13,29 +12,14 @@ export class WalletController {
         return this.walletService.getBalance(req.user.sub);
     }
 
-    @Post('upi/create-intent')
+    @Post('upi-intent')
     async createUpiIntent(@Request() req: any, @Body() body: { amount: number }) {
         return this.walletService.createUpiIntent(req.user.sub, body.amount);
     }
 
-    @Post('upi/verify')
-    async verifyUpi(@Request() req: any, @Body() body: { upiRef: string }) {
-        return this.walletService.verifyUpiPayment(req.user.sub, body.upiRef);
-    }
-
-    @Post('subscribe-plan')
-    async subscribePlan(@Request() req: any, @Body() body: any) {
-        return this.walletService.verifyAndSubscribe(req.user.sub, {
-            razorpay_order_id: body.razorpay_order_id,
-            razorpay_payment_id: body.razorpay_payment_id,
-            razorpay_signature: body.razorpay_signature,
-            plan_name: body.plan_name
-        });
-    }
-
-    @Post('credit')
-    async credit(@Body() body: { userId: string, amount: number, ref?: string }) {
-        return this.walletService.credit(body.userId, body.amount, body.ref);
+    @Get('payment-status')
+    async getPaymentStatus(@Query('reference_id') referenceId: string) {
+        return this.walletService.getPaymentStatus(referenceId);
     }
 
     @Post('create-order')
@@ -43,8 +27,14 @@ export class WalletController {
         return this.walletService.createRazorpayOrder(req.user.sub, body.amount);
     }
 
-    @Post('verify-payment')
-    async verifyPayment(@Request() req: any, @Body() body: any) {
+    @Post('verify-razorpay')
+    async verifyRazorpay(@Request() req: any, @Body() body: any) {
         return this.walletService.verifyRazorpayPayment(req.user.sub, body);
+    }
+
+    // Keep for admin/system use
+    @Post('credit')
+    async credit(@Body() body: { userId: string, amount: number, ref?: string }) {
+        return this.walletService.credit(body.userId, body.amount, body.ref);
     }
 }

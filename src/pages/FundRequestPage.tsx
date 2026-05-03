@@ -1,143 +1,42 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { 
-    Loader2, AlertCircle, ShieldCheck, Wallet as WalletIcon, 
-    Plus, CreditCard, Zap, Lock, ArrowRight,
-    Trophy, Landmark, Info
+    AlertCircle, ShieldCheck, Wallet as WalletIcon, 
+    Lock, ArrowRight, Trophy, Landmark, Info, History
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout/Layout";
 import { useKYC } from "@/hooks/useKYC";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { useWallet } from "@/hooks/useWallet";
-import { backendWalletService } from "@/services/backendWallet.service";
-import { manualFundService } from "@/services/manualFund.service";
 import { creditWallet } from "@/services/wallet.service";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AddMoney } from "@/components/wallet/AddMoney";
 
 export const FundRequestPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
     const { isApproved, isLoading: kycLoading } = useKYC();
-    const { availableBalance, refetch: refetchWallet } = useWallet();
+    const { refetch: refetchWallet } = useWallet();
     const { limits, planId } = usePlanLimits();
 
     const [activeTab, setActiveTab] = useState<"cash" | "credit">("cash");
     const [amount, setAmount] = useState(location.state?.amount?.toString() || "");
     const [loading, setLoading] = useState(false);
-    const [isFallback, setIsFallback] = useState(false);
-    const [transactionId, setTransactionId] = useState("");
 
     const baseAmount = Number(amount) || 0;
     const isBasic = planId.toUpperCase() === "BASIC";
-    const hasBNPL = limits.features.bnpl;
-
-    const [upiData, setUpiData] = useState<any>(null);
-    const [isChecking, setIsChecking] = useState(false);
-
-    // Load Razorpay Script
-    useEffect(() => {
-        const script = document.createElement("script");
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.async = true;
-        document.body.appendChild(script);
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
-
-    const handleInitiatePayment = async () => {
-        if (!user || !isApproved) {
-            toast.error("KYC Approval Required for adding funds.");
-            return;
-        }
-
-        if (baseAmount < 1) {
-            toast.error("Enter a valid amount");
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const orderData = await backendWalletService.createRazorpayOrder(baseAmount);
-            
-            const options = {
-                key: orderData.key,
-                amount: orderData.amount,
-                currency: orderData.currency,
-                name: "Prepe Wallet",
-                description: "Wallet Top-up",
-                order_id: orderData.id,
-                handler: async function (response: any) {
-                    setLoading(true);
-                    try {
-                        const verifyData = {
-                            ...response,
-                            amount: baseAmount
-                        };
-                        const result = await backendWalletService.verifyRazorpayPayment(verifyData);
-                        if (result.success) {
-                            toast.success("Wallet credited successfully!");
-                            refetchWallet();
-                            navigate('/home');
-                        }
-                    } catch (err: any) {
-                        toast.error(err.message || "Payment verification failed");
-                    } finally {
-                        setLoading(false);
-                    }
-                },
-                prefill: {
-                    name: user.user_metadata?.full_name || "",
-                    email: user.email || "",
-                    contact: user.user_metadata?.phone || ""
-                },
-                theme: {
-                    color: "#059669"
-                }
-            };
-
-            const rzp = new (window as any).Razorpay(options);
-            rzp.on('payment.failed', function (response: any) {
-                toast.error(response.error.description || "Payment failed");
-            });
-            rzp.open();
-
-        } catch (e: any) {
-            console.error(e);
-            toast.error(e.message || "Failed to initiate payment");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const checkUpiStatus = async () => {
-        if (!upiData) return;
-        setIsChecking(true);
-        try {
-            const res = await backendWalletService.verifyUpi(upiData.upiRef);
-            if (res.status === 'SUCCESS' || res.wallet) {
-                toast.success("Wallet credited successfully!");
-                refetchWallet();
-                navigate('/home');
-            } else {
-                toast.error("Payment not yet received.");
-            }
-        } catch (e: any) {
-            toast.error(e.message || "Verification failed");
-        } finally {
-            setIsChecking(false);
-        }
-    };
 
     const handleBNPLRequest = async () => {
-        if (!user || !isApproved) return;
+        if (!user || !isApproved) {
+            toast.error("KYC Approval Required");
+            return;
+        }
         
         if (baseAmount < 1 || baseAmount > limits.bnplLimit) {
             toast.error(`Invalid amount. Max credit: ₹${limits.bnplLimit}`);
@@ -167,19 +66,36 @@ export const FundRequestPage = () => {
         }
     };
 
-    const handleManualSubmit = async () => {
-        if (!user || !transactionId || !baseAmount) return;
-        setLoading(true);
-        try {
-            await manualFundService.submitRequest(user.id, baseAmount, transactionId);
-            toast.success("Fund request submitted for verification.");
-            navigate('/home');
-        } catch (error: any) {
-            toast.error("Submission failed.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (kycLoading) {
+        return (
+            <Layout showBottomNav={true}>
+                <div className="flex items-center justify-center min-h-screen">
+                    <History className="animate-spin h-8 w-8 text-emerald-600" />
+                </div>
+            </Layout>
+        );
+    }
+
+    if (!isApproved) {
+        return (
+            <Layout showBottomNav={true}>
+                <div className="container max-w-md mx-auto pt-24 px-6">
+                    <Card className="p-8 text-center space-y-6 rounded-[32px] border-none shadow-2xl shadow-emerald-100">
+                        <div className="bg-amber-50 p-6 rounded-full w-24 h-24 flex items-center justify-center mx-auto">
+                            <AlertCircle className="w-12 h-12 text-amber-500" />
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900">KYC Required</h2>
+                        <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                            To maintain the highest security standards for financial transactions, please complete your KYC verification first.
+                        </p>
+                        <Button onClick={() => navigate('/kyc')} className="w-full h-14 bg-emerald-600 rounded-2xl font-black shadow-xl shadow-emerald-100">
+                            Complete KYC Now
+                        </Button>
+                    </Card>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout showBottomNav={true}>
@@ -193,12 +109,11 @@ export const FundRequestPage = () => {
                             <WalletIcon className="w-8 h-8 text-emerald-300" />
                         </div>
                         <h1 className="text-3xl font-black tracking-tight mb-2">Fund Request</h1>
-                        <p className="text-emerald-100/60 text-[10px] font-black uppercase tracking-[0.3em]">Executive Dash</p>
+                        <p className="text-emerald-100/60 text-[10px] font-black uppercase tracking-[0.3em]">Secure Executive Dash</p>
                     </div>
 
                     {/* --- Dual Tab Switcher --- */}
                     <div className="bg-emerald-800/50 backdrop-blur-md p-1.5 rounded-[28px] border border-white/10 flex gap-1 mb-8 shadow-2xl relative">
-                        <div className="absolute inset-0 bg-black/10 rounded-[28px] pointer-events-none" />
                         <button 
                             onClick={() => setActiveTab("cash")}
                             className={cn(
@@ -207,7 +122,7 @@ export const FundRequestPage = () => {
                             )}
                         >
                             <span className="text-[11px] font-black uppercase tracking-widest leading-none">Add Cash</span>
-                            <span className="text-[9px] font-bold opacity-60">UPI / QR</span>
+                            <span className="text-[9px] font-bold opacity-60">UPI / RAZORPAY</span>
                         </button>
                         <button 
                             onClick={() => setActiveTab("credit")}
@@ -232,100 +147,8 @@ export const FundRequestPage = () => {
                                 exit={{ opacity: 0, scale: 0.95 }}
                             >
                                 <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[32px] overflow-hidden">
-                                    <CardContent className="p-8 pt-10">
-                                        {isFallback || upiData ? (
-                                            <div className="space-y-8 flex flex-col items-center">
-                                                <div className="bg-slate-50 p-6 rounded-[40px] border-2 border-dashed border-slate-200">
-                                                    <img
-                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiData?.qrCode || `upi://pay?pa=jeevasuriya2007-1@okicici&pn=PrePe&am=${baseAmount}&cu=INR`)}`}
-                                                        alt="UPI QR Code"
-                                                        className="w-48 h-48 opacity-80"
-                                                    />
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Status</p>
-                                                    <p className="text-sm font-black text-slate-800">Scan & Pay ₹{baseAmount}</p>
-                                                </div>
-                                                <div className="w-full space-y-4">
-                                                    {upiData && (
-                                                        <Button 
-                                                            className="w-full h-16 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 active:scale-95"
-                                                            onClick={checkUpiStatus}
-                                                            disabled={isChecking}
-                                                        >
-                                                            {isChecking ? <Loader2 className="animate-spin" /> : "I have paid • Verify Status"}
-                                                        </Button>
-                                                    )}
-                                                    
-                                                    <div className="relative">
-                                                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100" /></div>
-                                                        <div className="relative flex justify-center text-[9px] uppercase font-black text-slate-300"><span className="bg-white px-2">OR MANUAL UTR</span></div>
-                                                    </div>
-
-                                                    <Input
-                                                        placeholder="Transaction ID (UTR)"
-                                                        value={transactionId}
-                                                        onChange={(e) => setTransactionId(e.target.value)}
-                                                        className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-bold px-6 text-center"
-                                                    />
-                                                    <Button 
-                                                        variant="ghost"
-                                                        className="w-full h-14 text-slate-400 font-black rounded-2xl active:scale-95"
-                                                        onClick={handleManualSubmit}
-                                                        disabled={loading || !transactionId}
-                                                    >
-                                                        {loading ? <Loader2 className="animate-spin" /> : "Submit UTR Manually"}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-8">
-                                                <div className="relative group">
-                                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300">₹</span>
-                                                    <Input
-                                                        type="number"
-                                                        className="px-12 text-4xl font-black h-24 bg-slate-50 border-none rounded-[28px] focus:ring-4 focus:ring-emerald-50 tabular-nums"
-                                                        placeholder="0"
-                                                        value={amount}
-                                                        onChange={(e) => setAmount(e.target.value)}
-                                                    />
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    {[500, 1000, 5000].map(amt => (
-                                                        <button
-                                                            key={amt}
-                                                            className="h-14 bg-white border-2 border-slate-50 rounded-2xl text-xs font-black hover:border-emerald-600 hover:text-emerald-600 transition-all active:scale-95"
-                                                            onClick={() => setAmount(amt.toString())}
-                                                        >
-                                                            ₹{amt}
-                                                        </button>
-                                                    ))}
-                                                </div>
-
-                                                <Button 
-                                                    className="w-full h-18 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-6"
-                                                    onClick={handleInitiatePayment}
-                                                    disabled={loading || baseAmount <= 0}
-                                                >
-                                                    {loading ? <Loader2 className="animate-spin" /> : <Zap className="fill-current w-5 h-5" />}
-                                                    Add Funds
-                                                </Button>
-
-                                                <div className="flex flex-col items-center gap-4 text-center">
-                                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                                                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                                                        PCI-DSS Compliant Payments
-                                                    </div>
-                                                    <button 
-                                                        className="text-[10px] font-black text-slate-400 hover:text-emerald-700 transition-colors border-b border-dashed border-slate-200"
-                                                        onClick={() => setIsFallback(true)}
-                                                    >
-                                                        Integration Failed? Use Manual UPI
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
+                                    <CardContent className="p-8">
+                                        <AddMoney initialAmount={amount} onSuccess={() => navigate('/wallet')} />
                                     </CardContent>
                                 </Card>
                             </motion.div>
@@ -372,9 +195,9 @@ export const FundRequestPage = () => {
                                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">Desired Credit Amount</p>
                                                 <div className="relative group">
                                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300">₹</span>
-                                                    <Input
+                                                    <input
                                                         type="number"
-                                                        className="px-12 text-4xl font-black h-24 bg-slate-50 border-none rounded-[28px] focus:ring-4 focus:ring-emerald-50 tabular-nums"
+                                                        className="w-full px-12 text-4xl font-black h-24 bg-slate-50 border-none rounded-[28px] focus:outline-none focus:ring-4 focus:ring-emerald-50 tabular-nums"
                                                         placeholder="0"
                                                         value={amount}
                                                         onChange={(e) => setAmount(e.target.value)}
@@ -398,13 +221,13 @@ export const FundRequestPage = () => {
                                                 onClick={handleBNPLRequest}
                                                 disabled={loading || baseAmount <= 0}
                                             >
-                                                {loading ? <Loader2 className="animate-spin" /> : <Landmark className="w-5 h-5 text-emerald-400" />}
+                                                {loading ? <History className="animate-spin" /> : <Landmark className="w-5 h-5 text-emerald-400" />}
                                                 Get Instant Credit
                                             </Button>
 
                                             <div className="flex items-center gap-3 px-4 py-3 bg-blue-50/50 rounded-2xl border border-blue-100">
                                                 <Info className="w-4 h-4 text-blue-500 shrink-0" />
-                                                <p className="text-[9px] font-bold text-blue-600 leading-relaxed uppercase tracking-widest">
+                                                <p className="text-[9px] font-bold text-blue-600 leading-relaxed uppercase tracking-widest text-left">
                                                     Approval is instant based on your executive account standing. Repay on time to maintain your credit pool.
                                                 </p>
                                             </div>

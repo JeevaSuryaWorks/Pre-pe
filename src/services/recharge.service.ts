@@ -1,144 +1,129 @@
-import { supabase } from '@/supabase'
+import { supabase } from '@/integrations/supabase/client';
+import type { ApiResponse, RechargeRequest, Transaction } from '@/types/recharge.types';
 
-/* =========================================================
-   🔐 GET ACCESS TOKEN
-========================================================= */
-async function getAuthToken(): Promise<string> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-  if (!session?.access_token) {
-    throw new Error('User not authenticated')
-  }
-
-  return session.access_token
-}
-
-/* =========================================================
-   🚀 PROCESS RECHARGE
-========================================================= */
-const getBaseUrl = () => {
-  let url = import.meta.env.VITE_API_BASE_URL || "https://api.pre-pe.com";
-  if (!url.endsWith("/api")) {
-    url = url.endsWith("/") ? url + "api" : url + "/api";
-  }
-  return url;
-};
-
-const API_BASE_URL = getBaseUrl();
-
-/* =========================================================
-   🚀 PROCESS RECHARGE
-========================================================= */
+/**
+ * Process a recharge request through the backend
+ */
 export async function processRecharge(
   userId: string,
-  details: any
-) {
+  request: RechargeRequest
+): Promise<ApiResponse<Transaction | null>> {
   try {
-    const token = await getAuthToken()
+    const { data: { session } } = await supabase.auth.getSession();
 
-    const res = await fetch(`${API_BASE_URL}/recharge`, {
+    const response = await fetch(`${API_BASE_URL}/recharge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${session?.access_token}`,
       },
-      body: JSON.stringify({
-        userId,
-        ...details,
-      }),
-    })
+      body: JSON.stringify(request),
+    });
 
-    const data = await res.json()
+    const data = await response.json();
 
-    if (!res.ok) {
-      throw new Error(data?.message || 'Recharge failed')
+    if (!response.ok) {
+      return {
+        status: 'FAILED',
+        transaction_id: '',
+        message: data.message || 'Recharge failed',
+        data: null,
+      };
     }
 
-    return data
-  } catch (err: any) {
-    console.error('Recharge Error:', err)
-    throw err
+    return {
+      status: data.success ? 'SUCCESS' : (data.status === 'PENDING' ? 'PENDING' : 'FAILED'),
+      transaction_id: data.transaction_id || '',
+      message: data.message || 'Success',
+      data: data as unknown as Transaction,
+    };
+  } catch (error) {
+    console.error('Recharge error:', error);
+    return {
+      status: 'FAILED',
+      transaction_id: '',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
+    };
   }
 }
 
-/* =========================================================
-   📑 FETCH BILL DETAILS
-========================================================= */
+/**
+ * Get transaction history for a user
+ */
+export async function getTransactionHistory(
+  userId: string,
+  limit: number = 50,
+  serviceType?: string
+): Promise<Transaction[]> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    let url = `${API_BASE_URL}/recharge/history?limit=${limit}`;
+    if (serviceType) {
+      url += `&service_type=${serviceType}`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch transaction history');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('History fetch error:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch bill details for postpaid/utilities
+ */
 export async function fetchBillDetails(
   operatorId: string,
   number: string,
   userId: string
-) {
+): Promise<ApiResponse<any>> {
   try {
-    const token = await getAuthToken()
-    const res = await fetch(`${API_BASE_URL}/recharge/fetch-bill`, {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(`${API_BASE_URL}/recharge/fetch-bill`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${session?.access_token}`,
       },
-      body: JSON.stringify({ operatorId, number, userId }),
-    })
+      body: JSON.stringify({ operator_id: operatorId, number, user_id: userId }),
+    });
 
-    const data = await res.json()
-    return data
-  } catch (err: any) {
-    console.error('Fetch Bill Error:', err)
-    return { status: 'FAILED', message: err.message }
+    return await response.json();
+  } catch (error) {
+    return {
+      status: 'FAILED',
+      transaction_id: '',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
+    };
   }
 }
 
-/* =========================================================
-   💳 PROCESS POSTPAID BILL
-========================================================= */
+/**
+ * Process a postpaid bill payment
+ */
 export async function processPostpaidBill(
   userId: string,
   billDetails: any
-) {
-  try {
-    const token = await getAuthToken()
-    const res = await fetch(`${API_BASE_URL}/recharge/pay-bill`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ userId, ...billDetails }),
-    })
-
-    const data = await res.json()
-    return data
-  } catch (err: any) {
-    console.error('Bill Payment Error:', err)
-    return { status: 'FAILED', message: err.message }
-  }
+): Promise<ApiResponse<Transaction | null>> {
+  return processRecharge(userId, {
+    amount: billDetails.amount,
+    mobile_number: billDetails.mobile_number,
+    operator_id: billDetails.operator_id,
+  });
 }
-
-export async function getTransactionHistory(
-  userId: string,
-  limit: number = 5,
-  serviceType?: string
-) {
-  try {
-    let query = supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-
-    if (serviceType) {
-      query = query.eq('service_type', serviceType)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data || []
-  } catch (err) {
-    console.error('Error fetching transaction history:', err)
-    return []
-  }
-}
