@@ -160,6 +160,10 @@ export class WalletService {
             amount: amount * 100,
             currency: 'INR',
             receipt: `receipt_${Date.now()}`,
+            notes: {
+                user_id: userId,
+                type: 'wallet_topup',
+            },
         };
 
         try {
@@ -219,6 +223,47 @@ export class WalletService {
     }
 
     /* =========================================================
+       🔔 HANDLE RAZORPAY WEBHOOK
+    ========================================================= */
+    async handleRazorpayWebhook(payload: any, signature: string) {
+        const secret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET');
+
+        if (!secret) {
+            this.logger.error('RAZORPAY_WEBHOOK_SECRET not configured in .env');
+            return { status: 'error', message: 'Secret missing' };
+        }
+
+        // Verify Signature (Raw body verification is safer, but NestJS @Body() works if not modified)
+        // Note: For production, use raw body verification to be 100% sure.
+        const shasum = crypto.createHmac('sha256', secret);
+        shasum.update(JSON.stringify(payload));
+        const digest = shasum.digest('hex');
+
+        if (digest !== signature) {
+            this.logger.warn('Invalid webhook signature received');
+            return { status: 'error', message: 'Invalid signature' };
+        }
+
+        const event = payload.event;
+        if (event === 'payment.captured') {
+            const payment = payload.payload.payment.entity;
+            const amount = payment.amount / 100;
+            const userId = payment.notes?.user_id;
+
+            if (userId) {
+                try {
+                    await this.credit(userId, amount, `Razorpay Webhook: ${payment.id}`);
+                    this.logger.log(`✅ Webhook: Credited ₹${amount} to user ${userId}`);
+                } catch (e) {
+                    this.logger.error('Failed to credit wallet via webhook', e);
+                }
+            }
+        }
+
+        return { status: 'ok' };
+    }
+
+    /* =========================================================
        📱 CREATE UPI INTENT
     ========================================================= */
     async createUpiIntent(userId: string, amount: number) {
@@ -230,7 +275,6 @@ export class WalletService {
             Math.random() * 1000,
         )}`;
 
-        // Mock UPI URL for now
         const vpa = this.configService.get<string>('UPI_VPA') || 'test@upi';
         const name = 'PrePe';
         const intentUrl = `upi://pay?pa=${vpa}&pn=${name}&am=${amount}&tr=${referenceId}&cu=INR`;
@@ -268,7 +312,7 @@ export class WalletService {
         }
 
         return {
-            status: txn.gateway_status, // PENDING, SUCCESS, FAILED
+            status: txn.gateway_status,
             amount: Number(txn.amount),
         };
     }
