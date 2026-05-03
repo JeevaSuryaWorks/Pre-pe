@@ -5,6 +5,8 @@ import {
     UseGuards,
     Req,
     BadRequestException,
+    Get,
+    Query,
 } from '@nestjs/common';
 import { RechargeService } from './recharge.service';
 import { SupabaseAuthGuard } from '../auth/supabase.guard';
@@ -30,5 +32,18 @@ export class RechargeController {
             body.circle_id,
             body.plan_id,
         );
+    }
+
+    @UseGuards(SupabaseAuthGuard)
+    @Get('history')
+    async getHistory(@Req() req: any, @Query('limit') limit: number, @Query('service_type') serviceType: string) {
+        const userId = req.user?.sub;
+        return this.rechargeService.getTransactionHistory(userId, limit, serviceType);
+    }
+
+    @UseGuards(SupabaseAuthGuard)
+    @Post('fetch-bill')
+    async fetchBill(@Req() req: any, @Body() body: { operator_id: string, number: string, user_id: string }) {
+        return this.rechargeService.fetchBillDetails(body.operator_id, body.number, body.user_id);
     }
 }

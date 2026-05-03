@@ -49,23 +49,22 @@ export class RechargeService {
     // ✅ DEBIT
     await this.walletService.debit(userId, amount, referenceId);
 
-    // ✅ TRANSACTION (FIXED PROFILE)
+    // ✅ TRANSACTION
     const transaction = await this.prisma.transactions.create({
       data: {
         user_id: userId,
-        profile: 'USER',
+        type: 'DEBIT',
+        service_type: 'RECHARGE',
         amount,
         mobile_number: mobileNumber,
         operator_id: operator,
         circle_id: circleId,
         plan_id: planId,
         status: 'PENDING',
-        type: 'DEBIT',
-        service_type: 'RECHARGE',
         reference_id: referenceId,
         created_at: new Date(),
         updated_at: new Date(),
-      } as any,
+      },
     });
 
     // ✅ API CALL
@@ -100,6 +99,40 @@ export class RechargeService {
       message: result.message,
       transaction_id: transaction.id,
     };
+  }
+
+  async getTransactionHistory(userId: string, limit: number = 50, serviceType?: string) {
+    return this.prisma.transactions.findMany({
+      where: {
+        user_id: userId,
+        ...(serviceType && { 
+            service_type: serviceType === 'MOBILE_PREPAID' ? 'RECHARGE' : serviceType 
+        }),
+      },
+      take: Number(limit),
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
+  async fetchBillDetails(operatorId: string, number: string, userId: string) {
+    const port = this.configService.get<string>('PORT') || '3000';
+    try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/kwik-proxy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                endpoint: '/fetch_bill.php',
+                method: 'GET',
+                params: {
+                    opid: operatorId,
+                    number: number
+                }
+            })
+        });
+        return await response.json();
+    } catch (error: any) {
+        throw new BadRequestException('Failed to fetch bill: ' + error.message);
+    }
   }
 
   private async callKwikApi(
