@@ -150,6 +150,10 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         theme: {
           color: '#059669', // Emerald 600
         },
+        retry: {
+          enabled: true,
+          max_count: 2,
+        },
       };
 
       const rzp = new (window as any).Razorpay(options);
@@ -219,13 +223,16 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               <div className="relative">
                 <Button 
                   onClick={handleUpiPayment} 
-                  className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8"
+                  className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
-                  <Smartphone className="w-6 h-6" />
-                  Pay via UPI
+                  <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <div className="flex flex-col items-start leading-none">
+                    <span>Pay via UPI</span>
+                    <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
+                  </div>
                 </Button>
-                <div className="absolute -top-3 right-6 bg-amber-400 text-amber-950 text-[10px] font-black px-3 py-1 rounded-full shadow-lg border-2 border-white uppercase tracking-tighter animate-bounce">
+                <div className="absolute -top-3 right-6 bg-amber-400 text-amber-950 text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white uppercase tracking-tighter animate-bounce z-20">
                   Recommended
                 </div>
               </div>
