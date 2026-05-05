@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { ApiResponse, RechargeRequest, Transaction } from '@/types/recharge.types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+import { API_BASE_URL } from '@/utils/api-config';
 
 /**
  * Process a recharge request through the backend

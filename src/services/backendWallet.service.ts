@@ -1,14 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const getBaseUrl = () => {
-    let url = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
-    if (!url.endsWith("/api")) {
-        url = url.endsWith("/") ? url + "api" : url + "/api";
-    }
-    return url;
-};
-
-const API_BASE_URL = getBaseUrl();
+import { API_BASE_URL } from '@/utils/api-config';
 
 async function getAuthHeaders() {
     const { data } = await supabase.auth.getSession();
