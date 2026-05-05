@@ -84,13 +84,16 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
     // Check if we are on a mobile device
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
+    // If on Desktop, UPI recommendation still uses Razorpay (which supports UPI)
     if (!isMobile) {
+      console.log('Desktop detected: Routing to Razorpay flow');
       handleRazorpayPayment();
       return;
     }
 
     setState('processing');
     try {
+      console.log('Mobile detected: Attempting UPI intent');
       const { intent_url, reference_id } = await paymentService.createUpiIntent(numAmount);
       setReferenceId(reference_id);
       
@@ -100,6 +103,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       // Start polling
       startPolling(reference_id);
     } catch (error: any) {
+      console.warn('UPI Intent failed, falling back to Razorpay:', error);
+      // Automatically fallback to Razorpay if UPI intent creation fails
       handleRazorpayPayment();
     }
   };
@@ -211,14 +216,19 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
 
           {state === 'idle' || state === 'failed' ? (
             <div className="space-y-4">
-              <Button 
-                onClick={handleUpiPayment} 
-                className="w-full h-18 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8"
-                disabled={!amount || parseFloat(amount) < 1}
-              >
-                <Smartphone className="w-6 h-6" />
-                Pay via UPI
-              </Button>
+              <div className="relative">
+                <Button 
+                  onClick={handleUpiPayment} 
+                  className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8"
+                  disabled={!amount || parseFloat(amount) < 1}
+                >
+                  <Smartphone className="w-6 h-6" />
+                  Pay via UPI
+                </Button>
+                <div className="absolute -top-3 right-6 bg-amber-400 text-amber-950 text-[10px] font-black px-3 py-1 rounded-full shadow-lg border-2 border-white uppercase tracking-tighter animate-bounce">
+                  Recommended
+                </div>
+              </div>
               
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
