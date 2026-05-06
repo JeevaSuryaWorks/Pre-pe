@@ -1,7 +1,6 @@
-import { ApiResponse } from '@/types/recharge.types';
+import { API_BASE_URL } from '@/utils/api-config';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const PROXY_URL = `${API_BASE_URL}/api/kwik-proxy`;
+const PROXY_URL = `${API_BASE_URL}/kwik-proxy`;
 
 
 export interface KwikOperator {
