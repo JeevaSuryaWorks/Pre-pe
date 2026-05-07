@@ -34,7 +34,7 @@ export class RechargeService {
     if (!amount || amount <= 0)
       throw new BadRequestException('Invalid amount');
 
-    const referenceId = `REC_${Date.now()}`;
+    const referenceId = `${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`.substring(0, 18);
 
     try {
       // ✅ WALLET CHECK
@@ -88,7 +88,7 @@ export class RechargeService {
       const transaction = await this.prisma.transactions.create({
         data: {
           user_id: userId,
-          type: 'DEBIT',
+          type: 'RECHARGE',
           service_type: 'MOBILE_PREPAID',
           amount: new Decimal(amount),
           mobile_number: mobileNumber,
@@ -104,7 +104,7 @@ export class RechargeService {
 
       // ✅ API CALL
       this.logger.log(`[Recharge] Calling KwikAPI for: ${mobileNumber}`);
-      const result = await this.callKwikApiDirectly(
+      const result: any = await this.callKwikApiDirectly(
         amount,
         mobileNumber,
         operator,
@@ -113,32 +113,48 @@ export class RechargeService {
 
       this.logger.log(`[Recharge] KwikAPI Result: ${JSON.stringify(result)}`);
 
-      // ✅ REFUND IF FAILED
-      if (!result.success) {
-        this.logger.warn(`[Recharge] API Failed, initiating refund for user: ${userId}`);
+      if (result.success) {
+        // If SUCCESS or PENDING, keep money and update status
+        const isPending = result.message?.toLowerCase().includes('pending') || false;
+        
+        await this.prisma.transactions.update({
+          where: { id: transaction.id },
+          data: { 
+            status: isPending ? 'PENDING' : 'SUCCESS',
+            updated_at: new Date()
+          },
+        });
+
+        return {
+          success: true,
+          status: isPending ? 'PENDING' : 'SUCCESS',
+          message: result.message || 'Recharge processed',
+          transaction_id: transaction.id,
+        };
+      } else {
+        // ✅ AUTO-REFUND ONLY ON FAILURE
+        this.logger.warn(`[Recharge] API Failed, refunding user: ${userId}`);
         await this.walletService.credit(
           userId,
           amount,
           `REFUND_${referenceId}: ${result.message || 'API Failure'}`,
         );
+
+        await this.prisma.transactions.update({
+          where: { id: transaction.id },
+          data: {
+            status: 'FAILED',
+            updated_at: new Date(),
+          },
+        });
+
+        return {
+          success: false,
+          status: 'FAILED',
+          message: result.message,
+          transaction_id: transaction.id,
+        };
       }
-
-      // ✅ UPDATE STATUS
-      this.logger.log(`[Recharge] Updating transaction status to: ${result.success ? 'SUCCESS' : 'FAILED'}`);
-      await this.prisma.transactions.update({
-        where: { id: transaction.id },
-        data: {
-          status: result.success ? 'SUCCESS' : 'FAILED',
-          updated_at: new Date(),
-        },
-      });
-
-      return {
-        success: result.success,
-        status: result.success ? 'SUCCESS' : 'FAILED',
-        message: result.message,
-        transaction_id: transaction.id,
-      };
     } catch (error: any) {
       this.logger.error(`[Recharge] Critical Failure: ${error.message}`, error.stack);
       if (error instanceof BadRequestException) throw error;
