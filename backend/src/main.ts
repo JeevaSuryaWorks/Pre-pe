@@ -7,33 +7,36 @@ async function bootstrap() {
     app.use((req: any, res: any, next: any) => {
         const origin = req.headers.origin;
         const allowedOrigins = [
+            'https://pre-pe.com',
+            'https://www.pre-pe.com',
             'http://localhost:8080',
             'http://localhost:5173'
         ];
 
-        // In production (pre-pe.com), we let Nginx handle the Access-Control-Allow-Origin header.
-        // If we add it here, the browser will see multiple values and block the request.
-        if (origin && origin.includes('pre-pe.com')) {
-            if (req.method === 'OPTIONS') {
+        // 1. Handle Preflight (OPTIONS)
+        if (req.method === 'OPTIONS') {
+            if (origin && (allowedOrigins.includes(origin) || origin.includes('pre-pe.com') || origin.startsWith('http://localhost'))) {
                 res.setHeader('Access-Control-Allow-Origin', origin);
                 res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
                 res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+                res.setHeader('Access-Control-Allow-Credentials', 'true');
                 return res.status(204).send();
             }
-            return next();
         }
 
-        // For development or other origins, we handle it normally
-        if (origin && (allowedOrigins.includes(origin) || origin.startsWith('http://localhost'))) {
-            res.setHeader('Access-Control-Allow-Origin', origin);
-            res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-            res.setHeader('Access-Control-Allow-Credentials', 'true');
-            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+        // 2. Handle Actual Requests
+        if (origin && (allowedOrigins.includes(origin) || origin.includes('pre-pe.com') || origin.startsWith('http://localhost'))) {
+            // For production (pre-pe.com), we only add headers if Nginx hasn't added them yet.
+            // Since we can't easily detect Nginx headers here, and we know Nginx adds them,
+            // we should avoid adding them here to prevent the "multiple values" error.
+            if (!origin.includes('pre-pe.com')) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+                res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+                res.setHeader('Access-Control-Allow-Credentials', 'true');
+            }
         }
 
-        if (req.method === 'OPTIONS') {
-            return res.status(204).send();
-        }
         next();
     });
     app.setGlobalPrefix('api');
