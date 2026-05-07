@@ -40,6 +40,32 @@ async function bootstrap() {
         next();
     });
     app.setGlobalPrefix('api');
+
+    // Global Error Logger for debugging 500s
+    app.useGlobalFilters(new (class {
+        catch(exception: any, host: any) {
+            const ctx = host.switchToHttp();
+            const response = ctx.getResponse();
+            const request = ctx.getRequest();
+            const status = exception.status || 500;
+            
+            console.error('--- GLOBAL ERROR ---');
+            console.error(`URL: ${request.url}`);
+            console.error(`Status: ${status}`);
+            console.error(`Message: ${exception.message || exception}`);
+            if (exception.stack) console.error(`Stack: ${exception.stack}`);
+            console.error('--------------------');
+
+            response.status(status).json({
+                statusCode: status,
+                message: exception.message || 'Internal server error',
+                error: exception.name || 'Error',
+                path: request.url,
+                debug_stack: exception.stack // Temporarily show stack in frontend to debug
+            });
+        }
+    })());
+
     await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
