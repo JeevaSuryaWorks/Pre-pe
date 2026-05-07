@@ -16,11 +16,17 @@ import { SupabaseAuthGuard } from '../auth/supabase.guard';
 export class RechargeController {
     private readonly logger = new Logger(RechargeController.name);
 
-    constructor(private readonly rechargeService: RechargeService) { }
+    constructor(private readonly rechargeService: RechargeService) { 
+        this.logger.log('RechargeController initialized');
+    }
 
     @Get('test')
     test() {
-        return { message: 'Recharge controller is alive' };
+        return { 
+            message: 'Recharge controller is alive',
+            timestamp: new Date().toISOString(),
+            status: 'OK'
+        };
     }
 
     @UseGuards(SupabaseAuthGuard)
