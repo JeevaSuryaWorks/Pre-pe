@@ -24,6 +24,7 @@ export class RechargeController {
     test() {
         return { 
             message: 'Recharge controller is alive',
+            version: '1.0.5-FIX-RECHARGE',
             timestamp: new Date().toISOString(),
             status: 'OK'
         };
