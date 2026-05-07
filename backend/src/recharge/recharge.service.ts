@@ -209,11 +209,23 @@ export class RechargeService {
       return { success: false, message: 'API Configuration missing' };
     }
 
+    // ✅ OPERATOR MAPPING (Translate DB IDs to KwikAPI Codes)
+    const operatorMap: Record<string, string> = {
+      '1': '1',   // Airtel
+      '2': '3',   // VI
+      '3': '12',  // Jio
+      '4': '2',   // BSNL
+      '5': '10',  // Dish TV
+      '6': '11',  // Tata Sky
+    };
+
+    const kwikOpId = operatorMap[operator] || operator;
+
     const query = new URLSearchParams({
       api_key: apiKey,
       number: mobileNumber,
       amount: amount.toString(),
-      opid: operator,
+      opid: kwikOpId,
       order_id: orderId,
     }).toString();
 
