@@ -230,10 +230,11 @@ export class WalletService {
             Math.random() * 1000,
         )}`;
 
-        // Mock UPI URL for now
-        const vpa = this.configService.get<string>('UPI_VPA') || 'jeevasurya@boi';
-        const name = 'PrePe';
-        const intentUrl = `upi://pay?pa=${vpa}&pn=${name}&am=${amount}&tr=${referenceId}&cu=INR`;
+        // Professional UPI URL
+        const vpa = this.configService.get<string>('UPI_VPA') || 'jeevasuriya2007-3@okaxis';
+        const businessName = 'PrePe Technologies Pvt Ltd';
+        const merchantCode = '0000'; // General Merchant / Personal
+        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent('Wallet Topup - PrePe')}`;
 
         await this.prisma.upi_transactions.create({
             data: {

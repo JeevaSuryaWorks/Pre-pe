@@ -120,12 +120,18 @@ const corsHeaders = {
       const { data: currentPayment, error: fetchError } = await supabase.from('plan_payments').select('plan_id').eq('razorpay_order_id', razorpay_order_id).single();
       
       if (fetchError || !currentPayment) {
+        console.error("Payment fetch error:", fetchError);
         throw new Error("Payment record not found. Could not upgrade profile.");
       }
 
-      await supabase.from('users')
+      const { error: updateError } = await supabase.from('profiles')
         .update({ plan_type: currentPayment.plan_id })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw new Error("Failed to update profile status.");
+      }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
