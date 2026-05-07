@@ -41,27 +41,32 @@ async function bootstrap() {
     });
     app.setGlobalPrefix('api');
 
-    // Global Error Logger for debugging 500s
+    // Formal Exception Filter
     app.useGlobalFilters(new (class {
         catch(exception: any, host: any) {
             const ctx = host.switchToHttp();
             const response = ctx.getResponse();
             const request = ctx.getRequest();
-            const status = exception.status || 500;
             
-            console.error('--- GLOBAL ERROR ---');
-            console.error(`URL: ${request.url}`);
-            console.error(`Status: ${status}`);
-            console.error(`Message: ${exception.message || exception}`);
-            if (exception.stack) console.error(`Stack: ${exception.stack}`);
-            console.error('--------------------');
+            const status = 
+                exception instanceof Error && (exception as any).getStatus 
+                    ? (exception as any).getStatus() 
+                    : (exception.status || 500);
+
+            const message = exception.message || 'Internal server error';
+            
+            console.error(`[GlobalError] ${request.method} ${request.url} - Status: ${status} - Message: ${message}`);
+            if (exception.stack) console.error(exception.stack);
 
             response.status(status).json({
+                success: false,
                 statusCode: status,
-                message: exception.message || 'Internal server error',
+                message: message,
                 error: exception.name || 'Error',
                 path: request.url,
-                debug_stack: exception.stack // Temporarily show stack in frontend to debug
+                timestamp: new Date().toISOString(),
+                // Include details if it's a 500
+                ...(status === 500 && { stack: exception.stack })
             });
         }
     })());

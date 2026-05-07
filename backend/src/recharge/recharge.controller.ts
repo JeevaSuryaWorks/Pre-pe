@@ -18,6 +18,11 @@ export class RechargeController {
 
     constructor(private readonly rechargeService: RechargeService) { }
 
+    @Get('test')
+    test() {
+        return { message: 'Recharge controller is alive' };
+    }
+
     @UseGuards(SupabaseAuthGuard)
     @Post()
     async recharge(@Req() req: any, @Body() body: any) {

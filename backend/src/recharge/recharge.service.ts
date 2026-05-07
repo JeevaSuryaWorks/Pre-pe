@@ -47,6 +47,23 @@ export class RechargeService {
         throw new BadRequestException('Wallet not found');
       }
 
+      // ✅ PROFILE CHECK (Important for relation)
+      const profile = await this.prisma.profiles.findUnique({
+        where: { user_id: userId },
+      });
+
+      if (!profile) {
+        this.logger.error(`[Recharge] Profile not found for user: ${userId}. Syncing...`);
+        // Attempt to create profile if it doesn't exist
+        await this.prisma.profiles.create({
+          data: {
+            user_id: userId,
+            created_at: new Date(),
+            updated_at: new Date(),
+          }
+        });
+      }
+
       if (Number(wallet.balance) < Number(amount)) {
         this.logger.warn(`[Recharge] Insufficient balance for user: ${userId}. Balance: ${wallet.balance}, Required: ${amount}`);
         throw new BadRequestException('Insufficient balance');
