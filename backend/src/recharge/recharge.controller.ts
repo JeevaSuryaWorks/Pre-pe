@@ -7,12 +7,15 @@ import {
     BadRequestException,
     Get,
     Query,
+    Logger,
 } from '@nestjs/common';
 import { RechargeService } from './recharge.service';
 import { SupabaseAuthGuard } from '../auth/supabase.guard';
 
 @Controller('recharge')
 export class RechargeController {
+    private readonly logger = new Logger(RechargeController.name);
+
     constructor(private readonly rechargeService: RechargeService) { }
 
     @UseGuards(SupabaseAuthGuard)
@@ -21,17 +24,25 @@ export class RechargeController {
         const userId = req.user?.sub;
 
         if (!userId) {
+            this.logger.error('Recharge attempt without userId');
             throw new BadRequestException('Invalid user');
         }
 
-        return this.rechargeService.initiateRecharge(
-            userId,
-            Number(body.amount),
-            body.mobile_number,
-            body.operator_id,
-            body.circle_id,
-            body.plan_id,
-        );
+        this.logger.log(`Incoming recharge request for user: ${userId}`);
+        
+        try {
+            return await this.rechargeService.initiateRecharge(
+                userId,
+                Number(body.amount),
+                body.mobile_number,
+                body.operator_id,
+                body.circle_id,
+                body.plan_id,
+            );
+        } catch (error: any) {
+            this.logger.error(`Recharge controller error: ${error.message}`);
+            throw error;
+        }
     }
 
     @UseGuards(SupabaseAuthGuard)
