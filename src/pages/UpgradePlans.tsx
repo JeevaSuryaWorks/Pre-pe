@@ -102,7 +102,13 @@ export default function UpgradePlans() {
                     body: { action: 'create_order', planId }
                 });
 
-                if (orderError || !orderData || orderData.error) {
+                if (orderError) {
+                    console.error("Edge Function Error:", orderError);
+                    throw new Error(orderError.message || "Could not connect to payment server.");
+                }
+
+                if (!orderData || orderData.error) {
+                    console.error("Razorpay Order Data Error:", orderData);
                     throw new Error(orderData?.error || "Payment gateway connection failed.");
                 }
 

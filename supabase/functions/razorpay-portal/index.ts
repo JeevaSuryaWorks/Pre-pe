@@ -55,6 +55,8 @@ const corsHeaders = {
 
       // Call Razorpay API to create order
       const auth = btoa(`${RZP_KEY_ID}:${RZP_KEY_SECRET}`);
+      console.log(`Creating Razorpay order for plan: ${planId}, amount: ${plan.price_amount}`);
+      
       const rzpResponse = await fetch("https://api.razorpay.com/v1/orders", {
         method: "POST",
         headers: {
@@ -68,17 +70,28 @@ const corsHeaders = {
         })
       });
 
+      if (!rzpResponse.ok) {
+        const errorText = await rzpResponse.text();
+        console.error("Razorpay API Error:", errorText);
+        throw new Error(`Razorpay API Error: ${rzpResponse.status} ${errorText}`);
+      }
+
       const order = await rzpResponse.json();
-      if (order.error) throw new Error(order.error.description);
+      if (order.error) throw new Error(order.error.description || "Razorpay order creation failed");
 
       // Track in database
-      await supabase.from('plan_payments').insert({
+      const { error: dbError } = await supabase.from('plan_payments').insert({
         user_id: user.id,
         plan_id: planId,
         razorpay_order_id: order.id,
         amount: plan.price_amount,
         status: 'PENDING'
       });
+
+      if (dbError) {
+        console.error("Database Insert Error:", dbError);
+        throw new Error(`Payment tracking failed: ${dbError.message}`);
+      }
 
       return new Response(JSON.stringify({ orderId: order.id, amount: order.amount, keyId: RZP_KEY_ID }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

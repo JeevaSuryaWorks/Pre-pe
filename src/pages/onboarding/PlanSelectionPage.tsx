@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { adminService } from '@/services/admin';
 import { supabase } from '@/integrations/supabase/client';
+import { Smartphone, ShieldCheck, ArrowRight } from 'lucide-react';
+import { paymentService } from '@/services/payment.service';
 
 declare global {
   interface Window {
@@ -41,6 +43,7 @@ export default function PlanSelectionPage() {
     const [submitting, setSubmitting] = useState<string | null>(null);
     const [plans, setPlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [paymentMode, setPaymentMode] = useState<'RZP' | 'UPI' | null>(null);
 
     useEffect(() => {
         // Load Razorpay Script
@@ -82,12 +85,12 @@ export default function PlanSelectionPage() {
 
                 if (orderError) {
                     console.error("Order Creation Logic Error:", orderError);
-                    throw new Error(`Edge Function Error: ${orderError.message}`);
+                    throw new Error(`Connection Error: ${orderError.message || 'Could not reach server'}`);
                 }
 
                 if (!orderData || orderData.error) {
                     console.error("Order Data Error:", orderData);
-                    throw new Error(orderData?.error || "Failed to create payment order.");
+                    throw new Error(orderData?.error || "Payment gateway connection failed.");
                 }
 
                 if (!window.Razorpay) {
@@ -174,6 +177,58 @@ export default function PlanSelectionPage() {
         }
     };
 
+    const handleUpiUpgrade = async (plan: any) => {
+        const planId = plan.id;
+        setSubmitting(planId);
+        setPaymentMode('UPI');
+        try {
+            const { intent_url, reference_id } = await paymentService.createUpiIntent(plan.price_amount);
+            
+            // Open UPI App
+            window.location.href = intent_url;
+
+            // Start Polling
+            const interval = setInterval(async () => {
+                try {
+                    const result = await paymentService.getPaymentStatus(reference_id);
+                    if (result.status === 'SUCCESS') {
+                        clearInterval(interval);
+                        // Complete Upgrade
+                        const { error } = await supabase.from('profiles')
+                            .update({ plan_type: planId })
+                            .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+                        
+                        if (error) throw error;
+
+                        toast({ title: "Plan Activated!", description: `Welcome to the ${plan.name} plan.` });
+                        navigate('/onboarding/consent');
+                    } else if (result.status === 'FAILED') {
+                        clearInterval(interval);
+                        toast({ title: "Payment Failed", description: "The transaction was unsuccessful.", variant: "destructive" });
+                        setSubmitting(null);
+                        setPaymentMode(null);
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 4000);
+
+            // Cleanup interval after 5 minutes
+            setTimeout(() => {
+                clearInterval(interval);
+                if (submitting === planId) {
+                    setSubmitting(null);
+                    setPaymentMode(null);
+                }
+            }, 300000);
+
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+            setSubmitting(null);
+            setPaymentMode(null);
+        }
+    };
+
     if (loading) {
         return (
             <Layout hideHeader>
@@ -243,17 +298,37 @@ export default function PlanSelectionPage() {
                                             </ul>
                                         </CardContent>
                                         <CardFooter className="pt-6">
-                                            <Button 
-                                                className={`w-full h-12 text-base font-medium transition-all ${isPopular ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'}`}
-                                                onClick={() => handleSelectPlan(plan)}
-                                                disabled={submitting !== null}
-                                            >
-                                                {submitting === plan.id ? (
-                                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                                                ) : (
-                                                    `Select ${plan.name}`
+                                            <div className="flex flex-col gap-3 w-full">
+                                                <Button 
+                                                    className={`w-full h-14 text-base font-bold transition-all rounded-2xl ${isPopular ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'}`}
+                                                    onClick={() => {
+                                                        setPaymentMode('RZP');
+                                                        handleSelectPlan(plan);
+                                                    }}
+                                                    disabled={submitting !== null}
+                                                >
+                                                    {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                                                    ) : (
+                                                        <><Zap className="w-4 h-4 mr-2 fill-current" /> Pay with Card / Netbanking</>
+                                                    )}
+                                                </Button>
+
+                                                {plan.price_amount > 0 && (
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => handleUpiUpgrade(plan)}
+                                                        disabled={submitting !== null}
+                                                        className="w-full h-14 rounded-2xl border-2 border-slate-100 font-bold text-slate-700 hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                    >
+                                                        {submitting === plan.id && paymentMode === 'UPI' ? (
+                                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying UPI...</>
+                                                        ) : (
+                                                            <><Smartphone className="w-4 h-4" /> Instant UPI Upgrade</>
+                                                        )}
+                                                    </Button>
                                                 )}
-                                            </Button>
+                                            </div>
                                         </CardFooter>
                                     </Card>
                                 </motion.div>
