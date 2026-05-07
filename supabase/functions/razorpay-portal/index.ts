@@ -25,19 +25,25 @@ const corsHeaders = {
 
     const { action, planId, paymentData } = await req.json();
 
-    // Get calling user
+    // Get User from token
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error("Missing Authorization header");
-      throw new Error("Unauthorized");
+      return new Response(JSON.stringify({ error: "Missing authentication token" }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
+
     if (userError || !user) {
-      console.error("Auth Error:", userError?.message || "User not found");
-      throw new Error("Unauthorized");
+      console.error("Auth Error:", userError);
+      return new Response(JSON.stringify({ error: "Unauthorized: Invalid session" }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // --- CASE 1: CREATE ORDER ---

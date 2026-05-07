@@ -98,8 +98,12 @@ export default function UpgradePlans() {
         setPaymentMode('RZP');
         try {
             if (plan.price_amount && plan.price_amount > 0) {
+                const { data: { session } } = await supabase.auth.getSession();
                 const { data: orderData, error: orderError } = await supabase.functions.invoke('razorpay-portal', {
-                    body: { action: 'create_order', planId }
+                    body: { action: 'create_order', planId },
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`
+                    }
                 });
 
                 if (orderError) {
@@ -121,6 +125,7 @@ export default function UpgradePlans() {
                     order_id: orderData.orderId,
                     handler: async (response: any) => {
                         setSubmitting(planId);
+                        const { data: { session: verifySession } } = await supabase.auth.getSession();
                         const { data: verifyData } = await supabase.functions.invoke('razorpay-portal', {
                             body: { 
                                 action: 'verify_payment', 
@@ -129,6 +134,9 @@ export default function UpgradePlans() {
                                     razorpay_payment_id: response.razorpay_payment_id,
                                     razorpay_signature: response.razorpay_signature
                                 }
+                            },
+                            headers: {
+                                Authorization: `Bearer ${verifySession?.access_token}`
                             }
                         });
 

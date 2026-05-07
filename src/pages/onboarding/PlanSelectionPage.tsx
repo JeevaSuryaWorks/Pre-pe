@@ -79,8 +79,12 @@ export default function PlanSelectionPage() {
             // Check if plan is paid
             if (plan.price_amount && plan.price_amount > 0) {
                 // 1. Create Order via Edge Function
+                const { data: { session } } = await supabase.auth.getSession();
                 const { data: orderData, error: orderError } = await supabase.functions.invoke('razorpay-portal', {
-                    body: { action: 'create_order', planId }
+                    body: { action: 'create_order', planId },
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`
+                    }
                 });
 
                 if (orderError) {
@@ -108,6 +112,7 @@ export default function PlanSelectionPage() {
                     handler: async (response: any) => {
                         // 3. Verify Payment
                         setSubmitting(planId); // Set loading while verifying
+                        const { data: { session: verifySession } } = await supabase.auth.getSession();
                         const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-portal', {
                             body: { 
                                 action: 'verify_payment', 
@@ -116,6 +121,9 @@ export default function PlanSelectionPage() {
                                     razorpay_payment_id: response.razorpay_payment_id,
                                     razorpay_signature: response.razorpay_signature
                                 }
+                            },
+                            headers: {
+                                Authorization: `Bearer ${verifySession?.access_token}`
                             }
                         });
 
