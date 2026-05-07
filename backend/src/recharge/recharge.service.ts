@@ -89,7 +89,7 @@ export class RechargeService {
         data: {
           user_id: userId,
           type: 'DEBIT',
-          service_type: 'RECHARGE',
+          service_type: 'MOBILE_PREPAID',
           amount: new Decimal(amount),
           mobile_number: mobileNumber,
           operator_id: operator,
@@ -151,7 +151,7 @@ export class RechargeService {
       where: {
         user_id: userId,
         ...(serviceType && {
-          service_type: serviceType === 'MOBILE_PREPAID' ? 'RECHARGE' : serviceType
+          service_type: serviceType === 'RECHARGE' ? 'MOBILE_PREPAID' : serviceType
         }),
       },
       take: Number(limit),
