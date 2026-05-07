@@ -4,6 +4,11 @@
  */
 
 const getApiBaseUrl = (): string => {
+  // Use relative path for production to avoid CORS and host issues
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return '/api';
+  }
+
   // Try different env variables used across the app
   let url = import.meta.env.VITE_API_BASE_URL || 
             import.meta.env.VITE_API_URL || 
