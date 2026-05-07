@@ -21,13 +21,31 @@ export class RechargeController {
     }
 
     @Get('test')
-    test() {
+    async test() {
+        // Try to get outbound IP for whitelisting verification
+        let outboundIp = 'Unknown';
+        try {
+            const resp = await fetch('https://api.ipify.org?format=json');
+            const data: any = await resp.json();
+            outboundIp = data.ip;
+        } catch (e) {
+            // Silently ignore IP fetch failure for test endpoint
+        }
+
         return { 
             message: 'Recharge controller is alive',
-            version: '1.0.5-FIX-RECHARGE',
+            version: '1.1.0-PROD-RECHARGE',
             timestamp: new Date().toISOString(),
-            status: 'OK'
+            status: 'OK',
+            outbound_ip: outboundIp,
+            node_version: process.version,
+            env: process.env.NODE_ENV || 'production'
         };
+    }
+
+    @Get('health')
+    health() {
+        return { status: 'healthy', service: 'recharge-service', uptime: process.uptime() };
     }
 
     @UseGuards(SupabaseAuthGuard)

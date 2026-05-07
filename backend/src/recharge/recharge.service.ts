@@ -53,15 +53,25 @@ export class RechargeService {
       });
 
       if (!profile) {
-        this.logger.error(`[Recharge] Profile not found for user: ${userId}. Syncing...`);
-        // Attempt to create profile if it doesn't exist
-        await this.prisma.profiles.create({
-          data: {
-            user_id: userId,
-            created_at: new Date(),
-            updated_at: new Date(),
-          }
-        });
+        this.logger.warn(`[Recharge] Profile not found for user: ${userId}. Syncing...`);
+        try {
+          // Attempt to create profile if it doesn't exist
+          await this.prisma.profiles.upsert({
+            where: { user_id: userId },
+            create: {
+              user_id: userId,
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
+            update: {
+              updated_at: new Date(),
+            }
+          });
+          this.logger.log(`[Recharge] Profile successfully synced/upserted for user: ${userId}`);
+        } catch (syncError: any) {
+          this.logger.error(`[Recharge] Profile sync failed: ${syncError.message}`);
+          // Continue anyway, as the wallet already exists
+        }
       }
 
       if (Number(wallet.balance) < Number(amount)) {
@@ -198,6 +208,8 @@ export class RechargeService {
       method: 'GET',
       family: 4, // Force IPv4
     };
+
+    this.logger.log(`[KwikAPI] Requesting: https://${options.hostname}${options.path}`);
 
     return new Promise((resolve) => {
       const req = https.request(options, (res) => {

@@ -41,6 +41,16 @@ async function bootstrap() {
     });
     app.setGlobalPrefix('api');
 
+    // Global health check
+    app.use('/api/health', (req, res) => {
+        res.json({ 
+            status: 'ok', 
+            time: new Date().toISOString(), 
+            pid: process.pid,
+            prefix: '/api'
+        });
+    });
+
     // Formal Exception Filter
     app.useGlobalFilters(new (class {
         catch(exception: any, host: any) {
