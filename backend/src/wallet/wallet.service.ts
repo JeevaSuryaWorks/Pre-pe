@@ -178,9 +178,10 @@ export class WalletService {
                 currency: order.currency,
                 key: this.configService.get<string>('RAZORPAY_KEY_ID'),
             };
-        } catch (error) {
-            this.logger.error('❌ Razorpay order creation failed', error.stack);
-            throw new BadRequestException(`Failed to create Razorpay order: ${error.message}`);
+        } catch (error: any) {
+            this.logger.error('❌ Razorpay order creation failed', error);
+            const errorMsg = error.error?.description || error.message || 'Unknown Razorpay error';
+            throw new BadRequestException(`Razorpay Error: ${errorMsg}`);
         }
     }
 

@@ -72,18 +72,30 @@ export const paymentService = {
    * Create Razorpay Order
    */
   async createRazorpayOrder(amount: number): Promise<RazorpayOrderResponse> {
+    console.log(`[PaymentService] Creating Razorpay order for amount: ${amount} at ${API_BASE_URL}/wallet/create-order`);
     const response = await fetch(`${API_BASE_URL}/wallet/create-order`, {
       method: 'POST',
       headers: await this.getHeaders(),
       body: JSON.stringify({ amount }),
     });
 
+    console.log(`[PaymentService] Create order response status: ${response.status}`);
+
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to create Razorpay order');
+      const text = await response.text();
+      console.error(`[PaymentService] Create order failed: ${text}`);
+      let err;
+      try {
+        err = JSON.parse(text);
+      } catch (e) {
+        err = { message: text };
+      }
+      throw new Error(err.message || err.error || 'Failed to create Razorpay order');
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`[PaymentService] Create order success:`, data);
+    return data;
   },
 
   /**
