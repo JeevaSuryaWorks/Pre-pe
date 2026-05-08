@@ -39,12 +39,21 @@ export const fetchKwikOperators = async (): Promise<KwikOperator[]> => {
 };
 
 const callProxy = async (endpoint: string, params?: Record<string, any>, method: 'GET' | 'POST' = 'GET') => {
-    const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpoint, params, method })
-    });
-    return response.json();
+    try {
+        const response = await fetch(PROXY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint, params, method }),
+            // @ts-ignore
+            signal: AbortSignal.timeout(20000) // 20 seconds frontend timeout
+        });
+        return response.json();
+    } catch (error: any) {
+        if (error.name === 'TimeoutError') {
+            throw new Error('Provider response timed out. Please check history.');
+        }
+        throw error;
+    }
 };
 
 export interface KwikBalanceResponse {

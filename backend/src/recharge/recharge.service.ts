@@ -28,9 +28,13 @@ export class RechargeService {
     circleId?: string,
     planId?: string,
   ) {
-    this.logger.log(`[Recharge] Initiating request for user: ${userId}, amount: ${amount}, mobile: ${mobileNumber}`);
+    this.logger.log(`[RECHARGE:INIT] User: ${userId}, Amount: ${amount}, Mobile: ${mobileNumber}`);
 
-    if (!userId) throw new BadRequestException('User not found');
+    if (!this.isValidUuid(userId)) {
+      this.logger.error(`[RECHARGE:VALIDATION_FAILED] Invalid User UUID: ${userId}`);
+      throw new BadRequestException('Invalid user ID format');
+    }
+
     if (!amount || amount <= 0)
       throw new BadRequestException('Invalid amount');
 
@@ -38,53 +42,27 @@ export class RechargeService {
 
     try {
       // ✅ WALLET CHECK
+      this.logger.log(`[RECHARGE:DB_CHECK] Fetching wallet for ${userId}`);
       const wallet = await this.prisma.wallets.findUnique({
         where: { user_id: userId },
       });
 
       if (!wallet) {
-        this.logger.error(`[Recharge] Wallet not found for user: ${userId}`);
+        this.logger.error(`[RECHARGE:ERROR] Wallet not found for user: ${userId}`);
         throw new BadRequestException('Wallet not found');
       }
 
-      // ✅ PROFILE CHECK (Important for relation)
-      const profile = await this.prisma.profiles.findUnique({
-        where: { user_id: userId },
-      });
-
-      if (!profile) {
-        this.logger.warn(`[Recharge] Profile not found for user: ${userId}. Syncing...`);
-        try {
-          // Attempt to create profile if it doesn't exist
-          await this.prisma.profiles.upsert({
-            where: { user_id: userId },
-            create: {
-              user_id: userId,
-              created_at: new Date(),
-              updated_at: new Date(),
-            },
-            update: {
-              updated_at: new Date(),
-            }
-          });
-          this.logger.log(`[Recharge] Profile successfully synced/upserted for user: ${userId}`);
-        } catch (syncError: any) {
-          this.logger.error(`[Recharge] Profile sync failed: ${syncError.message}`);
-          // Continue anyway, as the wallet already exists
-        }
-      }
-
       if (Number(wallet.balance) < Number(amount)) {
-        this.logger.warn(`[Recharge] Insufficient balance for user: ${userId}. Balance: ${wallet.balance}, Required: ${amount}`);
+        this.logger.warn(`[RECHARGE:INSUFFICIENT] User: ${userId}, Balance: ${wallet.balance}, Required: ${amount}`);
         throw new BadRequestException('Insufficient balance');
       }
 
       // ✅ DEBIT
-      this.logger.log(`[Recharge] Debiting wallet for user: ${userId}, amount: ${amount}`);
+      this.logger.log(`[RECHARGE:DEBIT] Debiting ₹${amount} from ${userId}`);
       await this.walletService.debit(userId, amount, `Recharge: ${mobileNumber} (${referenceId})`);
 
       // ✅ TRANSACTION RECORD
-      this.logger.log(`[Recharge] Creating transaction record: ${referenceId}`);
+      this.logger.log(`[RECHARGE:TX_CREATE] Reference: ${referenceId}`);
       const transaction = await this.prisma.transactions.create({
         data: {
           user_id: userId,
@@ -103,7 +81,7 @@ export class RechargeService {
       });
 
       // ✅ API CALL
-      this.logger.log(`[Recharge] Calling KwikAPI for: ${mobileNumber}`);
+      this.logger.log(`[RECHARGE:API_CALL] Calling KwikAPI for ${mobileNumber} (Ref: ${referenceId})`);
       const result: any = await this.callKwikApiDirectly(
         amount,
         mobileNumber,
@@ -111,10 +89,9 @@ export class RechargeService {
         referenceId,
       );
 
-      this.logger.log(`[Recharge] KwikAPI Result: ${JSON.stringify(result)}`);
+      this.logger.log(`[RECHARGE:API_RESULT] Result: ${JSON.stringify(result)}`);
 
       if (result.success) {
-        // If SUCCESS or PENDING, keep money and update status
         const isPending = result.message?.toLowerCase().includes('pending') || false;
         
         await this.prisma.transactions.update({
@@ -125,6 +102,7 @@ export class RechargeService {
           },
         });
 
+        this.logger.log(`[RECHARGE:SUCCESS] Completed for ${mobileNumber}`);
         return {
           success: true,
           status: isPending ? 'PENDING' : 'SUCCESS',
@@ -133,7 +111,7 @@ export class RechargeService {
         };
       } else {
         // ✅ AUTO-REFUND ONLY ON FAILURE
-        this.logger.warn(`[Recharge] API Failed, refunding user: ${userId}`);
+        this.logger.warn(`[RECHARGE:API_FAILED] Refunding ${userId} due to: ${result.message}`);
         await this.walletService.credit(
           userId,
           amount,
@@ -156,13 +134,14 @@ export class RechargeService {
         };
       }
     } catch (error: any) {
-      this.logger.error(`[Recharge] Critical Failure: ${error.message}`, error.stack);
+      this.logger.error(`[RECHARGE:CRITICAL] Failure: ${error.message}`, error.stack);
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(`Recharge failed: ${error.message}`);
     }
   }
 
   async getTransactionHistory(userId: string, limit: number = 50, serviceType?: string) {
+    if (!this.isValidUuid(userId)) return [];
     return this.prisma.transactions.findMany({
       where: {
         user_id: userId,
@@ -176,6 +155,7 @@ export class RechargeService {
   }
 
   async fetchBillDetails(operatorId: string, number: string, userId: string) {
+    if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid user ID');
     const port = this.configService.get<string>('PORT') || '3000';
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/kwik-proxy`, {
@@ -188,12 +168,19 @@ export class RechargeService {
             opid: operatorId,
             number: number
           }
-        })
+        }),
+        // @ts-ignore
+        signal: AbortSignal.timeout(15000) // 15s timeout
       });
       return await response.json();
     } catch (error: any) {
       throw new BadRequestException('Failed to fetch bill: ' + error.message);
     }
+  }
+
+  private isValidUuid(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
   }
 
   private async callKwikApiDirectly(
@@ -209,7 +196,7 @@ export class RechargeService {
       return { success: false, message: 'API Configuration missing' };
     }
 
-    // ✅ OPERATOR MAPPING (Translate DB IDs to KwikAPI Codes)
+    // ✅ OPERATOR MAPPING
     const operatorMap: Record<string, string> = {
       '1': '1',   // Airtel
       '2': '3',   // VI
@@ -234,47 +221,48 @@ export class RechargeService {
       port: 443,
       path: `/api/v2/recharge.php?${query}`,
       method: 'GET',
-      family: 4, // Force IPv4
+      family: 4, 
+      timeout: 15000, // 15 seconds timeout
     };
 
-    this.logger.log(`[KwikAPI] Requesting: https://${options.hostname}${options.path}`);
+    this.logger.log(`[KwikAPI:REQ] Calling: https://www.kwikapi.com/api/v2/recharge.php?order_id=${orderId}`);
 
     return new Promise((resolve) => {
       const req = https.request(options, (res) => {
         let data = '';
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {
-          this.logger.log(`[KwikAPI] Raw Response: ${data}`);
+          this.logger.log(`[KwikAPI:RES] Raw for ${orderId}: ${data}`);
           try {
             const parsed = JSON.parse(data);
             if (parsed.status === 'SUCCESS' || parsed.status === 'PENDING') {
-              resolve({ success: true, message: parsed.message || 'Processing' });
+              resolve({ success: true, message: parsed.message || parsed.status });
             } else {
               resolve({ success: false, message: parsed.message || 'Operator failed' });
             }
           } catch (e) {
-            this.logger.error(`[KwikAPI] JSON Parse Error: ${data}`);
-            resolve({ success: false, message: 'Invalid provider response' });
+            this.logger.error(`[KwikAPI:PARSE_ERROR] Failed for ${orderId}: ${data}`);
+            if (data.toLowerCase().includes('success') || data.toLowerCase().includes('pending')) {
+                resolve({ success: true, message: 'PENDING (Parse error)' });
+            } else {
+                resolve({ success: false, message: 'Invalid provider response' });
+            }
           }
         });
       });
 
+      req.on('timeout', () => {
+        this.logger.error(`[KwikAPI:TIMEOUT] Request timed out for ${orderId}`);
+        req.destroy();
+        resolve({ success: true, message: 'PENDING (Timeout)' });
+      });
+
       req.on('error', (err) => {
-        this.logger.error(`[KwikAPI] Network Error: ${err.message}`);
+        this.logger.error(`[KwikAPI:NET_ERROR] ${err.message} for ${orderId}`);
         resolve({ success: false, message: `Network error: ${err.message}` });
       });
 
       req.end();
     });
-  }
-
-  // Keep legacy method for compatibility if needed elsewhere, but mark as deprecated
-  private async callKwikApi(
-    amount: number,
-    mobileNumber: string,
-    operator: string,
-    orderId: string,
-  ) {
-    return this.callKwikApiDirectly(amount, mobileNumber, operator, orderId);
   }
 }
