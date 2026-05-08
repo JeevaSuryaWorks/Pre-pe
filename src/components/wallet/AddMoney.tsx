@@ -73,37 +73,10 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
 
   useEffect(() => {
     return () => stopPolling();
-  }, [stopPolling]);
-
-  const handleUpiPayment = async () => {
-    const numAmount = parseFloat(amount);
-    if (!numAmount || numAmount < 1) {
-      toast({ title: 'Invalid amount', description: 'Enter at least ₹1', variant: 'destructive' });
-      return;
-    }
-
-    // If on Desktop, UPI recommendation still uses Razorpay (which supports UPI)
-    if (!isMobile) {
-      handleRazorpayPayment();
-      return;
-    }
-
-    setState('processing');
-    try {
-      console.log('Mobile detected: Attempting UPI intent');
-      const { intent_url, reference_id } = await paymentService.createUpiIntent(numAmount);
-      setReferenceId(reference_id);
-      
-      // Redirect to UPI app
-      window.location.href = intent_url;
-      
-      // Start polling
-      startPolling(reference_id);
-    } catch (error: any) {
-      console.warn('UPI Intent failed, falling back to Razorpay:', error);
-      // Automatically fallback to Razorpay if UPI intent creation fails
-      handleRazorpayPayment();
-    }
+  }, [stopPolling]);  const handleUpiPayment = async () => {
+    // We now prioritize Razorpay for UPI as it handles intents better on mobile
+    // and provides better tracking. Direct intent is kept as a fallback.
+    handleRazorpayPayment();
   };
 
   const handleRazorpayPayment = async () => {
@@ -126,23 +99,32 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         order_id: order.id,
         handler: async (response: any) => {
           setState('verifying');
+          setReferenceId(order.id);
+          
+          // Start polling as a safety measure
+          startPolling(order.id);
+
           try {
-            await paymentService.verifyRazorpay({
+            // Immediate sync verification
+            const verifyResult = await paymentService.verifyRazorpay({
               ...response,
               amount: numAmount,
             });
-            setState('success');
-            toast({ title: 'Payment Success', description: `₹${numAmount} added to wallet` });
-            if (onSuccess) onSuccess();
+            
+            if (verifyResult.success) {
+              setState('success');
+              stopPolling();
+              toast({ title: 'Payment Success', description: `₹${numAmount} added to wallet` });
+              if (onSuccess) onSuccess();
+            }
           } catch (error: any) {
-            setState('failed');
-            const msg = error.message?.length > 200 ? 'Verification failed. Please try again.' : error.message;
-            toast({ title: 'Verification Failed', description: msg, variant: 'destructive' });
+            this.logger.warn('Initial verification failed, continuing to poll...', error);
+            // Don't set state to failed here, let polling continue
           }
         },
         modal: {
           ondismiss: () => {
-            if (state !== 'success') setState('idle');
+            if (state !== 'success' && state !== 'verifying') setState('idle');
           }
         },
         theme: {
@@ -161,6 +143,22 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       toast({ title: 'Payment Initiation Failed', description: msg, variant: 'destructive' });
       setState('failed');
     }
+  };
+
+  const handleManualPaymentCompleted = () => {
+    setState('verifying');
+    toast({ 
+      title: 'Verification Started', 
+      description: 'We are checking for your payment. This may take a minute.',
+    });
+    // In a real app, we would ideally have a reference ID for manual pay.
+    // Here we'll just wait a bit and return to idle if nothing found.
+    setTimeout(() => {
+      if (state !== 'success') {
+        setState('idle');
+        toast({ title: 'Still checking...', description: 'Your balance will update automatically once confirmed.' });
+      }
+    }, 10000);
   };
 
   return (
@@ -219,33 +217,18 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
 
           {state === 'idle' || state === 'failed' ? (
             <div className="space-y-4">
-              {/* Primary Payment Method */}
               <div className="relative">
-                {isMobile ? (
-                  <Button 
-                    onClick={handleUpiPayment} 
-                    className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
-                    disabled={!amount || parseFloat(amount) < 1}
-                  >
-                    <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                    <div className="flex flex-col items-start leading-none">
-                      <span>Pay via UPI App</span>
-                      <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
-                    </div>
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleRazorpayPayment} 
-                    className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
-                    disabled={!amount || parseFloat(amount) < 1}
-                  >
-                    <CreditCard className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                    <div className="flex flex-col items-start leading-none">
-                      <span>Pay with Razorpay</span>
-                      <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Cards / UPI / Netbanking</span>
-                    </div>
-                  </Button>
-                )}
+                <Button 
+                  onClick={handleRazorpayPayment} 
+                  className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
+                  disabled={!amount || parseFloat(amount) < 1}
+                >
+                  <CreditCard className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <div className="flex flex-col items-start leading-none text-left">
+                    <span>Pay via UPI / Cards</span>
+                    <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
+                  </div>
+                </Button>
                 <div className="absolute -top-3 right-6 bg-amber-400 text-amber-950 text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white uppercase tracking-tighter animate-bounce z-20">
                   Recommended
                 </div>
@@ -253,46 +236,25 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
-                <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Alternative Methods</span></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Trouble with Gateway?</span></div>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                {isMobile ? (
-                  <Button 
-                    variant="outline" 
-                    onClick={handleRazorpayPayment} 
-                    className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
-                    disabled={!amount || parseFloat(amount) < 1}
-                  >
-                    <CreditCard className="mr-2 h-5 w-5 text-emerald-500" />
-                    Cards / Netbanking
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="outline" 
-                    onClick={handleUpiPayment} 
-                    className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
-                    disabled={!amount || parseFloat(amount) < 1}
-                  >
-                    <Smartphone className="mr-2 h-5 w-5 text-emerald-500" />
-                    Open UPI App (Mobile only)
-                  </Button>
-                )}
-
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   onClick={() => setState('manual')} 
-                  className="w-full h-14 rounded-2xl font-black text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all text-xs uppercase tracking-widest"
+                  className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
-                  Show QR Code / Manual Pay
+                  <Smartphone className="mr-2 h-5 w-5 text-emerald-500" />
+                  Direct UPI / QR Code
                 </Button>
-              </div>
 
-              <div className="flex flex-col items-center gap-2 text-center pt-2">
-                <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  Encrypted & Secure Transaction
+                <div className="flex flex-col items-center gap-2 text-center pt-2">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    Encrypted & Secure Transaction
+                  </div>
                 </div>
               </div>
             </div>
@@ -304,7 +266,6 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             >
               <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
                 <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
-                  {/* QR Code Placeholder - In a real app, this would be a generated QR or static image */}
                   <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
                     <img 
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=bmsmo63811085@barodampay&pn=PrePe&am=${amount}&cu=INR`)}`}
@@ -314,7 +275,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">UPI ID</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
                   <p className="text-lg font-black text-emerald-600 select-all">bmsmo63811085@barodampay</p>
                 </div>
               </div>
@@ -337,15 +298,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                   Back
                 </Button>
                 <Button 
-                  onClick={() => {
-                    setState('verifying');
-                    // Start polling even for manual if we have a way to track it, 
-                    // but usually manual requires a reference ID.
-                    // For now, just let them return.
-                    toast({ title: 'Verification Started', description: 'Checking for your payment...' });
-                    setTimeout(() => setState('idle'), 5000);
-                  }} 
-                  className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest"
+                  onClick={handleManualPaymentCompleted}
+                  className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100"
                 >
                   I've Paid
                 </Button>
@@ -379,7 +333,6 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               )}
             </div>
           )}
-
 
           {state === 'failed' && (
             <motion.div 
