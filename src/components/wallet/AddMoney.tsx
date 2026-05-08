@@ -136,7 +136,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             if (onSuccess) onSuccess();
           } catch (error: any) {
             setState('failed');
-            toast({ title: 'Verification Failed', description: error.message, variant: 'destructive' });
+            const msg = error.message?.length > 200 ? 'Verification failed. Please try again.' : error.message;
+            toast({ title: 'Verification Failed', description: msg, variant: 'destructive' });
           }
         },
         modal: {
@@ -156,7 +157,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
     } catch (error: any) {
-      toast({ title: 'Payment Initiation Failed', description: error.message, variant: 'destructive' });
+      const msg = error.message?.length > 200 ? 'Failed to initiate payment. Please try again later.' : error.message;
+      toast({ title: 'Payment Initiation Failed', description: msg, variant: 'destructive' });
       setState('failed');
     }
   };

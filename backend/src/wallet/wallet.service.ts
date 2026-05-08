@@ -18,17 +18,22 @@ export class WalletService {
         private prisma: PrismaService,
         private configService: ConfigService,
     ) {
-        const key = this.configService.get<string>('RAZORPAY_KEY_ID');
-        const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+        try {
+            const key = this.configService.get<string>('RAZORPAY_KEY_ID');
+            const secret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
 
-        if (key && secret) {
-            this.razorpay = new Razorpay({
-                key_id: key,
-                key_secret: secret,
-            });
-            this.logger.log('✅ Razorpay initialized');
-        } else {
-            this.logger.warn('⚠️ Razorpay disabled (missing keys)');
+            if (key && secret) {
+                this.razorpay = new Razorpay({
+                    key_id: key,
+                    key_secret: secret,
+                });
+                this.logger.log('✅ Razorpay initialized successfully');
+            } else {
+                this.logger.warn('⚠️ Razorpay disabled: Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET');
+                this.razorpay = null;
+            }
+        } catch (error: any) {
+            this.logger.error('❌ Failed to initialize Razorpay SDK', error.stack);
             this.razorpay = null;
         }
     }
@@ -305,19 +310,38 @@ export class WalletService {
     /* =========================================================
        🔍 GET PAYMENT STATUS (FOR POLLING)
     ========================================================= */
-    async getPaymentStatus(referenceId: string) {
-        const txn = await this.prisma.upi_transactions.findFirst({
-            where: { upi_ref_id: referenceId },
-            orderBy: { created_at: 'desc' },
-        });
-
-        if (!txn) {
-            return { status: 'NOT_FOUND' };
+    async getPaymentStatus(userId: string, referenceId: string) {
+        if (!referenceId) {
+            this.logger.warn(`⚠️ getPaymentStatus called without referenceId for user ${userId}`);
+            return { status: 'INVALID_REQUEST' };
         }
 
-        return {
-            status: txn.gateway_status, // PENDING, SUCCESS, FAILED
-            amount: Number(txn.amount),
-        };
+        this.logger.log(`🔍 Checking payment status for user ${userId}, ref: ${referenceId}`);
+
+        try {
+            const txn = await this.prisma.upi_transactions.findFirst({
+                where: { 
+                    upi_ref_id: referenceId,
+                    user_id: userId // Security: Only allow checking own transactions
+                },
+                orderBy: { created_at: 'desc' },
+            });
+
+            if (!txn) {
+                this.logger.warn(`❌ Transaction not found for ref: ${referenceId}, user: ${userId}`);
+                return { status: 'NOT_FOUND' };
+            }
+
+            this.logger.log(`✅ Status for ${referenceId}: ${txn.gateway_status}`);
+
+            return {
+                status: txn.gateway_status || 'PENDING',
+                amount: Number(txn.amount),
+            };
+        } catch (error: any) {
+            this.logger.error(`🔥 Database error during payment status check: ${error.message}`, error.stack);
+            // Return a safe response instead of crashing
+            return { status: 'ERROR', message: 'Internal server error' };
+        }
     }
 }

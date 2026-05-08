@@ -21,8 +21,8 @@ export class WalletController {
 
     @UseGuards(SupabaseAuthGuard)
     @Get('payment-status')
-    async getPaymentStatus(@Query('reference_id') referenceId: string) {
-        return this.walletService.getPaymentStatus(referenceId);
+    async getPaymentStatus(@Request() req: any, @Query('reference_id') referenceId: string) {
+        return this.walletService.getPaymentStatus(req.user.sub, referenceId);
     }
 
     @UseGuards(SupabaseAuthGuard)

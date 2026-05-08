@@ -36,6 +36,43 @@ export const paymentService = {
   },
 
   /**
+   * Helper to handle response errors robustly
+   */
+  async handleResponseError(response: Response, defaultMessage: string): Promise<never> {
+    const text = await response.text();
+    const contentType = response.headers.get('content-type');
+    
+    let message = defaultMessage;
+    
+    // Check if response is HTML (Cloudflare/Nginx error pages)
+    if (
+      (contentType && contentType.includes('text/html')) || 
+      text.trim().startsWith('<!DOCTYPE') || 
+      text.includes('<html') || 
+      text.includes('<div')
+    ) {
+      if (response.status === 502) {
+        message = 'Server is currently undergoing maintenance (502). Please try again in 1-2 minutes.';
+      } else if (response.status === 503) {
+        message = 'Service is temporarily unavailable (503). Please try again later.';
+      } else if (response.status === 504) {
+        message = 'Gateway timeout (504). The server took too long to respond.';
+      } else {
+        message = 'Unexpected server response. Please contact support if the issue persists.';
+      }
+    } else {
+      try {
+        const err = JSON.parse(text);
+        message = err.message || err.error || defaultMessage;
+      } catch (e) {
+        message = text.substring(0, 100) || defaultMessage;
+      }
+    }
+    
+    throw new Error(message);
+  },
+
+  /**
    * Create UPI Intent URL
    */
   async createUpiIntent(amount: number): Promise<UpiIntentResponse> {
@@ -46,8 +83,7 @@ export const paymentService = {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.message || 'Failed to create UPI intent');
+      return this.handleResponseError(response, 'Failed to create UPI intent');
     }
 
     return response.json();
@@ -62,7 +98,7 @@ export const paymentService = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch payment status');
+      return this.handleResponseError(response, 'Failed to fetch payment status');
     }
 
     return response.json();
@@ -82,15 +118,7 @@ export const paymentService = {
     console.log(`[PaymentService] Create order response status: ${response.status}`);
 
     if (!response.ok) {
-      const text = await response.text();
-      console.error(`[PaymentService] Create order failed: ${text}`);
-      let err;
-      try {
-        err = JSON.parse(text);
-      } catch (e) {
-        err = { message: text };
-      }
-      throw new Error(err.message || err.error || 'Failed to create Razorpay order');
+      return this.handleResponseError(response, 'Failed to create Razorpay order');
     }
 
     const data = await response.json();
@@ -109,8 +137,7 @@ export const paymentService = {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.message || 'Payment verification failed');
+      return this.handleResponseError(response, 'Payment verification failed');
     }
 
     return response.json();
