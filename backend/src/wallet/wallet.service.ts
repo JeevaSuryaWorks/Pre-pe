@@ -28,9 +28,6 @@ export class WalletService {
                     key_secret: secret,
                 });
                 this.logger.log('✅ Razorpay initialized successfully');
-            } else {
-                this.logger.warn('⚠️ Razorpay disabled: Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET');
-                this.razorpay = null;
             }
         } catch (error: any) {
             this.logger.error('❌ Failed to initialize Razorpay SDK', error.stack);
@@ -39,9 +36,21 @@ export class WalletService {
     }
 
     /* =========================================================
+       🛡️ HELPER: VALIDATE UUID
+    ========================================================= */
+    private isValidUuid(id: string): boolean {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(id);
+    }
+
+    /* =========================================================
        💰 GET WALLET BALANCE
     ========================================================= */
     async getBalance(userId: string) {
+        if (!this.isValidUuid(userId)) {
+            throw new BadRequestException('Invalid User ID format');
+        }
+
         const wallet = await this.prisma.$transaction(async (tx) => {
             return this.getOrCreateWallet(tx, userId);
         });
@@ -80,19 +89,18 @@ export class WalletService {
     /* =========================================================
        🔻 DEBIT WALLET (FOR RECHARGE)
     ========================================================= */
-    async debit(userId: string, amount: number, description?: string) {
-        if (!amount || amount <= 0) {
-            throw new BadRequestException('Invalid amount');
-        }
+    async debit(userId: string, amount: number, description?: string, tx?: any) {
+        if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
+        if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
-        return this.prisma.$transaction(async (tx) => {
-            const wallet = await this.getOrCreateWallet(tx, userId);
+        const execute = async (prismaTx: any) => {
+            const wallet = await this.getOrCreateWallet(prismaTx, userId);
 
             if (new Decimal(wallet.balance).lessThan(amount)) {
                 throw new BadRequestException('Insufficient balance');
             }
 
-            const updatedWallet = await tx.wallets.update({
+            const updatedWallet = await prismaTx.wallets.update({
                 where: { id: wallet.id },
                 data: {
                     balance: { decrement: amount },
@@ -100,7 +108,7 @@ export class WalletService {
                 },
             });
 
-            await tx.wallet_ledger.create({
+            await prismaTx.wallet_ledger.create({
                 data: {
                     wallet_id: wallet.id,
                     type: 'DEBIT',
@@ -112,21 +120,23 @@ export class WalletService {
             });
 
             return updatedWallet;
-        });
+        };
+
+        if (tx) return execute(tx);
+        return this.prisma.$transaction(async (pTx) => execute(pTx));
     }
 
     /* =========================================================
        🔺 CREDIT WALLET (REFUND / ADD MONEY)
     ========================================================= */
-    async credit(userId: string, amount: number, description?: string) {
-        if (!amount || amount <= 0) {
-            throw new BadRequestException('Invalid amount');
-        }
+    async credit(userId: string, amount: number, description?: string, tx?: any) {
+        if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
+        if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
-        return this.prisma.$transaction(async (tx) => {
-            const wallet = await this.getOrCreateWallet(tx, userId);
+        const execute = async (prismaTx: any) => {
+            const wallet = await this.getOrCreateWallet(prismaTx, userId);
 
-            const updatedWallet = await tx.wallets.update({
+            const updatedWallet = await prismaTx.wallets.update({
                 where: { id: wallet.id },
                 data: {
                     balance: { increment: amount },
@@ -134,7 +144,7 @@ export class WalletService {
                 },
             });
 
-            await tx.wallet_ledger.create({
+            await prismaTx.wallet_ledger.create({
                 data: {
                     wallet_id: wallet.id,
                     type: 'CREDIT',
@@ -146,13 +156,21 @@ export class WalletService {
             });
 
             return updatedWallet;
-        });
+        };
+
+        if (tx) return execute(tx);
+        return this.prisma.$transaction(async (pTx) => execute(pTx));
     }
 
     /* =========================================================
        💳 CREATE RAZORPAY ORDER
     ========================================================= */
     async createRazorpayOrder(userId: string, amount: number) {
+        if (!this.isValidUuid(userId)) {
+            this.logger.error(`❌ createRazorpayOrder: Invalid UUID ${userId}`);
+            throw new BadRequestException('Invalid User ID');
+        }
+
         if (!this.razorpay) {
             this.logger.error('Razorpay not configured (missing key/secret)');
             throw new BadRequestException('Razorpay not configured');
@@ -163,22 +181,20 @@ export class WalletService {
         }
 
         const options = {
-            amount: Math.round(amount * 100), // Ensure it's an integer
+            amount: Math.round(amount * 100),
             currency: 'INR',
             receipt: `receipt_${userId.substring(0, 5)}_${Date.now()}`,
-            notes: {
-                userId: userId
-            }
+            notes: { userId }
         };
 
-        this.logger.log(`🚀 Creating Razorpay order for user ${userId}, amount: ${amount}`);
+        this.logger.log(`🚀 [INIT] Creating Razorpay order for user ${userId}, amount: ${amount}`);
         
         try {
             const start = Date.now();
             const order = await this.razorpay.orders.create(options);
             const duration = Date.now() - start;
             
-            this.logger.log(`✅ Razorpay order created: ${order.id} (took ${duration}ms)`);
+            this.logger.log(`✅ [SDK] Razorpay order created: ${order.id} (took ${duration}ms)`);
 
             // Save order to DB for status tracking
             await this.prisma.upi_transactions.create({
@@ -191,6 +207,7 @@ export class WalletService {
                     updated_at: new Date(),
                 },
             });
+            this.logger.log(`✅ [DB] Order ${order.id} saved to upi_transactions`);
 
             return {
                 id: order.id,
@@ -199,7 +216,7 @@ export class WalletService {
                 key: this.configService.get<string>('RAZORPAY_KEY_ID'),
             };
         } catch (error: any) {
-            this.logger.error('❌ Razorpay order creation failed', error);
+            this.logger.error(`🔥 [ERROR] Razorpay order creation failed: ${error.message}`, error.stack);
             const errorMsg = error.error?.description || error.message || 'Unknown Razorpay error';
             throw new BadRequestException(`Razorpay Error: ${errorMsg}`);
         }
@@ -216,14 +233,19 @@ export class WalletService {
         }
 
         // Verify signature
-        const expectedSignature = crypto
-            .createHmac('sha256', secret)
-            .update(JSON.stringify(body))
-            .digest('hex');
+        try {
+            const expectedSignature = crypto
+                .createHmac('sha256', secret)
+                .update(JSON.stringify(body))
+                .digest('hex');
 
-        if (expectedSignature !== signature) {
-            this.logger.error('❌ Invalid Razorpay webhook signature');
-            throw new BadRequestException('Invalid signature');
+            if (expectedSignature !== signature) {
+                this.logger.error('❌ Invalid Razorpay webhook signature');
+                throw new BadRequestException('Invalid signature');
+            }
+        } catch (e: any) {
+            this.logger.error(`❌ Webhook signature verification failed: ${e.message}`);
+            throw new BadRequestException('Signature verification failed');
         }
 
         const { event, payload } = body;
@@ -235,12 +257,12 @@ export class WalletService {
             const amount = payment.amount / 100;
             const userId = payment.notes?.userId;
 
-            if (!userId) {
-                this.logger.error(`❌ Webhook error: No userId in payment notes for order ${orderId}`);
-                return { status: 'error', message: 'No userId found' };
+            if (!userId || !this.isValidUuid(userId)) {
+                this.logger.error(`❌ Webhook error: No/Invalid userId in payment notes for order ${orderId}`);
+                return { status: 'error', message: 'No valid userId found' };
             }
 
-            this.logger.log(`💰 Payment captured for order ${orderId}, user ${userId}: ₹${amount}`);
+            this.logger.log(`💰 [WEBHOOK] Payment captured for order ${orderId}, user ${userId}: ₹${amount}`);
 
             try {
                 return await this.prisma.$transaction(async (tx) => {
@@ -253,14 +275,14 @@ export class WalletService {
                         },
                     });
 
-                    // 2. Credit wallet
-                    await this.credit(userId, amount, `Razorpay Top-up: ${payment.id}`);
+                    // 2. Credit wallet (Passing 'tx' to avoid nested transactions)
+                    await this.credit(userId, amount, `Razorpay Top-up: ${payment.id}`, tx);
 
-                    this.logger.log(`✅ Wallet credited for user ${userId}`);
+                    this.logger.log(`✅ [WEBHOOK] Wallet credited for user ${userId}`);
                     return { status: 'ok' };
                 });
             } catch (error: any) {
-                this.logger.error(`🔥 Webhook processing failed: ${error.message}`);
+                this.logger.error(`🔥 [WEBHOOK ERROR] Processing failed: ${error.message}`, error.stack);
                 throw new BadRequestException('Webhook processing failed');
             }
         }
@@ -269,12 +291,11 @@ export class WalletService {
     }
 
     /* =========================================================
-       ✅ VERIFY PAYMENT & CREDIT WALLET
+       ✅ VERIFY PAYMENT & CREDIT WALLET (Sync fallback)
     ========================================================= */
     async verifyRazorpayPayment(userId: string, data: any) {
-        if (!this.razorpay) {
-            throw new BadRequestException('Razorpay not configured');
-        }
+        if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
+        if (!this.razorpay) throw new BadRequestException('Razorpay not configured');
 
         const {
             razorpay_order_id,
@@ -282,6 +303,8 @@ export class WalletService {
             razorpay_signature,
             amount,
         } = data;
+
+        this.logger.log(`🔍 [VERIFY] Manual verification for order ${razorpay_order_id}, user ${userId}`);
 
         const body = razorpay_order_id + '|' + razorpay_payment_id;
 
@@ -294,32 +317,46 @@ export class WalletService {
             .digest('hex');
 
         if (expectedSignature !== razorpay_signature) {
+            this.logger.error(`❌ [VERIFY] Invalid signature for order ${razorpay_order_id}`);
             throw new BadRequestException('Invalid signature');
         }
 
-        await this.credit(
-            userId,
-            Number(amount),
-            `Razorpay Top-up: ${razorpay_payment_id}`,
-        );
+        try {
+            return await this.prisma.$transaction(async (tx) => {
+                // Check if already credited (via webhook)
+                const txn = await tx.upi_transactions.findFirst({
+                    where: { upi_ref_id: razorpay_order_id, gateway_status: 'SUCCESS' }
+                });
 
-        return {
-            success: true,
-            message: 'Payment verified & wallet credited',
-        };
+                if (txn) {
+                    this.logger.log(`ℹ️ [VERIFY] Order ${razorpay_order_id} already marked as SUCCESS`);
+                    return { success: true, message: 'Already credited' };
+                }
+
+                await tx.upi_transactions.updateMany({
+                    where: { upi_ref_id: razorpay_order_id },
+                    data: { gateway_status: 'SUCCESS', updated_at: new Date() }
+                });
+
+                await this.credit(userId, Number(amount), `Razorpay Top-up: ${razorpay_payment_id}`, tx);
+                
+                this.logger.log(`✅ [VERIFY] Manual verification success for ${razorpay_order_id}`);
+                return { success: true, message: 'Payment verified & wallet credited' };
+            });
+        } catch (error: any) {
+            this.logger.error(`🔥 [VERIFY ERROR] ${error.message}`, error.stack);
+            throw new BadRequestException('Verification failed');
+        }
     }
 
     /* =========================================================
        📱 CREATE UPI INTENT
     ========================================================= */
     async createUpiIntent(userId: string, amount: number) {
-        if (!amount || amount <= 0) {
-            throw new BadRequestException('Invalid amount');
-        }
+        if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
+        if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
-        const referenceId = `UPI_${Date.now()}_${Math.floor(
-            Math.random() * 1000,
-        )}`;
+        const referenceId = `UPI_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
         // Professional UPI URL
         const vpa = this.configService.get<string>('UPI_VPA') || 'bmsmo63811085@barodampay';
@@ -327,7 +364,7 @@ export class WalletService {
         const merchantCode = '0000'; // General Merchant / Personal
         const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent('Wallet Topup - PrePe')}`;
 
-        this.logger.log(`📱 Creating UPI Intent for user ${userId}, amount: ${amount}`);
+        this.logger.log(`📱 [INIT] Creating UPI Intent for user ${userId}, amount: ${amount}`);
 
         try {
             await this.prisma.upi_transactions.create({
@@ -348,7 +385,7 @@ export class WalletService {
                 reference_id: referenceId,
             };
         } catch (error: any) {
-            this.logger.error(`🔥 Failed to create UPI transaction: ${error.message}`, error.stack);
+            this.logger.error(`🔥 [INIT ERROR] UPI creation failed: ${error.message}`, error.stack);
             throw new BadRequestException(`Payment initiation failed: ${error.message}`);
         }
     }
@@ -357,36 +394,28 @@ export class WalletService {
        🔍 GET PAYMENT STATUS (FOR POLLING)
     ========================================================= */
     async getPaymentStatus(userId: string, referenceId: string) {
-        if (!referenceId) {
-            this.logger.warn(`⚠️ getPaymentStatus called without referenceId for user ${userId}`);
-            return { status: 'INVALID_REQUEST' };
-        }
+        if (!this.isValidUuid(userId)) return { status: 'ERROR', message: 'Invalid User' };
+        if (!referenceId) return { status: 'INVALID_REQUEST' };
 
-        this.logger.log(`🔍 Checking payment status for user ${userId}, ref: ${referenceId}`);
+        this.logger.log(`🔍 [POLL] Checking status for user ${userId}, ref: ${referenceId}`);
 
         try {
             const txn = await this.prisma.upi_transactions.findFirst({
-                where: { 
-                    upi_ref_id: referenceId,
-                    user_id: userId // Security: Only allow checking own transactions
-                },
+                where: { upi_ref_id: referenceId, user_id: userId },
                 orderBy: { created_at: 'desc' },
             });
 
             if (!txn) {
-                this.logger.warn(`❌ Transaction not found for ref: ${referenceId}, user: ${userId}`);
+                this.logger.warn(`❌ [POLL] Transaction not found for ref: ${referenceId}`);
                 return { status: 'NOT_FOUND' };
             }
-
-            this.logger.log(`✅ Status for ${referenceId}: ${txn.gateway_status}`);
 
             return {
                 status: txn.gateway_status || 'PENDING',
                 amount: Number(txn.amount),
             };
         } catch (error: any) {
-            this.logger.error(`🔥 Database error during payment status check: ${error.message}`, error.stack);
-            // Return a safe response instead of crashing
+            this.logger.error(`🔥 [POLL ERROR] ${error.message}`, error.stack);
             return { status: 'ERROR', message: 'Internal server error' };
         }
     }
