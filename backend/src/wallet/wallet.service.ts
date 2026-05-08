@@ -149,6 +149,7 @@ export class WalletService {
     ========================================================= */
     async createRazorpayOrder(userId: string, amount: number) {
         if (!this.razorpay) {
+            this.logger.error('Razorpay not configured (missing key/secret)');
             throw new BadRequestException('Razorpay not configured');
         }
 
@@ -157,13 +158,19 @@ export class WalletService {
         }
 
         const options = {
-            amount: amount * 100,
+            amount: Math.round(amount * 100), // Ensure it's an integer
             currency: 'INR',
-            receipt: `receipt_${Date.now()}`,
+            receipt: `receipt_${userId.substring(0, 5)}_${Date.now()}`,
         };
 
+        this.logger.log(`🚀 Creating Razorpay order for user ${userId}, amount: ${amount}`);
+        
         try {
+            const start = Date.now();
             const order = await this.razorpay.orders.create(options);
+            const duration = Date.now() - start;
+            
+            this.logger.log(`✅ Razorpay order created: ${order.id} (took ${duration}ms)`);
 
             return {
                 id: order.id,
@@ -172,9 +179,48 @@ export class WalletService {
                 key: this.configService.get<string>('RAZORPAY_KEY_ID'),
             };
         } catch (error) {
-            this.logger.error('Razorpay order error', error);
-            throw new BadRequestException('Failed to create Razorpay order');
+            this.logger.error('❌ Razorpay order creation failed', error.stack);
+            throw new BadRequestException(`Failed to create Razorpay order: ${error.message}`);
         }
+    }
+
+    /* =========================================================
+       🔔 HANDLE RAZORPAY WEBHOOK
+    ========================================================= */
+    async handleRazorpayWebhook(body: any, signature: string) {
+        const secret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET');
+        if (!secret) {
+            this.logger.warn('⚠️ Razorpay webhook received but RAZORPAY_WEBHOOK_SECRET not configured');
+            return { status: 'ignored' };
+        }
+
+        // Verify signature
+        const expectedSignature = crypto
+            .createHmac('sha256', secret)
+            .update(JSON.stringify(body))
+            .digest('hex');
+
+        if (expectedSignature !== signature) {
+            this.logger.error('❌ Invalid Razorpay webhook signature');
+            throw new BadRequestException('Invalid signature');
+        }
+
+        const { event, payload } = body;
+        this.logger.log(`📩 Received Razorpay Webhook: ${event}`);
+
+        if (event === 'payment.captured') {
+            const payment = payload.payment.entity;
+            const orderId = payment.order_id;
+            const amount = payment.amount / 100;
+
+            // In a real app, you'd look up the user by orderId in your DB
+            // Since we might not have the user_id in the webhook payload directly,
+            // we should have stored the user_id when creating the order.
+            // For now, this is a placeholder for the logic.
+            this.logger.log(`💰 Payment captured for order ${orderId}: ₹${amount}`);
+        }
+
+        return { status: 'ok' };
     }
 
     /* =========================================================
