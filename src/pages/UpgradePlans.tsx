@@ -108,7 +108,16 @@ export default function UpgradePlans() {
 
                 if (orderError) {
                     console.error("Edge Function Error:", orderError);
-                    throw new Error(orderError.message || "Could not connect to payment server.");
+                    let errorMessage = "Could not connect to payment server.";
+                    if (orderError.message) {
+                        try {
+                            const parsed = JSON.parse(orderError.message);
+                            errorMessage = parsed.error || parsed.message || orderError.message;
+                        } catch (e) {
+                            errorMessage = orderError.message;
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 if (!orderData || orderData.error) {

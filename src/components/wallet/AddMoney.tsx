@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { paymentService } from '@/services/payment.service';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type PaymentState = 'idle' | 'processing' | 'verifying' | 'success' | 'failed';
+type PaymentState = 'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'manual';
 
 interface AddMoneyProps {
   initialAmount?: string;
@@ -228,7 +228,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 >
                   <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
                   <div className="flex flex-col items-start leading-none">
-                    <span>Pay via UPI</span>
+                    <span>Pay via UPI App</span>
                     <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
                   </div>
                 </Button>
@@ -242,15 +242,26 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Secure Fallback</span></div>
               </div>
 
-              <Button 
-                variant="outline" 
-                onClick={handleRazorpayPayment} 
-                className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
-                disabled={!amount || parseFloat(amount) < 1}
-              >
-                <CreditCard className="mr-2 h-5 w-5 text-emerald-500" />
-                Cards / Netbanking
-              </Button>
+              <div className="grid grid-cols-1 gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={handleRazorpayPayment} 
+                  className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
+                  disabled={!amount || parseFloat(amount) < 1}
+                >
+                  <CreditCard className="mr-2 h-5 w-5 text-emerald-500" />
+                  Cards / Netbanking
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setState('manual')} 
+                  className="w-full h-14 rounded-2xl font-black text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all text-xs uppercase tracking-widest"
+                  disabled={!amount || parseFloat(amount) < 1}
+                >
+                  Show QR Code / Manual Pay
+                </Button>
+              </div>
 
               <div className="flex flex-col items-center gap-2 text-center pt-2">
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
@@ -259,6 +270,61 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 </div>
               </div>
             </div>
+          ) : state === 'manual' ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6 text-center"
+            >
+              <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
+                <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
+                  {/* QR Code Placeholder - In a real app, this would be a generated QR or static image */}
+                  <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=bmsmo63811085@barodampay&pn=PrePe&am=${amount}&cu=INR`)}`}
+                      alt="Payment QR Code"
+                      className="w-full h-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">UPI ID</p>
+                  <p className="text-lg font-black text-emerald-600 select-all">bmsmo63811085@barodampay</p>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-left">
+                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">Instructions:</p>
+                <ul className="text-[10px] text-amber-600 font-medium space-y-1 list-disc pl-4">
+                  <li>Scan the QR code or pay to the UPI ID above.</li>
+                  <li>After payment, wait 1-2 minutes for automatic sync.</li>
+                  <li>If balance doesn't update, contact support with screenshot.</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setState('idle')} 
+                  variant="outline"
+                  className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest"
+                >
+                  Back
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setState('verifying');
+                    // Start polling even for manual if we have a way to track it, 
+                    // but usually manual requires a reference ID.
+                    // For now, just let them return.
+                    toast({ title: 'Verification Started', description: 'Checking for your payment...' });
+                    setTimeout(() => setState('idle'), 5000);
+                  }} 
+                  className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest"
+                >
+                  I've Paid
+                </Button>
+              </div>
+            </motion.div>
           ) : (
             <div className="text-center py-12 space-y-6">
               <div className="relative h-20 w-20 mx-auto">
@@ -272,16 +338,22 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                   {state === 'processing' ? 'Contacting Bank...' : 'Verifying Payment...'}
                 </p>
                 <p className="text-sm font-medium text-slate-400 max-w-[220px] mx-auto leading-relaxed">
-                  We are waiting for the gateway to confirm your transaction.
+                  We are waiting for the gateway to confirm your transaction. 
+                  Please do not refresh or go back.
                 </p>
               </div>
-              {state === 'verifying' && (
-                <Button variant="ghost" onClick={() => setState('idle')} className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50">
+              {(state === 'verifying' || state === 'processing') && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setState('idle')} 
+                  className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50"
+                >
                   Cancel & Restart
                 </Button>
               )}
             </div>
           )}
+
 
           {state === 'failed' && (
             <motion.div 

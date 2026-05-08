@@ -231,7 +231,7 @@ export class WalletService {
         )}`;
 
         // Professional UPI URL
-        const vpa = this.configService.get<string>('UPI_VPA') || 'jeevasuriya2007-3@okaxis';
+        const vpa = this.configService.get<string>('UPI_VPA') || 'bmsmo63811085@barodampay';
         const businessName = 'PrePe Technologies Pvt Ltd';
         const merchantCode = '0000'; // General Merchant / Personal
         const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent('Wallet Topup - PrePe')}`;
