@@ -14,7 +14,7 @@ export const BottomNav = () => {
 
     const navItems = [
         { icon: Home, label: "Home", path: "/home" },
-        { icon: Heart, label: "Saved", path: "/saved" },
+        { icon: Heart, label: "Favorites", path: "/saved" },
         { icon: Bot, label: "AI", path: "/ai-chat", isAI: true },
         { icon: BadgePercent, label: "Rewards", path: "/rewards" },
         { icon: Zap, label: "Upgrade", path: "/upgrade" },

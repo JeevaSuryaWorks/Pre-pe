@@ -98,11 +98,11 @@ const SavedPage = () => {
     const favoriteItems = savedItems.filter(i => i.category === 'FAVORITE');
 
     return (
-        <Layout title="Saved" showBottomNav>
+        <Layout title="Favorites" showBottomNav>
             <div className="container max-w-2xl px-4 py-8 pb-24 space-y-6">
                 <header className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Saved</h1>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Favorites</h1>
                         <p className="text-slate-500 font-medium">Your circle & favorites</p>
                     </div>
                     <Button 
