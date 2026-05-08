@@ -166,6 +166,9 @@ export class WalletService {
             amount: Math.round(amount * 100), // Ensure it's an integer
             currency: 'INR',
             receipt: `receipt_${userId.substring(0, 5)}_${Date.now()}`,
+            notes: {
+                userId: userId
+            }
         };
 
         this.logger.log(`🚀 Creating Razorpay order for user ${userId}, amount: ${amount}`);
@@ -176,6 +179,18 @@ export class WalletService {
             const duration = Date.now() - start;
             
             this.logger.log(`✅ Razorpay order created: ${order.id} (took ${duration}ms)`);
+
+            // Save order to DB for status tracking
+            await this.prisma.upi_transactions.create({
+                data: {
+                    user_id: userId,
+                    amount: new Decimal(amount),
+                    upi_ref_id: order.id,
+                    gateway_status: 'PENDING',
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
 
             return {
                 id: order.id,
@@ -218,12 +233,36 @@ export class WalletService {
             const payment = payload.payment.entity;
             const orderId = payment.order_id;
             const amount = payment.amount / 100;
+            const userId = payment.notes?.userId;
 
-            // In a real app, you'd look up the user by orderId in your DB
-            // Since we might not have the user_id in the webhook payload directly,
-            // we should have stored the user_id when creating the order.
-            // For now, this is a placeholder for the logic.
-            this.logger.log(`💰 Payment captured for order ${orderId}: ₹${amount}`);
+            if (!userId) {
+                this.logger.error(`❌ Webhook error: No userId in payment notes for order ${orderId}`);
+                return { status: 'error', message: 'No userId found' };
+            }
+
+            this.logger.log(`💰 Payment captured for order ${orderId}, user ${userId}: ₹${amount}`);
+
+            try {
+                return await this.prisma.$transaction(async (tx) => {
+                    // 1. Update transaction status
+                    await tx.upi_transactions.updateMany({
+                        where: { upi_ref_id: orderId },
+                        data: {
+                            gateway_status: 'SUCCESS',
+                            updated_at: new Date(),
+                        },
+                    });
+
+                    // 2. Credit wallet
+                    await this.credit(userId, amount, `Razorpay Top-up: ${payment.id}`);
+
+                    this.logger.log(`✅ Wallet credited for user ${userId}`);
+                    return { status: 'ok' };
+                });
+            } catch (error: any) {
+                this.logger.error(`🔥 Webhook processing failed: ${error.message}`);
+                throw new BadRequestException('Webhook processing failed');
+            }
         }
 
         return { status: 'ok' };
@@ -288,23 +327,30 @@ export class WalletService {
         const merchantCode = '0000'; // General Merchant / Personal
         const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent('Wallet Topup - PrePe')}`;
 
-        await this.prisma.upi_transactions.create({
-            data: {
-                user_id: userId,
-                amount: new Decimal(amount),
-                upi_ref_id: referenceId,
-                gateway_status: 'PENDING',
-                intent_url: intentUrl,
-                created_at: new Date(),
-                updated_at: new Date(),
-            },
-        });
+        this.logger.log(`📱 Creating UPI Intent for user ${userId}, amount: ${amount}`);
 
-        return {
-            success: true,
-            intent_url: intentUrl,
-            reference_id: referenceId,
-        };
+        try {
+            await this.prisma.upi_transactions.create({
+                data: {
+                    user_id: userId,
+                    amount: new Decimal(amount),
+                    upi_ref_id: referenceId,
+                    gateway_status: 'PENDING',
+                    intent_url: intentUrl,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
+
+            return {
+                success: true,
+                intent_url: intentUrl,
+                reference_id: referenceId,
+            };
+        } catch (error: any) {
+            this.logger.error(`🔥 Failed to create UPI transaction: ${error.message}`, error.stack);
+            throw new BadRequestException(`Payment initiation failed: ${error.message}`);
+        }
     }
 
     /* =========================================================
