@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
     CheckCircle2, Loader2, Zap, Landmark, Building2, 
-    ChevronRight, Star, ShieldCheck, Crown, ArrowRight, Smartphone
+    ChevronRight, Star, ShieldCheck, Crown, ArrowRight, Smartphone, CreditCard
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,6 +62,7 @@ export default function UpgradePlans() {
     const [loading, setLoading] = useState(true);
     const [paymentMode, setPaymentMode] = useState<'RZP' | 'UPI' | null>(null);
     const [referenceId, setReferenceId] = useState<string | null>(null);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     const currentPlanId = profile?.plan_type?.toLowerCase() || 'basic';
 
@@ -337,39 +338,70 @@ export default function UpgradePlans() {
                                                 ))}
                                             </div>
 
-                                            <div className="flex flex-col gap-3">
-                                                <Button
-                                                    onClick={() => handleUpgrade(plan)}
-                                                    disabled={isActive || submitting !== null}
-                                                    className={cn(
-                                                        "w-full h-14 rounded-2xl font-black text-sm transition-all duration-300 gap-2",
-                                                        isActive 
-                                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none hover:bg-emerald-50"
-                                                            : "bg-slate-900 hover:bg-blue-600 text-white shadow-xl hover:shadow-blue-200"
-                                                    )}
-                                                >
-                                                    {submitting === plan.id && paymentMode === 'RZP' ? (
-                                                        <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-                                                    ) : isActive ? (
-                                                        <><ShieldCheck className="w-5 h-5" /> Currently Active</>
-                                                    ) : (
-                                                        <><Zap className="w-4 h-4 fill-current" /> Pay with Card / Netbanking <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
-                                                    )}
-                                                </Button>
-
-                                                {!isActive && plan.price_amount > 0 && (
+                                             <div className="flex flex-col gap-3">
+                                                {/* Primary Button based on Device */}
+                                                {isMobile && !isActive && plan.price_amount > 0 ? (
                                                     <Button
-                                                        variant="outline"
                                                         onClick={() => handleUpiUpgrade(plan)}
                                                         disabled={submitting !== null}
-                                                        className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                        className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-emerald-600 text-white font-black text-sm shadow-xl transition-all gap-2"
                                                     >
                                                         {submitting === plan.id && paymentMode === 'UPI' ? (
                                                             <><Loader2 className="w-4 h-4 animate-spin" /> Verifying UPI...</>
                                                         ) : (
-                                                            <><Smartphone className="w-4 h-4" /> Instant UPI Upgrade</>
+                                                            <><Smartphone className="w-4 h-4" /> Instant UPI Upgrade <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
                                                         )}
                                                     </Button>
+                                                ) : (
+                                                    <Button
+                                                        onClick={() => handleUpgrade(plan)}
+                                                        disabled={isActive || submitting !== null}
+                                                        className={cn(
+                                                            "w-full h-14 rounded-2xl font-black text-sm transition-all duration-300 gap-2",
+                                                            isActive 
+                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none hover:bg-emerald-50"
+                                                                : "bg-slate-900 hover:bg-blue-600 text-white shadow-xl hover:shadow-blue-200"
+                                                        )}
+                                                    >
+                                                        {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                            <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                                                        ) : isActive ? (
+                                                            <><ShieldCheck className="w-5 h-5" /> Currently Active</>
+                                                        ) : (
+                                                            <><Zap className="w-4 h-4 fill-current" /> Pay with Card / Netbanking <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
+                                                        )}
+                                                    </Button>
+                                                )}
+
+                                                {/* Secondary Button based on Device */}
+                                                {!isActive && plan.price_amount > 0 && (
+                                                    isMobile ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleUpgrade(plan)}
+                                                            disabled={submitting !== null}
+                                                            className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                        >
+                                                            {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                                <><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</>
+                                                            ) : (
+                                                                <><CreditCard className="w-4 h-4" /> Cards / Netbanking</>
+                                                            )}
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleUpiUpgrade(plan)}
+                                                            disabled={submitting !== null}
+                                                            className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                        >
+                                                            {submitting === plan.id && paymentMode === 'UPI' ? (
+                                                                <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                                                            ) : (
+                                                                <><Smartphone className="w-4 h-4" /> UPI Upgrade (Mobile Only)</>
+                                                            )}
+                                                        </Button>
+                                                    )
                                                 )}
                                             </div>
                                         </div>

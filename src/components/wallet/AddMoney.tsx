@@ -21,6 +21,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   const [referenceId, setReferenceId] = useState<string | null>(null);
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Load Razorpay Script
   useEffect(() => {
@@ -81,12 +82,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       return;
     }
 
-    // Check if we are on a mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
     // If on Desktop, UPI recommendation still uses Razorpay (which supports UPI)
     if (!isMobile) {
-      console.log('Desktop detected: Routing to Razorpay flow');
       handleRazorpayPayment();
       return;
     }
@@ -220,18 +217,33 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
 
           {state === 'idle' || state === 'failed' ? (
             <div className="space-y-4">
+              {/* Primary Payment Method */}
               <div className="relative">
-                <Button 
-                  onClick={handleUpiPayment} 
-                  className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
-                  disabled={!amount || parseFloat(amount) < 1}
-                >
-                  <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                  <div className="flex flex-col items-start leading-none">
-                    <span>Pay via UPI App</span>
-                    <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
-                  </div>
-                </Button>
+                {isMobile ? (
+                  <Button 
+                    onClick={handleUpiPayment} 
+                    className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
+                    disabled={!amount || parseFloat(amount) < 1}
+                  >
+                    <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <div className="flex flex-col items-start leading-none">
+                      <span>Pay via UPI App</span>
+                      <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
+                    </div>
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleRazorpayPayment} 
+                    className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
+                    disabled={!amount || parseFloat(amount) < 1}
+                  >
+                    <CreditCard className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <div className="flex flex-col items-start leading-none">
+                      <span>Pay with Razorpay</span>
+                      <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Cards / UPI / Netbanking</span>
+                    </div>
+                  </Button>
+                )}
                 <div className="absolute -top-3 right-6 bg-amber-400 text-amber-950 text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white uppercase tracking-tighter animate-bounce z-20">
                   Recommended
                 </div>
@@ -239,19 +251,31 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
-                <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Secure Fallback</span></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Alternative Methods</span></div>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={handleRazorpayPayment} 
-                  className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
-                  disabled={!amount || parseFloat(amount) < 1}
-                >
-                  <CreditCard className="mr-2 h-5 w-5 text-emerald-500" />
-                  Cards / Netbanking
-                </Button>
+                {isMobile ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRazorpayPayment} 
+                    className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
+                    disabled={!amount || parseFloat(amount) < 1}
+                  >
+                    <CreditCard className="mr-2 h-5 w-5 text-emerald-500" />
+                    Cards / Netbanking
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleUpiPayment} 
+                    className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
+                    disabled={!amount || parseFloat(amount) < 1}
+                  >
+                    <Smartphone className="mr-2 h-5 w-5 text-emerald-500" />
+                    Open UPI App (Mobile only)
+                  </Button>
+                )}
 
                 <Button 
                   variant="ghost" 
