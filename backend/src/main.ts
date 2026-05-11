@@ -92,13 +92,21 @@ async function bootstrap() {
     })());
 
     const port = process.env.PORT ?? 3000;
-    console.log(`[BOOTSTRAP] Starting NestJS server on port ${port}...`);
+    console.log('--------------------------------------------------');
+    console.log(`🚀 [BOOTSTRAP] PRE-PE BACKEND STARTING...`);
+    console.log(`📡 [BOOTSTRAP] Port: ${port}`);
+    console.log(`🌍 [BOOTSTRAP] NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log('--------------------------------------------------');
     
     try {
         await app.listen(port);
-        console.log(`[BOOTSTRAP] Server successfully started and listening on ${port}`);
+        console.log(`✅ [BOOTSTRAP] Server successfully started and listening on ${port}`);
+        console.log(`🔗 [BOOTSTRAP] Health Check: http://localhost:${port}/api/health`);
     } catch (err: any) {
-        console.error(`[BOOTSTRAP] CRITICAL: Failed to start server: ${err.message}`);
+        console.error(`❌ [BOOTSTRAP] CRITICAL: Failed to start server: ${err.message}`);
+        if (err.code === 'EADDRINUSE') {
+            console.error(`💡 [TIP] Port ${port} is already in use. Try killing the existing process.`);
+        }
         process.exit(1);
     }
 }

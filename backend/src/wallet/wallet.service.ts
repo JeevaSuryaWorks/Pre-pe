@@ -27,7 +27,10 @@ export class WalletService {
                     key_id: key,
                     key_secret: secret,
                 });
-                this.logger.log('✅ Razorpay initialized successfully');
+                this.logger.log(`✅ Razorpay initialized (Key: ${key.substring(0, 7)}...)`);
+            } else {
+                this.logger.warn('⚠️ Razorpay NOT initialized: Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET');
+                this.logger.debug(`[DEBUG] Key: ${!!key}, Secret: ${!!secret}`);
             }
         } catch (error: any) {
             this.logger.error('❌ Failed to initialize Razorpay SDK', error.stack);
