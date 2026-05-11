@@ -197,6 +197,24 @@ export class WalletService {
         } catch (e: any) {
             this.logger.error(`❌ DB Connection: FAILED - ${e.message}`);
         }
+
+        // Ensure user profile exists (foreign key requirement for upi_transactions)
+        try {
+            const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
+            if (!profile) {
+                this.logger.log(`⚠️ Profile missing for user ${userId}, creating standard profile...`);
+                await this.prisma.profiles.create({
+                    data: {
+                        user_id: userId,
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                        plan_type: 'BASIC'
+                    }
+                });
+            }
+        } catch (profileError: any) {
+            this.logger.error(`❌ Profile sync failed: ${profileError.message}`);
+        }
         
         this.logger.debug(`[DEBUG] Razorpay Key configured: ${!!razorpayKey}`);
         
@@ -231,7 +249,11 @@ export class WalletService {
             
             // Detailed log of error object for debugging production
             if (error.error) {
-                this.logger.error(`[DEBUG] Razorpay Error Details: ${JSON.stringify(error.error)}`);
+                try {
+                    this.logger.error(`[DEBUG] Razorpay Error Details: ${JSON.stringify(error.error)}`);
+                } catch (serializeErr) {
+                    this.logger.error(`[DEBUG] Razorpay Error (Serialization failed): ${error.error}`);
+                }
             }
 
             const errorMsg = error.error?.description || error.message || 'Unknown Razorpay error';

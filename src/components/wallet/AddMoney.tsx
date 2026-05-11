@@ -139,9 +139,25 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
     } catch (error: any) {
-      const msg = error.message?.length > 200 ? 'Failed to initiate payment. Please try again later.' : error.message;
-      toast({ title: 'Payment Initiation Failed', description: msg, variant: 'destructive' });
-      setState('failed');
+      const msg = error.message;
+      const isMaintenance = msg?.includes('maintenance') || msg?.includes('502') || msg?.includes('Gateway');
+      
+      console.error('[AddMoney] Initiation error:', error);
+      
+      toast({ 
+        title: isMaintenance ? 'System Maintenance' : 'Payment Initiation Failed', 
+        description: isMaintenance 
+          ? 'Payment gateways are currently undergoing maintenance. Using Direct UPI/QR fallback instead.' 
+          : (msg?.length > 200 ? 'Failed to initiate payment. Please try again later.' : msg), 
+        variant: 'destructive' 
+      });
+      
+      if (isMaintenance) {
+        // Automatically switch to manual mode to help the user complete the transaction
+        setTimeout(() => setState('manual'), 1000);
+      } else {
+        setState('failed');
+      }
     }
   };
 
