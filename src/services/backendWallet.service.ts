@@ -17,7 +17,7 @@ export const backendWalletService = {
      */
     async createUpiIntent(amount: number) {
         const headers = await getAuthHeaders();
-        const response = await fetch(`${API_BASE_URL}/wallet/upi/create-intent`, {
+        const response = await fetch(`${API_BASE_URL}/wallet/upi-intent`, {
             method: "POST",
             headers,
             body: JSON.stringify({ amount }),
@@ -55,7 +55,7 @@ export const backendWalletService = {
      */
     async verifyRazorpayPayment(paymentData: any) {
         const headers = await getAuthHeaders();
-        const response = await fetch(`${API_BASE_URL}/wallet/verify-payment`, {
+        const response = await fetch(`${API_BASE_URL}/wallet/verify-razorpay`, {
             method: "POST",
             headers,
             body: JSON.stringify(paymentData),

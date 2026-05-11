@@ -78,24 +78,7 @@ export default function PlanSelectionPage() {
         try {
             // Check if plan is paid
             if (plan.price_amount && plan.price_amount > 0) {
-                // 1. Create Order via Edge Function
-                const { data: { session } } = await supabase.auth.getSession();
-                const { data: orderData, error: orderError } = await supabase.functions.invoke('razorpay-portal', {
-                    body: { action: 'create_order', planId },
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`
-                    }
-                });
-
-                if (orderError) {
-                    console.error("Order Creation Logic Error:", orderError);
-                    throw new Error(`Connection Error: ${orderError.message || 'Could not reach server'}`);
-                }
-
-                if (!orderData || orderData.error) {
-                    console.error("Order Data Error:", orderData);
-                    throw new Error(orderData?.error || "Payment gateway connection failed.");
-                }
+                const orderData = await paymentService.createRazorpayOrder(plan.price_amount);
 
                 if (!window.Razorpay) {
                     throw new Error("Razorpay SDK failed to load. Please check your internet connection.");
@@ -103,46 +86,46 @@ export default function PlanSelectionPage() {
 
                 // 2. Open Razorpay Checkout
                 const options = {
-                    key: orderData.keyId,
+                    key: orderData.key,
                     amount: orderData.amount,
                     currency: "INR",
                     name: "Pre-pe India",
                     description: `Plan Upgrade: ${plan.name}`,
-                    order_id: orderData.orderId,
+                    order_id: orderData.id,
                     handler: async (response: any) => {
                         // 3. Verify Payment
                         setSubmitting(planId); // Set loading while verifying
-                        const { data: { session: verifySession } } = await supabase.auth.getSession();
-                        const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-portal', {
-                            body: { 
-                                action: 'verify_payment', 
-                                paymentData: {
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_signature: response.razorpay_signature
-                                }
-                            },
-                            headers: {
-                                Authorization: `Bearer ${verifySession?.access_token}`
-                            }
-                        });
+                        try {
+                            const verifyData = await paymentService.verifyRazorpay({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            });
 
-                        if (verifyError || verifyData.error) {
+                            if (!verifyData || !verifyData.success) {
+                                toast({
+                                    title: "Payment Failure",
+                                    description: "Signature verification failed. Please contact support.",
+                                    variant: "destructive"
+                                });
+                                setSubmitting(null);
+                                return;
+                            }
+
+                            // Success!
+                            toast({
+                                title: "Plan Activated!",
+                                description: `Welcome to the ${plan.name} plan.`,
+                            });
+                            navigate('/onboarding/consent');
+                        } catch (error) {
                             toast({
                                 title: "Payment Failure",
                                 description: "Signature verification failed. Please contact support.",
                                 variant: "destructive"
                             });
                             setSubmitting(null);
-                            return;
                         }
-
-                        // Success!
-                        toast({
-                            title: "Plan Activated!",
-                            description: `Welcome to the ${plan.name} plan.`,
-                        });
-                        navigate('/onboarding/consent');
                     },
                     modal: {
                         onblur: () => setSubmitting(null)

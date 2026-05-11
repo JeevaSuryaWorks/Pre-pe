@@ -99,63 +99,33 @@ export default function UpgradePlans() {
         setPaymentMode('RZP');
         try {
             if (plan.price_amount && plan.price_amount > 0) {
-                const { data: { session } } = await supabase.auth.getSession();
-                const { data: orderData, error: orderError } = await supabase.functions.invoke('razorpay-portal', {
-                    body: { action: 'create_order', planId },
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`
-                    }
-                });
-
-                if (orderError) {
-                    console.error("Edge Function Error:", orderError);
-                    let errorMessage = "Could not connect to payment server.";
-                    if (orderError.message) {
-                        try {
-                            const parsed = JSON.parse(orderError.message);
-                            errorMessage = parsed.error || parsed.message || orderError.message;
-                        } catch (e) {
-                            errorMessage = orderError.message;
-                        }
-                    }
-                    throw new Error(errorMessage);
-                }
-
-                if (!orderData || orderData.error) {
-                    console.error("Razorpay Order Data Error:", orderData);
-                    throw new Error(orderData?.error || "Payment gateway connection failed.");
-                }
+                const orderData = await paymentService.createRazorpayOrder(plan.price_amount);
 
                 const options = {
-                    key: orderData.keyId,
+                    key: orderData.key,
                     amount: orderData.amount,
                     currency: "INR",
                     name: "Pre-pe Premium",
                     description: `Upgrade to ${plan.name} Plan`,
-                    order_id: orderData.orderId,
+                    order_id: orderData.id,
                     handler: async (response: any) => {
                         setSubmitting(planId);
-                        const { data: { session: verifySession } } = await supabase.auth.getSession();
-                        const { data: verifyData } = await supabase.functions.invoke('razorpay-portal', {
-                            body: { 
-                                action: 'verify_payment', 
-                                paymentData: {
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_signature: response.razorpay_signature
-                                }
-                            },
-                            headers: {
-                                Authorization: `Bearer ${verifySession?.access_token}`
-                            }
-                        });
+                        try {
+                            const verifyData = await paymentService.verifyRazorpay({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            });
 
-                        if (verifyData?.error) {
+                            if (!verifyData || !verifyData.success) {
+                                toast({ title: "Payment Error", description: "Verification failed.", variant: "destructive" });
+                            } else {
+                                toast({ title: "Upgrade Successful!", description: `You are now on the ${plan.name} plan.` });
+                                await refreshProfile();
+                                navigate('/home');
+                            }
+                        } catch (error) {
                             toast({ title: "Payment Error", description: "Verification failed.", variant: "destructive" });
-                        } else {
-                            toast({ title: "Upgrade Successful!", description: `You are now on the ${plan.name} plan.` });
-                            await refreshProfile();
-                            navigate('/home');
                         }
                         setSubmitting(null);
                         setPaymentMode(null);
