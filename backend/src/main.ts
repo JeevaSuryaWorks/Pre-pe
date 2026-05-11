@@ -91,6 +91,15 @@ async function bootstrap() {
         }
     })());
 
-    await app.listen(process.env.PORT ?? 3000);
+    const port = process.env.PORT ?? 3000;
+    console.log(`[BOOTSTRAP] Starting NestJS server on port ${port}...`);
+    
+    try {
+        await app.listen(port);
+        console.log(`[BOOTSTRAP] Server successfully started and listening on ${port}`);
+    } catch (err: any) {
+        console.error(`[BOOTSTRAP] CRITICAL: Failed to start server: ${err.message}`);
+        process.exit(1);
+    }
 }
 bootstrap();

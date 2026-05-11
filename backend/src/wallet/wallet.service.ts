@@ -189,6 +189,15 @@ export class WalletService {
 
         const razorpayKey = this.configService.get<string>('RAZORPAY_KEY_ID');
         this.logger.log(`🚀 [INIT] Creating Razorpay order for user ${userId}, amount: ${amount}`);
+        
+        // Connectivity check
+        try {
+            await this.prisma.$queryRaw`SELECT 1`;
+            this.logger.debug('✅ DB Connection: OK');
+        } catch (e: any) {
+            this.logger.error(`❌ DB Connection: FAILED - ${e.message}`);
+        }
+        
         this.logger.debug(`[DEBUG] Razorpay Key configured: ${!!razorpayKey}`);
         
         try {

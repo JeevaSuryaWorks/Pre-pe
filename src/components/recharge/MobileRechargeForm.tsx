@@ -21,6 +21,7 @@ import {
   Loader2,
   Contact,
   FlaskConical,
+  ArrowLeft,
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -382,7 +383,7 @@ export function MobileRechargeForm() {
       <div className="min-h-[80vh] flex flex-col pt-4 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="icon" onClick={() => setStep('form')} className="rounded-full">
-            <Loader2 className="w-6 h-6 rotate-180" /> {/* Back arrow placeholder or use Lucide ArrowLeft */}
+            <ArrowLeft className="w-6 h-6" />
           </Button>
           <h2 className="text-xl font-bold">Confirm Payment</h2>
         </div>
