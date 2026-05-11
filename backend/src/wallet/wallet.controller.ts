@@ -33,6 +33,13 @@ export class WalletController {
     }
 
     @UseGuards(SupabaseAuthGuard)
+    @Post('upi/verify')
+    async verifyUpi(@Body() body: { upiRef?: string; reference_id?: string }) {
+        const referenceId = body.upiRef || body.reference_id;
+        return this.walletService.getPaymentStatus(referenceId);
+    }
+
+    @UseGuards(SupabaseAuthGuard)
     @Post('create-order')
     async createOrder(@Request() req: any, @Body() body: { amount: number }) {
         return this.walletService.createRazorpayOrder(req.user.sub, body.amount);

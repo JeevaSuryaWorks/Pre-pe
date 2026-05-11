@@ -28,7 +28,12 @@ export const backendWalletService = {
             throw new Error(error.message || "Failed to create UPI intent");
         }
 
-        return await response.json();
+        const data = await response.json();
+        return {
+            ...data,
+            intentUrl: data.intentUrl || data.intent_url,
+            upiRef: data.upiRef || data.reference_id,
+        };
     },
 
     /**
@@ -39,7 +44,7 @@ export const backendWalletService = {
         const response = await fetch(`${API_BASE_URL}/wallet/upi/verify`, {
             method: "POST",
             headers,
-            body: JSON.stringify({ upiRef }),
+            body: JSON.stringify({ upiRef, reference_id: upiRef }),
         });
 
         if (!response.ok) {
@@ -47,7 +52,11 @@ export const backendWalletService = {
             throw new Error(error.message || "UPI verification failed");
         }
 
-        return await response.json();
+        const data = await response.json();
+        return {
+            ...data,
+            status: data.status,
+        };
     },
 
     /**
