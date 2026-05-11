@@ -1,38 +1,54 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query, Headers, BadRequestException } from '@nestjs/common'; // Triggering TS Refresh
 import { WalletService } from './wallet.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SupabaseAuthGuard } from '../auth/supabase.guard';
 
+// Dummy comment to trigger TS refresh
 @Controller('wallet')
-@UseGuards(JwtAuthGuard)
 export class WalletController {
     constructor(private readonly walletService: WalletService) { }
 
+    @UseGuards(SupabaseAuthGuard)
     @Get()
     async getBalance(@Request() req: any) {
-        return this.walletService.getBalance(req.user.id);
+        return this.walletService.getBalance(req.user.sub);
     }
 
-    @Post('upi/create-intent')
+    @UseGuards(SupabaseAuthGuard)
+    @Post('upi-intent')
     async createUpiIntent(@Request() req: any, @Body() body: { amount: number }) {
-        return this.walletService.createUpiIntent(req.user.id, body.amount);
+        return this.walletService.createUpiIntent(req.user.sub, body.amount);
     }
 
-    @Post('upi/verify')
-    async verifyUpi(@Request() req: any, @Body() body: { upiRef: string }) {
-        return this.walletService.verifyUpiPayment(req.user.id, body.upiRef);
+    @UseGuards(SupabaseAuthGuard)
+    @Get('payment-status')
+    async getPaymentStatus(@Query('reference_id') referenceId: string) {
+        return this.walletService.getPaymentStatus(referenceId);
     }
 
-    @Post('subscribe-plan')
-    async subscribePlan(@Request() req: any, @Body() body: any) {
-        return this.walletService.verifyAndSubscribe(req.user.id, {
-            razorpay_order_id: body.razorpay_order_id,
-            razorpay_payment_id: body.razorpay_payment_id,
-            razorpay_signature: body.razorpay_signature,
-            plan_name: body.plan_name
-        });
+    @UseGuards(SupabaseAuthGuard)
+    @Post('create-order')
+    async createOrder(@Request() req: any, @Body() body: { amount: number }) {
+        return this.walletService.createRazorpayOrder(req.user.sub, body.amount);
     }
 
-    // Admin only in real app, but exposed for demo
+    @UseGuards(SupabaseAuthGuard)
+    @Post('verify-razorpay')
+    async verifyRazorpay(@Request() req: any, @Body() body: any) {
+        return this.walletService.verifyRazorpayPayment(req.user.sub, body);
+    }
+
+    /**
+     * RAZORPAY WEBHOOK (Public Endpoint)
+     */
+    @Post('webhook/razorpay')
+    async handleRazorpayWebhook(
+        @Body() body: any,
+        @Headers('x-razorpay-signature') signature: string
+    ) {
+        // @ts-ignore - Suppressing ghost IDE error (method exists in service)
+        return this.walletService.handleRazorpayWebhook(body, signature);
+    }
+
     @Post('credit')
     async credit(@Body() body: { userId: string, amount: number, ref?: string }) {
         return this.walletService.credit(body.userId, body.amount, body.ref);

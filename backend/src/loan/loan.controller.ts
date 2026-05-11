@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { LoanService } from './loan.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SupabaseAuthGuard } from '../auth/supabase.guard';
+
 
 @Controller('loans')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SupabaseAuthGuard)
 export class LoanController {
     constructor(private readonly loanService: LoanService) { }
 

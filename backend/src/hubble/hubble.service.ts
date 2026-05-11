@@ -119,7 +119,7 @@ export class HubbleService {
             throw new InternalServerErrorException(`Amount must be between ₹${restrictions.minOrderAmount} and ₹${restrictions.maxOrderAmount}`);
         }
 
-        let denominationDetails = [];
+        const denominationDetails = [];
         if (brand.denominationType === 'FIXED') {
             // Find an exact match denomination (simplest approach for now, or algorithm to split)
             const exactDenom = restrictions.denominations.find((d: number) => d === amount);

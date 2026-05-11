@@ -1,67 +1,68 @@
 import { Controller, Post, Body, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as https from 'https';
 
-@Controller('api/kwik-proxy')
+@Controller('kwik-proxy')
 export class KwikProxyController {
     private readonly logger = new Logger(KwikProxyController.name);
 
     constructor(private configService: ConfigService) { }
 
     @Post()
-    async handleProxy(@Body() body: { endpoint: string, params?: Record<string, any>, method?: 'GET' | 'POST' }) {
-        const { endpoint, params, method = 'GET' } = body;
+    async handleProxy(@Body() body: any) {
+        const { endpoint, params = {}, method = 'GET' } = body || {};
 
         if (!endpoint) {
             throw new HttpException('Missing endpoint', HttpStatus.BAD_REQUEST);
         }
 
-        const kwikApiKey = this.configService.get<string>('KWIK_API_KEY');
-        if (!kwikApiKey) {
-            this.logger.error('KWIK_API_KEY is not defined in environment variables');
-            throw new HttpException('Server config error: Missing API Key', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        const apiKey = this.configService.get<string>('KWIK_API_KEY');
 
-        try {
-            const baseUrl = 'https://www.kwikapi.com/api/v2';
-            let url = `${baseUrl}${endpoint}`;
-            let options: RequestInit = { method };
+        const query = new URLSearchParams({
+            api_key: apiKey!,
+            ...params,
+        }).toString();
 
-            if (method === 'GET') {
-                const sp = new URLSearchParams();
-                sp.append('api_key', kwikApiKey);
-                if (params) {
-                    for (const [k, v] of Object.entries(params)) {
-                        if (v !== undefined && v !== null) sp.append(k, String(v));
+        const url =
+            method === 'GET'
+                ? `https://www.kwikapi.com/api/v2${endpoint}?${query}`
+                : `https://www.kwikapi.com/api/v2${endpoint}`;
+
+        const options: https.RequestOptions = {
+            hostname: 'www.kwikapi.com',
+            port: 443,
+            path:
+                method === 'GET'
+                    ? `/api/v2${endpoint}?${query}`
+                    : `/api/v2${endpoint}`,
+            method,
+            family: 4,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        };
+
+        return new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => (data += chunk));
+                res.on('end', () => {
+                    this.logger.log(`Kwik Raw Response: ${data}`);
+
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch {
+                        resolve({ raw: data });
                     }
-                }
-                url = `${url}${url.includes('?') ? '&' : '?'}${sp.toString()}`;
-            } else if (method === 'POST') {
-                const formData = new URLSearchParams();
-                formData.append('api_key', kwikApiKey);
-                if (params) {
-                    for (const [k, v] of Object.entries(params)) {
-                        if (v !== undefined && v !== null) formData.append(k, String(v));
-                    }
-                }
-                options.body = formData;
-                options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-            }
+                });
+            });
 
-            this.logger.log(`Forwarding ${method} request to KwikAPI: ${endpoint}`);
-            const apiRes = await fetch(url, options);
-            const text = await apiRes.text();
+            req.on('error', (err) => reject(err));
 
-            // Log the raw response to catch any errors from KwikAPI (like IP not whitelisted)
-            this.logger.debug(`KwikAPI Raw Response: ${text}`);
-            
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                return { error: 'Parse Error', raw: text };
-            }
-        } catch (error) {
-            this.logger.error('KWIK Proxy Controller Error:', error.message);
-            throw new HttpException(error.message || 'Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+            if (method === 'POST') req.write(query);
+
+            req.end();
+        });
     }
 }
