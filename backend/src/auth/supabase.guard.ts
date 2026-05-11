@@ -4,14 +4,22 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import * as jwt from 'jsonwebtoken'
 import jwksClient from 'jwks-rsa'
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  private client = jwksClient({
-    jwksUri: `${process.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`,
-  })
+  private client: any;
+
+  constructor(private configService: ConfigService) {
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    if (supabaseUrl) {
+      this.client = jwksClient({
+        jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
+      });
+    }
+  }
 
   private getKey(header: any, callback: any) {
     this.client.getSigningKey(header.kid, (err, key) => {
@@ -27,6 +35,11 @@ export class SupabaseAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()
     const authHeader = request.headers.authorization
+
+    if (!this.client) {
+      console.error('SupabaseAuthGuard: SUPABASE_URL not configured');
+      throw new UnauthorizedException('Authentication service unavailable');
+    }
 
     if (!authHeader) {
       throw new UnauthorizedException('No Authorization header')

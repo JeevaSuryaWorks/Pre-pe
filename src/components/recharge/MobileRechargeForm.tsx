@@ -113,6 +113,8 @@ export function MobileRechargeForm() {
   const [processing, setProcessing] =
     useState(false);
 
+  const [step, setStep] = useState<'form' | 'confirm'>('form');
+
   /* ========================================
      Prefill mobile
   ======================================== */
@@ -352,78 +354,170 @@ export function MobileRechargeForm() {
         return;
       }
 
-      setProcessing(true);
-
-      const result =
-        await processRecharge(
-          user.id,
-          {
-            mobile_number:
-              mobileNumber,
-            operator_id:
-              selectedOperator,
-            circle_id:
-              selectedCircle,
-            amount:
-              rechargeAmount,
-            plan_id:
-              selectedPlan?.id,
-          }
-        );
-
-      setProcessing(false);
-
-      if (
-        result.status ===
-        'SUCCESS'
-      ) {
-        toast({
-          title:
-            'Recharge Successful',
-          description: `₹${rechargeAmount} recharge done`,
-        });
-
-        refetch();
-
-        setMobileNumber('');
-        setAmount('');
-        setSelectedPlan(
-          null
-        );
-      } else if (
-        result.status ===
-        'PENDING'
-      ) {
-        toast({
-          title:
-            'Recharge Processing',
-          description:
-            'Please wait while recharge completes',
-        });
-
-        refetch();
-      } else {
-        toast({
-          title:
-            'Recharge Failed',
-          description:
-            result.message,
-          variant:
-            'destructive',
-        });
       }
     };
 
+  /* ========================================
+     PROCEED TO CONFIRM
+  ======================================== */
+  const handleProceedToConfirm = async () => {
+    if (!user) {
+      toast({ title: 'Please login', variant: 'destructive' });
+      return;
+    }
+
+    if (!isApproved) {
+      setShowKYCNudge(true);
+      return;
+    }
+
+    if (mobileNumber.length !== 10) {
+      toast({ title: 'Invalid mobile number', variant: 'destructive' });
+      return;
+    }
+
+    if (!selectedOperator || !amount) {
+      toast({ title: 'Missing details', variant: 'destructive' });
+      return;
+    }
+
+    const rechargeAmount = parseFloat(amount);
+    if (rechargeAmount > availableBalance) {
+      toast({ title: 'Insufficient Balance', variant: 'destructive' });
+      return;
+    }
+
+    // Pass limit check
+    const limitCheck = await checkRechargeLimit();
+    if (!limitCheck.allowed) {
+      toast({
+        title: 'Limit Reached',
+        description: `${limits.name} allows ${limits.dailyRechargeLimit} recharges/day`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setStep('confirm');
+  };
+
+  const executeRecharge = async () => {
+    setProcessing(true);
+    const rechargeAmount = parseFloat(amount);
+
+    try {
+      const result = await processRecharge(user.id, {
+        mobile_number: mobileNumber,
+        operator_id: selectedOperator,
+        circle_id: selectedCircle,
+        amount: rechargeAmount,
+        plan_id: selectedPlan?.id,
+      });
+
+      if (result.status === 'SUCCESS' || result.status === 'PENDING') {
+        toast({
+          title: result.status === 'SUCCESS' ? 'Recharge Successful' : 'Recharge Pending',
+          description: `₹${rechargeAmount} processed for ${mobileNumber}`,
+        });
+        refetch();
+        setStep('form');
+        setMobileNumber('');
+        setAmount('');
+        setSelectedPlan(null);
+      } else {
+        toast({
+          title: 'Recharge Failed',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'System Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center py-10">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-12 w-12 animate-spin text-emerald-600" />
+      </div>
+    );
+  }
+
+  // ============================================================
+  // CONFIRMATION VIEW (FULL PAGE)
+  // ============================================================
+  if (step === 'confirm') {
+    const operatorObj = operators.find(o => o.id === selectedOperator);
+    const circleObj = circles.find(c => c.id === selectedCircle);
+
+    return (
+      <div className="min-h-[80vh] flex flex-col pt-4 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex items-center gap-4 mb-8">
+          <Button variant="ghost" size="icon" onClick={() => setStep('form')} className="rounded-full">
+            <Loader2 className="w-6 h-6 rotate-180" /> {/* Back arrow placeholder or use Lucide ArrowLeft */}
+          </Button>
+          <h2 className="text-xl font-bold">Confirm Payment</h2>
+        </div>
+
+        <Card className="border-none shadow-2xl shadow-slate-100 rounded-[35px] overflow-hidden mb-8">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-70 mb-2">Recharging for</p>
+            <h1 className="text-3xl font-black mb-1">{mobileNumber}</h1>
+            <p className="text-sm font-medium opacity-80">{operatorObj?.name} • {circleObj?.name}</p>
+          </div>
+          <CardContent className="p-8 space-y-6">
+            <div className="flex justify-between items-center py-4 border-b border-slate-50">
+              <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Amount</span>
+              <h1 className="text-5xl font-black italic tracking-tighter text-slate-900">₹{amount}</h1>
+            </div>
+
+            {selectedPlan && (
+              <div className="bg-slate-50 p-4 rounded-2xl space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-slate-400 uppercase">Validity</span>
+                  <span className="text-sm font-black text-slate-700">{selectedPlan.validity}</span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">{selectedPlan.description}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                <FlaskConical className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">Wallet Balance</p>
+                <p className="text-sm font-bold text-slate-700">₹{availableBalance.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mt-auto space-y-4">
+          <Button
+            className="w-full h-16 rounded-2xl text-lg font-bold bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-200 transition-all active:scale-95"
+            onClick={executeRecharge}
+            disabled={processing}
+          >
+            {processing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "PAY SECURELY NOW"}
+          </Button>
+          <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Encrypted & Secure Transaction
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-in fade-in duration-500">
 
       {IS_DEMO_MODE && (
         <div className="rounded-xl border bg-yellow-50 p-3 text-sm">
@@ -613,18 +707,11 @@ export function MobileRechargeForm() {
             />
 
             <Button
-              onClick={
-                handleRecharge
-              }
-              disabled={
-                processing
-              }
+              className="h-14 px-8 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all"
+              onClick={handleProceedToConfirm}
+              disabled={processing}
             >
-              {processing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Recharge'
-              )}
+              Proceed
             </Button>
           </div>
 

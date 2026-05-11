@@ -187,7 +187,9 @@ export class WalletService {
             notes: { userId }
         };
 
+        const razorpayKey = this.configService.get<string>('RAZORPAY_KEY_ID');
         this.logger.log(`🚀 [INIT] Creating Razorpay order for user ${userId}, amount: ${amount}`);
+        this.logger.debug(`[DEBUG] Razorpay Key configured: ${!!razorpayKey}`);
         
         try {
             const start = Date.now();
@@ -213,10 +215,16 @@ export class WalletService {
                 id: order.id,
                 amount: order.amount,
                 currency: order.currency,
-                key: this.configService.get<string>('RAZORPAY_KEY_ID'),
+                key: razorpayKey,
             };
         } catch (error: any) {
             this.logger.error(`🔥 [ERROR] Razorpay order creation failed: ${error.message}`, error.stack);
+            
+            // Detailed log of error object for debugging production
+            if (error.error) {
+                this.logger.error(`[DEBUG] Razorpay Error Details: ${JSON.stringify(error.error)}`);
+            }
+
             const errorMsg = error.error?.description || error.message || 'Unknown Razorpay error';
             throw new BadRequestException(`Razorpay Error: ${errorMsg}`);
         }
