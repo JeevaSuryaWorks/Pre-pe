@@ -19,6 +19,13 @@ export class WalletController {
         return this.walletService.createUpiIntent(req.user.sub, body.amount);
     }
 
+    // Backwards-compatible route used by frontend: POST /wallet/upi/create-intent
+    @UseGuards(SupabaseAuthGuard)
+    @Post('upi/create-intent')
+    async createUpiIntentLegacy(@Request() req: any, @Body() body: { amount: number }) {
+        return this.walletService.createUpiIntent(req.user.sub, body.amount);
+    }
+
     @UseGuards(SupabaseAuthGuard)
     @Get('payment-status')
     async getPaymentStatus(@Query('reference_id') referenceId: string) {
