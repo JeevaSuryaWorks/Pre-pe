@@ -1,7 +1,6 @@
-import { ApiResponse } from '@/types/recharge.types';
+import { API_BASE_URL } from '@/utils/api-config';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const PROXY_URL = `${API_BASE_URL}/api/kwik-proxy`;
+const PROXY_URL = `${API_BASE_URL}/kwik-proxy`;
 
 
 export interface KwikOperator {
@@ -40,12 +39,21 @@ export const fetchKwikOperators = async (): Promise<KwikOperator[]> => {
 };
 
 const callProxy = async (endpoint: string, params?: Record<string, any>, method: 'GET' | 'POST' = 'GET') => {
-    const response = await fetch(PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpoint, params, method })
-    });
-    return response.json();
+    try {
+        const response = await fetch(PROXY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint, params, method }),
+            // @ts-ignore
+            signal: AbortSignal.timeout(20000) // 20 seconds frontend timeout
+        });
+        return response.json();
+    } catch (error: any) {
+        if (error.name === 'TimeoutError') {
+            throw new Error('Provider response timed out. Please check history.');
+        }
+        throw error;
+    }
 };
 
 export interface KwikBalanceResponse {

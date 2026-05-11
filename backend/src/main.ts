@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -40,6 +41,7 @@ async function bootstrap() {
         next();
     });
     app.setGlobalPrefix('api');
+    app.useGlobalInterceptors(new TimeoutInterceptor());
 
     // Global health check
     app.use('/api/health', (req, res) => {
@@ -58,29 +60,54 @@ async function bootstrap() {
             const response = ctx.getResponse();
             const request = ctx.getRequest();
             
+            // Safe status and message extraction
             const status = 
-                exception instanceof Error && (exception as any).getStatus 
-                    ? (exception as any).getStatus() 
-                    : (exception.status || 500);
+                exception && typeof exception.getStatus === 'function' 
+                    ? exception.getStatus() 
+                    : (exception?.status || 500);
 
-            const message = exception.message || 'Internal server error';
+            const message = exception?.message || (typeof exception === 'string' ? exception : 'Internal server error');
             
             console.error(`[GlobalError] ${request.method} ${request.url} - Status: ${status} - Message: ${message}`);
-            if (exception.stack) console.error(exception.stack);
+            if (exception?.stack) console.error(exception.stack);
+
+            // Ensure CORS headers are present even in error responses to prevent "CORS Error" masking 500s
+            const origin = request.headers.origin;
+            if (origin && (origin.includes('pre-pe.com') || origin.includes('localhost'))) {
+                response.header('Access-Control-Allow-Origin', origin);
+                response.header('Access-Control-Allow-Credentials', 'true');
+            }
 
             response.status(status).json({
                 success: false,
                 statusCode: status,
                 message: message,
-                error: exception.name || 'Error',
+                error: exception?.name || 'Error',
                 path: request.url,
                 timestamp: new Date().toISOString(),
                 // Include details if it's a 500
-                ...(status === 500 && { stack: exception.stack })
+                ...(status === 500 && { stack: exception?.stack })
             });
         }
     })());
 
-    await app.listen(process.env.PORT ?? 3000);
+    const port = process.env.PORT ?? 3000;
+    console.log('--------------------------------------------------');
+    console.log(`🚀 [BOOTSTRAP] PRE-PE BACKEND STARTING...`);
+    console.log(`📡 [BOOTSTRAP] Port: ${port}`);
+    console.log(`🌍 [BOOTSTRAP] NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log('--------------------------------------------------');
+    
+    try {
+        await app.listen(port);
+        console.log(`✅ [BOOTSTRAP] Server successfully started and listening on ${port}`);
+        console.log(`🔗 [BOOTSTRAP] Health Check: http://localhost:${port}/api/health`);
+    } catch (err: any) {
+        console.error(`❌ [BOOTSTRAP] CRITICAL: Failed to start server: ${err.message}`);
+        if (err.code === 'EADDRINUSE') {
+            console.error(`💡 [TIP] Port ${port} is already in use. Try killing the existing process.`);
+        }
+        process.exit(1);
+    }
 }
 bootstrap();

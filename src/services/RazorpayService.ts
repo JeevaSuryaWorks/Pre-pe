@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '@/utils/api-config';
+
 export interface RazorpayOptions {
   amount: number;
   currency: string;
@@ -45,7 +47,7 @@ export class RazorpayService {
   }
 
   static async createOrder(options: RazorpayOptions) {
-    const response = await fetch('/api/wallet/create-order', {
+    const response = await fetch(`${API_BASE_URL}/wallet/create-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options),
@@ -60,7 +62,7 @@ export class RazorpayService {
   }
 
   static async verifyPayment(paymentData: any) {
-    const response = await fetch('/api/wallet/verify-payment', {
+    const response = await fetch(`${API_BASE_URL}/wallet/verify-payment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(paymentData),
@@ -75,7 +77,7 @@ export class RazorpayService {
   }
 
   static async verifySubscription(paymentData: any) {
-    const response = await fetch('/api/wallet/subscribe-plan', {
+    const response = await fetch(`${API_BASE_URL}/wallet/subscribe-plan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(paymentData),

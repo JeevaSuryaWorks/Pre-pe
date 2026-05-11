@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://64.227.151.233:3000',
         changeOrigin: true,
       },
       '/kwik-api': {

@@ -92,8 +92,8 @@ export const ServiceGrid = () => {
     { icon: Droplets, label: "Water", path: "/services/water-bill" },
     { icon: SmartphoneCharging, label: "Postpaid", path: "/postpaid" },
     { icon: HandCoins, label: "Pay EMI", path: "/services/pay-bills" },
-    { icon: ShieldCheck, label: "LIC/Insurance", path: "/services/insurance" },
-    { icon: Wifi, label: "Broadband", path: "/services/broadband" }, 
+    { icon: ShieldCheck, label: "Insurance", path: "/services/insurance" },
+    { icon: Wifi, label: "Broadband", path: "/services/broadband" },
     { icon: ChevronRight, label: "See All", path: "/services" },
   ];
 

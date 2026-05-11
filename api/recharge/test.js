@@ -1,6 +1,6 @@
 /**
  * DEBUG ONLY endpoint - shows raw KWIK API response without touching DB
- * Call: POST /api/recharge/test { number, opid, amount }
+ * Call: POST https://api.pre-pe.com/recharge/test { number, opid, amount }
  * DELETE THIS FILE before going to production
  */
 export default async function handler(req, res) {
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const response = await fetch(`${kwikUrl}?${params.toString()}`);
     const rawText = await response.text();
     let parsed = null;
-    try { parsed = JSON.parse(rawText); } catch(e) {}
+    try { parsed = JSON.parse(rawText); } catch (e) { }
 
     return res.status(200).json({
       kwik_raw: rawText,

@@ -40,6 +40,7 @@ export class KwikProxyController {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
+            timeout: 15000, // 15 seconds timeout
         };
 
         return new Promise((resolve, reject) => {
@@ -58,7 +59,16 @@ export class KwikProxyController {
                 });
             });
 
-            req.on('error', (err) => reject(err));
+            req.on('timeout', () => {
+                this.logger.error(`[KwikProxy] Timeout on ${endpoint}`);
+                req.destroy();
+                reject(new HttpException('Provider timeout', HttpStatus.GATEWAY_TIMEOUT));
+            });
+
+            req.on('error', (err) => {
+                this.logger.error(`[KwikProxy] Error on ${endpoint}: ${err.message}`);
+                reject(err);
+            });
 
             if (method === 'POST') req.write(query);
 

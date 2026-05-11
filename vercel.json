@@ -1,36 +1,8 @@
 {
     "rewrites": [
         {
-            "source": "/api/payment/callback",
-            "destination": "http://64.227.151.233:3000/api/payment/callback"
-        },
-        {
-            "source": "/api/payment/test",
-            "destination": "/api/payment/test.js"
-        },
-        {
-            "source": "/api/recharge",
-            "destination": "/api/recharge/index.js"
-        },
-        {
-            "source": "/api/recharge/detect-operator",
-            "destination": "/api/recharge/detect-operator.js"
-        },
-        {
-            "source": "/api/recharge/status",
-            "destination": "/api/recharge/status.js"
-        },
-        {
-            "source": "/api/wallet/(.*)",
-            "destination": "http://64.227.151.233:3000/api/wallet/$1"
-        },
-        {
-            "source": "/api/kwik-ip",
-            "destination": "/api/kwik-ip.js"
-        },
-        {
-            "source": "/api/kwik-proxy",
-            "destination": "http://64.227.151.233:3000/api/kwik-proxy"
+            "source": "/api/(.*)",
+            "destination": "http://64.227.151.233:3000/api/$1"
         },
         {
             "source": "/(.*)",

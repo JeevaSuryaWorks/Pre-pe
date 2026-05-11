@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+import { API_BASE_URL } from '@/utils/api-config';
 
 async function getAuthHeaders() {
     const { data } = await supabase.auth.getSession();
@@ -13,11 +13,11 @@ async function getAuthHeaders() {
 
 export const backendWalletService = {
     /**
-     * Create a UPI Intent for Wallet Top-up
+     * Create a UPI Intent for Wallet Top-up (Legacy/Dummy)
      */
     async createUpiIntent(amount: number) {
         const headers = await getAuthHeaders();
-        const response = await fetch(`${API_BASE_URL}/wallet/upi/create-intent`, {
+        const response = await fetch(`${API_BASE_URL}/wallet/upi-intent`, {
             method: "POST",
             headers,
             body: JSON.stringify({ amount }),
@@ -37,7 +37,45 @@ export const backendWalletService = {
     },
 
     /**
-     * Verify UPI Payment and Credit Wallet
+     * Create Razorpay Order
+     */
+    async createRazorpayOrder(amount: number) {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`${API_BASE_URL}/wallet/create-order`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ amount }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Failed to create Razorpay order");
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Verify Razorpay Payment
+     */
+    async verifyRazorpayPayment(paymentData: any) {
+        const headers = await getAuthHeaders();
+        const response = await fetch(`${API_BASE_URL}/wallet/verify-razorpay`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(paymentData),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || "Payment verification failed");
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Verify UPI Payment and Credit Wallet (Legacy/Dummy)
      */
     async verifyUpi(upiRef: string) {
         const headers = await getAuthHeaders();

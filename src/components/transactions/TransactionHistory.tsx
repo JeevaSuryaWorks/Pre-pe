@@ -61,7 +61,7 @@ export function TransactionHistory() {
         const success = await removeSavedItem(favorites[tx.id]!);
         if (success) {
             setFavorites(prev => ({ ...prev, [tx.id]: null }));
-            toast({ title: "Removed from Saved", description: "Transaction removed from your favorites." });
+            toast({ title: "Removed from Favorites", description: "Transaction removed from your favorites list." });
         }
     } else {
         const newItem = await addSavedItem({
@@ -75,7 +75,7 @@ export function TransactionHistory() {
         });
         if (newItem) {
             setFavorites(prev => ({ ...prev, [tx.id]: newItem.id }));
-            toast({ title: "Saved to Favorites", description: "You can find this in your Saved page." });
+            toast({ title: "Saved to Favorites", description: "You can find this in your Favorites page." });
         }
     }
   };

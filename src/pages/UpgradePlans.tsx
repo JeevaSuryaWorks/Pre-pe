@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { 
     CheckCircle2, Loader2, Zap, Landmark, Building2, 
-    ChevronRight, Star, ShieldCheck, Crown, ArrowRight
+    ChevronRight, Star, ShieldCheck, Crown, ArrowRight, Smartphone, CreditCard
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { adminService } from '@/services/admin';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { paymentService } from '@/services/payment.service';
 
 const getPlanIcon = (id: string) => {
     switch (id.toUpperCase()) {
@@ -59,6 +60,9 @@ export default function UpgradePlans() {
     const [submitting, setSubmitting] = useState<string | null>(null);
     const [plans, setPlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [paymentMode, setPaymentMode] = useState<'RZP' | 'UPI' | null>(null);
+    const [referenceId, setReferenceId] = useState<string | null>(null);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     const currentPlanId = profile?.plan_type?.toLowerCase() || 'basic';
 
@@ -92,46 +96,41 @@ export default function UpgradePlans() {
 
         const planId = plan.id;
         setSubmitting(planId);
+        setPaymentMode('RZP');
         try {
             if (plan.price_amount && plan.price_amount > 0) {
-                const { data: orderData, error: orderError } = await supabase.functions.invoke('razorpay-portal', {
-                    body: { action: 'create_order', planId }
-                });
-
-                if (orderError || !orderData || orderData.error) {
-                    throw new Error(orderData?.error || "Payment gateway connection failed.");
-                }
+                const orderData = await paymentService.createRazorpayOrder(plan.price_amount);
 
                 const options = {
-                    key: orderData.keyId,
+                    key: orderData.key,
                     amount: orderData.amount,
                     currency: "INR",
                     name: "Pre-pe Premium",
                     description: `Upgrade to ${plan.name} Plan`,
-                    order_id: orderData.orderId,
+                    order_id: orderData.id,
                     handler: async (response: any) => {
                         setSubmitting(planId);
-                        const { data: verifyData } = await supabase.functions.invoke('razorpay-portal', {
-                            body: { 
-                                action: 'verify_payment', 
-                                paymentData: {
-                                    razorpay_order_id: response.razorpay_order_id,
-                                    razorpay_payment_id: response.razorpay_payment_id,
-                                    razorpay_signature: response.razorpay_signature
-                                }
-                            }
-                        });
+                        try {
+                            const verifyData = await paymentService.verifyRazorpay({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            });
 
-                        if (verifyData?.error) {
+                            if (!verifyData || !verifyData.success) {
+                                toast({ title: "Payment Error", description: "Verification failed.", variant: "destructive" });
+                            } else {
+                                toast({ title: "Upgrade Successful!", description: `You are now on the ${plan.name} plan.` });
+                                await refreshProfile();
+                                navigate('/home');
+                            }
+                        } catch (error) {
                             toast({ title: "Payment Error", description: "Verification failed.", variant: "destructive" });
-                        } else {
-                            toast({ title: "Upgrade Successful!", description: `You are now on the ${plan.name} plan.` });
-                            await refreshProfile();
-                            navigate('/home');
                         }
                         setSubmitting(null);
+                        setPaymentMode(null);
                     },
-                    modal: { onblur: () => setSubmitting(null) },
+                    modal: { onblur: () => { setSubmitting(null); setPaymentMode(null); } },
                     theme: { color: "#2563eb" }
                 };
 
@@ -150,6 +149,63 @@ export default function UpgradePlans() {
             toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
             setSubmitting(null);
+            setPaymentMode(null);
+        }
+    };
+
+    const handleUpiUpgrade = async (plan: any) => {
+        const planId = plan.id;
+        setSubmitting(planId);
+        setPaymentMode('UPI');
+        try {
+            const { intent_url, reference_id } = await paymentService.createUpiIntent(plan.price_amount);
+            setReferenceId(reference_id);
+            
+            // Open UPI App
+            window.location.href = intent_url;
+
+            // Start Polling
+            const interval = setInterval(async () => {
+                try {
+                    const result = await paymentService.getPaymentStatus(reference_id);
+                    if (result.status === 'SUCCESS') {
+                        clearInterval(interval);
+                        // Complete Upgrade
+                        const { error } = await supabase.from('profiles')
+                            .update({ plan_type: planId })
+                            .eq('user_id', profile?.user_id);
+                        
+                        if (error) throw error;
+
+                        toast({ title: "Upgrade Successful!", description: `You are now on the ${plan.name} plan.` });
+                        await refreshProfile();
+                        navigate('/home');
+                        setSubmitting(null);
+                        setPaymentMode(null);
+                    } else if (result.status === 'FAILED') {
+                        clearInterval(interval);
+                        toast({ title: "Payment Failed", description: "The transaction was unsuccessful.", variant: "destructive" });
+                        setSubmitting(null);
+                        setPaymentMode(null);
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 4000);
+
+            // Cleanup interval after 5 minutes
+            setTimeout(() => {
+                clearInterval(interval);
+                if (submitting === planId) {
+                    setSubmitting(null);
+                    setPaymentMode(null);
+                }
+            }, 300000);
+
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+            setSubmitting(null);
+            setPaymentMode(null);
         }
     };
 
@@ -252,24 +308,72 @@ export default function UpgradePlans() {
                                                 ))}
                                             </div>
 
-                                            <Button
-                                                onClick={() => handleUpgrade(plan)}
-                                                disabled={isActive || submitting !== null}
-                                                className={cn(
-                                                    "w-full h-14 rounded-2xl font-black text-sm transition-all duration-300 gap-2",
-                                                    isActive 
-                                                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none hover:bg-emerald-50"
-                                                        : "bg-slate-900 hover:bg-blue-600 text-white shadow-xl hover:shadow-blue-200"
-                                                )}
-                                            >
-                                                {submitting === plan.id ? (
-                                                    <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</>
-                                                ) : isActive ? (
-                                                    <><ShieldCheck className="w-5 h-5" /> Currently Active</>
+                                             <div className="flex flex-col gap-3">
+                                                {/* Primary Button based on Device */}
+                                                {isMobile && !isActive && plan.price_amount > 0 ? (
+                                                    <Button
+                                                        onClick={() => handleUpiUpgrade(plan)}
+                                                        disabled={submitting !== null}
+                                                        className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-emerald-600 text-white font-black text-sm shadow-xl transition-all gap-2"
+                                                    >
+                                                        {submitting === plan.id && paymentMode === 'UPI' ? (
+                                                            <><Loader2 className="w-4 h-4 animate-spin" /> Verifying UPI...</>
+                                                        ) : (
+                                                            <><Smartphone className="w-4 h-4" /> Instant UPI Upgrade <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
+                                                        )}
+                                                    </Button>
                                                 ) : (
-                                                    <><Zap className="w-4 h-4 fill-current" /> Upgrade Now <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
+                                                    <Button
+                                                        onClick={() => handleUpgrade(plan)}
+                                                        disabled={isActive || submitting !== null}
+                                                        className={cn(
+                                                            "w-full h-14 rounded-2xl font-black text-sm transition-all duration-300 gap-2",
+                                                            isActive 
+                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none hover:bg-emerald-50"
+                                                                : "bg-slate-900 hover:bg-blue-600 text-white shadow-xl hover:shadow-blue-200"
+                                                        )}
+                                                    >
+                                                        {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                            <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                                                        ) : isActive ? (
+                                                            <><ShieldCheck className="w-5 h-5" /> Currently Active</>
+                                                        ) : (
+                                                            <><Zap className="w-4 h-4 fill-current" /> Pay with Card / Netbanking <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
+                                                        )}
+                                                    </Button>
                                                 )}
-                                            </Button>
+
+                                                {/* Secondary Button based on Device */}
+                                                {!isActive && plan.price_amount > 0 && (
+                                                    isMobile ? (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleUpgrade(plan)}
+                                                            disabled={submitting !== null}
+                                                            className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                        >
+                                                            {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                                <><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</>
+                                                            ) : (
+                                                                <><CreditCard className="w-4 h-4" /> Cards / Netbanking</>
+                                                            )}
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => handleUpiUpgrade(plan)}
+                                                            disabled={submitting !== null}
+                                                            className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                        >
+                                                            {submitting === plan.id && paymentMode === 'UPI' ? (
+                                                                <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                                                            ) : (
+                                                                <><Smartphone className="w-4 h-4" /> UPI Upgrade (Mobile Only)</>
+                                                            )}
+                                                        </Button>
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
