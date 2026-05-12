@@ -98,7 +98,7 @@ async function bootstrap() {
     console.log('--------------------------------------------------');
     
     try {
-        await app.listen(port);
+        await app.listen(port, '0.0.0.0');
         console.log(`✅ [BOOTSTRAP] Server successfully started and listening on ${port}`);
         console.log(`🔗 [BOOTSTRAP] Health Check: http://localhost:${port}/api/health`);
     } catch (err: any) {
