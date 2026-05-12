@@ -445,7 +445,6 @@ export class WalletService {
                 return { status: 'NOT_FOUND' };
             }
 
-            
             return {
                 status: txn.gateway_status || 'PENDING',
                 amount: Number(txn.amount),
