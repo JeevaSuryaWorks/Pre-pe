@@ -176,7 +176,6 @@ export class WalletService {
             throw new BadRequestException('Invalid User ID');
         }
 
-
         if (!this.razorpay) {
             console.error('[TRACE] ❌ Razorpay not initialized');
             throw new BadRequestException('Razorpay not configured');
