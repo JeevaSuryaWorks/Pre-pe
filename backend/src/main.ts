@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
+    
     // Custom CORS middleware to avoid conflicts with Nginx adding headers in production
     app.use((req: any, res: any, next: any) => {
         const origin = req.headers.origin;
@@ -28,8 +30,6 @@ async function bootstrap() {
         // 2. Handle Actual Requests
         if (origin && (allowedOrigins.includes(origin) || origin.includes('pre-pe.com') || origin.startsWith('http://localhost'))) {
             // For production (pre-pe.com), we only add headers if Nginx hasn't added them yet.
-            // Since we can't easily detect Nginx headers here, and we know Nginx adds them,
-            // we should avoid adding them here to prevent the "multiple values" error.
             if (!origin.includes('pre-pe.com')) {
                 res.setHeader('Access-Control-Allow-Origin', origin);
                 res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
@@ -40,11 +40,13 @@ async function bootstrap() {
 
         next();
     });
+
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(new ValidationPipe({ transform: true }));
     app.useGlobalInterceptors(new TimeoutInterceptor());
 
     // Global health check
-    app.use('/api/health', (req, res) => {
+    app.use('/api/health', (req: any, res: any) => {
         res.json({ 
             status: 'ok', 
             time: new Date().toISOString(), 
@@ -60,7 +62,6 @@ async function bootstrap() {
             const response = ctx.getResponse();
             const request = ctx.getRequest();
             
-            // Safe status and message extraction
             const status = 
                 exception && typeof exception.getStatus === 'function' 
                     ? exception.getStatus() 
@@ -71,7 +72,6 @@ async function bootstrap() {
             console.error(`[GlobalError] ${request.method} ${request.url} - Status: ${status} - Message: ${message}`);
             if (exception?.stack) console.error(exception.stack);
 
-            // Ensure CORS headers are present even in error responses to prevent "CORS Error" masking 500s
             const origin = request.headers.origin;
             if (origin && (origin.includes('pre-pe.com') || origin.includes('localhost'))) {
                 response.header('Access-Control-Allow-Origin', origin);
@@ -85,7 +85,6 @@ async function bootstrap() {
                 error: exception?.name || 'Error',
                 path: request.url,
                 timestamp: new Date().toISOString(),
-                // Include details if it's a 500
                 ...(status === 500 && { stack: exception?.stack })
             });
         }
