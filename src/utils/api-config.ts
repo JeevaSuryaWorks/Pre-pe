@@ -4,9 +4,9 @@
  */
 
 const getApiBaseUrl = (): string => {
-  // Use relative path for production to avoid CORS and host issues
+  // On production, we MUST use the absolute URL for the dedicated backend subdomain
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return '/api';
+    return 'https://api.pre-pe.com/api';
   }
 
   // Try different env variables used across the app
