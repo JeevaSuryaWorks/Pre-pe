@@ -169,18 +169,16 @@ export class WalletService {
        💳 CREATE RAZORPAY ORDER
     ========================================================= */
     async createRazorpayOrder(userId: string, amount: number) {
+        console.log(`[TRACE] 1. createRazorpayOrder started for user: ${userId}, amount: ${amount}`);
+
         if (!this.isValidUuid(userId)) {
-            this.logger.error(`❌ createRazorpayOrder: Invalid UUID ${userId}`);
+            console.error(`[TRACE] ❌ Invalid UUID: ${userId}`);
             throw new BadRequestException('Invalid User ID');
         }
 
         if (!this.razorpay) {
-            this.logger.error('Razorpay not configured (missing key/secret)');
+            console.error('[TRACE] ❌ Razorpay not initialized');
             throw new BadRequestException('Razorpay not configured');
-        }
-
-        if (!amount || amount <= 0) {
-            throw new BadRequestException('Invalid amount');
         }
 
         const options = {
@@ -191,21 +189,22 @@ export class WalletService {
         };
 
         const razorpayKey = this.configService.get<string>('RAZORPAY_KEY_ID');
-        this.logger.log(`🚀 [INIT] Creating Razorpay order for user ${userId}, amount: ${amount}`);
-        
+
         // Connectivity check
         try {
+            console.log('[TRACE] 2. Checking DB connection...');
             await this.prisma.$queryRaw`SELECT 1`;
-            this.logger.debug('✅ DB Connection: OK');
+            console.log('[TRACE] ✅ DB Connection: OK');
         } catch (e: any) {
-            this.logger.error(`❌ DB Connection: FAILED - ${e.message}`);
+            console.error(`[TRACE] ❌ DB Connection: FAILED - ${e.message}`);
         }
 
-        // Ensure user profile exists (foreign key requirement for upi_transactions)
+        // Ensure user profile exists
         try {
+            console.log('[TRACE] 3. Checking user profile...');
             const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
             if (!profile) {
-                this.logger.log(`⚠️ Profile missing for user ${userId}, creating standard profile...`);
+                console.log(`[TRACE] ⚠️ Profile missing, creating...`);
                 await this.prisma.profiles.create({
                     data: {
                         user_id: userId,
@@ -214,21 +213,23 @@ export class WalletService {
                         plan_type: 'BASIC'
                     }
                 });
+                console.log('[TRACE] ✅ Profile created');
+            } else {
+                console.log('[TRACE] ✅ Profile exists');
             }
         } catch (profileError: any) {
-            this.logger.error(`❌ Profile sync failed: ${profileError.message}`);
+            console.error(`[TRACE] ❌ Profile operation failed: ${profileError.message}`);
         }
-        
-        this.logger.debug(`[DEBUG] Razorpay Key configured: ${!!razorpayKey}`);
-        
+
         try {
+            console.log('[TRACE] 4. Calling Razorpay SDK...');
             const start = Date.now();
             const order = await this.razorpay.orders.create(options);
             const duration = Date.now() - start;
-            
-            this.logger.log(`✅ [SDK] Razorpay order created: ${order.id} (took ${duration}ms)`);
 
-            // Save order to DB for status tracking
+            console.log(`[TRACE] 5. ✅ Razorpay order created: ${order.id} (took ${duration}ms)`);
+
+            console.log('[TRACE] 6. Saving transaction to DB...');
             await this.prisma.upi_transactions.create({
                 data: {
                     user_id: userId,
@@ -239,7 +240,7 @@ export class WalletService {
                     updated_at: new Date(),
                 },
             });
-            this.logger.log(`✅ [DB] Order ${order.id} saved to upi_transactions`);
+            console.log(`[TRACE] 7. ✅ Order ${order.id} saved to DB`);
 
             return {
                 id: order.id,
@@ -248,16 +249,8 @@ export class WalletService {
                 key: razorpayKey,
             };
         } catch (error: any) {
-            this.logger.error(`🔥 [ERROR] Razorpay order creation failed: ${error.message}`, error.stack);
-            
-            // Detailed log of error object for debugging production
-            if (error.error) {
-                try {
-                    this.logger.error(`[DEBUG] Razorpay Error Details: ${JSON.stringify(error.error)}`);
-                } catch (serializeErr) {
-                    this.logger.error(`[DEBUG] Razorpay Error (Serialization failed): ${error.error}`);
-                }
-            }
+            console.error(`[TRACE] 🔥 CRASH: ${error.message}`);
+            if (error.error) console.error(`[TRACE] Details: ${JSON.stringify(error.error)}`);
 
             const errorMsg = error.error?.description || error.message || 'Unknown Razorpay error';
             throw new BadRequestException(`Razorpay Error: ${errorMsg}`);
@@ -381,7 +374,7 @@ export class WalletService {
                 });
 
                 await this.credit(userId, Number(amount), `Razorpay Top-up: ${razorpay_payment_id}`, tx);
-                
+
                 this.logger.log(`✅ [VERIFY] Manual verification success for ${razorpay_order_id}`);
                 return { success: true, message: 'Payment verified & wallet credited' };
             });
