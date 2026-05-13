@@ -5,257 +5,252 @@ import {
   Wallet, 
   FileBarChart, 
   ChevronRight, 
+  ChevronLeft,
   CheckCircle, 
   TrendingUp, 
   ArrowUpRight,
-  Download
+  Download,
+  Filter,
+  Search,
+  ArrowDownLeft,
+  Smartphone,
+  Zap,
+  MoreVertical,
+  Calendar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { getTransactionHistory } from '@/services/recharge.service';
-import { motion } from 'framer-motion';
-import { 
-  Bar, 
-  BarChart, 
-  ResponsiveContainer, 
-  XAxis, 
-  YAxis, 
-  Tooltip,
-  Cell
-} from 'recharts';
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent 
-} from '@/components/ui/chart';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stats, setStats] = useState({ count: 0, growth: 12 });
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadTransactions = async () => {
       if (user) {
-        const txns = await getTransactionHistory(user.id, 100);
-        const successCount = txns.filter(t => t.status === 'SUCCESS').length;
-        setStats(prev => ({ ...prev, count: successCount }));
-
-        // Mock chart data for a 7-day trend
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const mockData = days.map(day => ({
-          name: day,
-          total: Math.floor(Math.random() * 500) + 100
-        }));
-        setChartData(mockData);
+        setLoading(true);
+        const data = await getTransactionHistory(user.id, 50);
+        setTransactions(data);
+        setLoading(false);
       }
     };
-    loadStats();
+    loadTransactions();
   }, [user]);
 
-  const chartConfig = {
-    total: {
-      label: "Transaction Volume",
-      color: "hsl(var(--primary))",
-    },
+  const filteredTransactions = transactions.filter(t => {
+    const matchesSearch = t.mobile_number?.includes(searchQuery) || t.id.includes(searchQuery);
+    if (activeTab === "all") return matchesSearch;
+    return matchesSearch && t.status.toLowerCase() === activeTab.toLowerCase();
+  });
+
+  const stats = {
+    total: transactions.reduce((acc, t) => acc + (t.status === 'SUCCESS' ? Number(t.amount) : 0), 0),
+    count: transactions.filter(t => t.status === 'SUCCESS').length
   };
 
-  const reportModules = [
-    {
-      title: "Transaction History",
-      description: "Mobile recharges, DTH, and bill payment detailed records.",
-      icon: History,
-      color: "bg-indigo-50 text-indigo-600",
-      iconColor: "text-indigo-600",
-      path: "/reports/history"
-    },
-    {
-      title: "Wallet Ledger",
-      description: "Chronological track of credits, debits, and lock/unlocks.",
-      icon: Wallet,
-      color: "bg-emerald-50 text-emerald-600",
-      iconColor: "text-emerald-600",
-      path: "/wallet/ledger"
-    },
-    {
-      title: "Account Statement",
-      description: "Generate and download professional monthly PDF statements.",
-      icon: FileBarChart,
-      color: "bg-purple-50 text-purple-600",
-      iconColor: "text-purple-600",
-      path: "/wallet/ledger",
-    }
-  ];
-
   return (
-    <Layout title="Reports" showBottomNav>
-      <div className="container py-8 pb-32 max-w-5xl space-y-10">
+    <Layout hideHeader showBottomNav>
+      <div className="min-h-screen bg-slate-50/50 pb-32">
         
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-1"
-          >
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Reports & Analytics</h1>
-            <p className="text-slate-500 font-medium">Insights into your financial mobility and activity.</p>
-          </motion.div>
+        {/* Immersive Header Card */}
+        <div className="bg-slate-900 pt-6 pb-20 px-6 rounded-b-[40px] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full blur-[100px] -mr-32 -mt-32 animate-pulse"></div>
           
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100"
-          >
-            <TrendingUp className="h-4 w-4 text-indigo-600" />
-            <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">Live Analytics</span>
-          </motion.div>
-        </div>
-
-        {/* Bento Grid Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Main Stats Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="md:col-span-1"
-          >
-            <Card className="h-full bg-slate-950 text-white rounded-[2.5rem] border-none shadow-2xl overflow-hidden relative group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/30 transition-all"></div>
-              <CardContent className="p-8 flex flex-col justify-between h-full relative z-10">
-                <div className="space-y-4">
-                  <div className="inline-flex p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-                    <CheckCircle className="h-6 w-6 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Total Success</p>
-                    <h3 className="text-6xl font-black tracking-tighter mt-1">{stats.count}</h3>
-                  </div>
-                </div>
-                
-                <div className="mt-8 flex items-center gap-2 text-emerald-400">
-                  <div className="bg-emerald-400/10 p-1 rounded-full">
-                    <ArrowUpRight className="h-4 w-4" />
-                  </div>
-                  <span className="text-sm font-bold">+{stats.growth}% vs last month</span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Visualization Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="md:col-span-2"
-          >
-            <Card className="h-full bg-white rounded-[2.5rem] border-slate-100 shadow-xl overflow-hidden">
-               <CardContent className="p-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Transaction Volume</h4>
-                      <p className="text-slate-400 text-[10px] font-medium uppercase tracking-tight">Last 7 Days trend</p>
-                    </div>
-                  </div>
-                  
-                  <div className="h-[180px] w-full">
-                    <ChartContainer config={chartConfig}>
-                      <BarChart data={chartData}>
-                        <XAxis 
-                          dataKey="name" 
-                          stroke="#94a3b8" 
-                          fontSize={10} 
-                          tickLine={false} 
-                          axisLine={false} 
-                          fontWeight={700}
-                        />
-                        <Tooltip content={<ChartTooltipContent hideLabel />} />
-                        <Bar 
-                          dataKey="total" 
-                          fill="currentColor" 
-                          radius={[6, 6, 0, 0]}
-                          className="fill-indigo-600"
-                        >
-                          {chartData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fillOpacity={0.8 + (index * 0.03)} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
-                  </div>
-               </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Detailed Modules Grid */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-3">
-              <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse"></span>
-              Strategic Deep Dives
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {reportModules.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + (index * 0.1) }}
-                onClick={() => navigate(item.path)}
-                className="group relative bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:border-indigo-100 transition-all cursor-pointer active:scale-95"
+          <div className="relative z-10 max-w-5xl mx-auto">
+            {/* Header Top Bar */}
+            <div className="flex items-center gap-3 mb-8">
+              <button 
+                onClick={() => navigate(-1)} 
+                className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors text-white"
               >
-                <div className={`p-4 rounded-2xl ${item.color} w-fit mb-6 transition-transform group-hover:scale-110 group-hover:rotate-3`}>
-                  <item.icon className={`h-7 w-7 ${item.iconColor}`} />
-                </div>
-                
-                <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2 group-hover:text-indigo-600 transition-colors">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-400 font-medium leading-relaxed pr-6">
-                  {item.description}
-                </p>
-                
-                <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                  <div className="bg-indigo-600 p-2 rounded-full shadow-lg">
-                    <ChevronRight className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <h2 className="text-sm font-black text-white uppercase tracking-[0.2em]">Reports & Activity</h2>
+            </div>
+
+            <div className="flex items-center justify-between mb-8">
+              <div className="space-y-1">
+                <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em]">Total Volume</p>
+                <h1 className="text-4xl font-black text-white tracking-tighter">₹{stats.total.toLocaleString()}</h1>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+                <TrendingUp className="h-6 w-6 text-emerald-400" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/5">
+                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Success Rate</p>
+                 <p className="text-xl font-black text-white">98.4%</p>
+               </div>
+               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/5">
+                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Orders</p>
+                 <p className="text-xl font-black text-white">{stats.count}</p>
+               </div>
+            </div>
           </div>
         </div>
 
-        {/* Action Suggestion */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="bg-indigo-600/5 border border-indigo-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6"
-        >
-          <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="p-3 bg-white rounded-2xl shadow-sm">
-              <Download className="h-6 w-6 text-indigo-600" />
+        {/* Main Content Area */}
+        <div className="max-w-5xl mx-auto px-6 -mt-10 relative z-20">
+          
+          <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
+            <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 p-2 border border-slate-100 mb-6">
+              <TabsList className="grid grid-cols-4 w-full bg-transparent h-12">
+                <TabsTrigger value="all" className="rounded-2xl data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase transition-all">ALL</TabsTrigger>
+                <TabsTrigger value="SUCCESS" className="rounded-2xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase transition-all">DONE</TabsTrigger>
+                <TabsTrigger value="PENDING" className="rounded-2xl data-[state=active]:bg-amber-500 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase transition-all">PENDING</TabsTrigger>
+                <TabsTrigger value="FAILED" className="rounded-2xl data-[state=active]:bg-rose-500 data-[state=active]:text-white font-black text-[10px] tracking-widest uppercase transition-all">FAILED</TabsTrigger>
+              </TabsList>
             </div>
-            <div>
-              <p className="font-black text-slate-900 uppercase text-xs tracking-wider">Statement Ready</p>
-              <p className="text-slate-500 text-xs font-medium mt-0.5">Your monthly consolidated report is now available for thermal or PDF export.</p>
+
+            {/* Search & Filter Bar */}
+            <div className="flex gap-3 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                <Input 
+                  placeholder="Search by number or ID..." 
+                  className="h-14 bg-white border-none shadow-sm rounded-2xl pl-12 font-medium text-slate-600 focus-visible:ring-2 focus-visible:ring-blue-100"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button size="icon" className="h-14 w-14 rounded-2xl bg-white border-none shadow-sm text-slate-400 hover:text-slate-900">
+                <Calendar className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <TabsContent value={activeTab} className="mt-0 outline-none">
+              <div className="space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {loading ? (
+                    Array(5).fill(0).map((_, i) => (
+                      <div key={i} className="h-24 bg-white rounded-3xl animate-pulse border border-slate-100"></div>
+                    ))
+                  ) : filteredTransactions.length === 0 ? (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto opacity-50">
+                        <History className="h-10 w-10 text-slate-300" />
+                      </div>
+                      <p className="text-slate-400 font-bold tracking-tight">No transactions found</p>
+                    </div>
+                  ) : filteredTransactions.map((txn, index) => (
+                    <motion.div
+                      key={txn.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => navigate(`/transaction/${txn.id}`, { state: { transaction: txn } })}
+                      className="bg-white p-4 rounded-[28px] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all cursor-pointer flex items-center gap-4 group active:scale-[0.98]"
+                    >
+                      {/* Icon Section */}
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${
+                        txn.service_type.includes('MOBILE') ? 'bg-blue-50 text-blue-600' :
+                        txn.service_type.includes('DTH') ? 'bg-purple-50 text-purple-600' :
+                        'bg-amber-50 text-amber-600'
+                      }`}>
+                        {txn.service_type.includes('MOBILE') ? <Smartphone className="h-7 w-7" /> :
+                         txn.service_type.includes('DTH') ? <Zap className="h-7 w-7" /> :
+                         <Zap className="h-7 w-7" />}
+                      </div>
+
+                      {/* Detail Section */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-lg font-black text-slate-800 tracking-tighter leading-none">
+                            {txn.mobile_number || 'Internal'}
+                          </p>
+                          <p className="text-lg font-black text-slate-900 leading-none">₹{Number(txn.amount).toFixed(0)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
+                             {txn.operator_id || 'RECHARGE'} • {format(new Date(txn.created_at), 'MMM dd, HH:mm')}
+                           </p>
+                        </div>
+                      </div>
+
+                      {/* Status Section */}
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black tracking-widest border-none ${
+                          txn.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
+                          txn.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                          'bg-rose-100 text-rose-700'
+                        }`}>
+                          {txn.status}
+                        </Badge>
+                        <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-blue-600 transition-colors" />
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Advanced Reports Section */}
+          <div className="mt-12 space-y-6">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-3">
+              <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
+              Advanced Analytics
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div 
+                onClick={() => navigate('/wallet/ledger')}
+                className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group"
+               >
+                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                   <Wallet className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="font-black text-slate-800 tracking-tight">Wallet Ledger</h3>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Credit & Debit History</p>
+                 </div>
+                 <ChevronRight className="ml-auto w-5 h-5 text-slate-200" />
+               </div>
+
+               <div 
+                onClick={() => navigate('/reports/history')}
+                className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group"
+               >
+                 <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                   <FileBarChart className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="font-black text-slate-800 tracking-tight">Account Statement</h3>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Monthly PDF Exports</p>
+                 </div>
+                 <ChevronRight className="ml-auto w-5 h-5 text-slate-200" />
+               </div>
             </div>
           </div>
-          <button 
-            onClick={() => navigate('/wallet/ledger')}
-            className="px-8 py-3 bg-slate-900 text-white rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-indigo-600 transition-colors shadow-xl shadow-slate-200"
-          >
-            Export Now
-          </button>
-        </motion.div>
 
+          {/* Quick Action FAB-style Button */}
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="fixed bottom-24 right-6 z-50 md:hidden"
+          >
+            <button 
+              onClick={() => navigate('/wallet')}
+              className="w-16 h-16 bg-blue-600 rounded-full shadow-2xl shadow-blue-400 flex items-center justify-center text-white hover:bg-blue-700 active:scale-90 transition-all"
+            >
+              <Wallet className="h-7 w-7" />
+            </button>
+          </motion.div>
+
+        </div>
       </div>
     </Layout>
   );
