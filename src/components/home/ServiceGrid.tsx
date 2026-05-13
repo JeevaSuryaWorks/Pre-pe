@@ -27,12 +27,20 @@ interface ServiceItemProps {
   isBorrowService?: boolean;
 }
 
-const ServiceItem = ({ icon: Icon, label, path, isBorrowService }: ServiceItemProps) => {
+const ServiceItem = ({ icon: Icon, label, path, isBorrowService, index = 0 }: ServiceItemProps & { index?: number }) => {
   const { isApproved } = useKYC();
   const { data: activeLoan } = useActiveLoan();
   const { toast } = useToast();
 
   const isOverdue = activeLoan?.is_overdue;
+  
+  // Tricolor pattern logic
+  const colors = [
+    { bg: "bg-[#FF671F]/10", text: "text-[#FF671F]", border: "border-[#FF671F]/20" }, // Saffron
+    { bg: "bg-[#000080]/5", text: "text-[#000080]", border: "border-[#000080]/10" },  // Navy
+    { bg: "bg-[#046A38]/10", text: "text-[#046A38]", border: "border-[#046A38]/20" }, // Green
+  ];
+  const theme = colors[index % 3];
 
   return (
     <Link
@@ -62,14 +70,14 @@ const ServiceItem = ({ icon: Icon, label, path, isBorrowService }: ServiceItemPr
         "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
         !isApproved || (isOverdue && !isBorrowService)
           ? "bg-slate-50 opacity-40"
-          : "bg-[#065f46]/5 group-hover:bg-[#065f46]/10 border border-[#065f46]/5 group-hover:border-[#065f46]/20 shadow-sm"
+          : `${theme.bg} ${theme.border} border shadow-sm group-hover:scale-110`
       )}>
         <Icon className={cn(
           "w-6 h-6 transition-colors",
           !isApproved || (isOverdue && !isBorrowService)
             ? "text-slate-300"
-            : "text-[#065f46]"
-        )} strokeWidth={2} />
+            : theme.text
+        )} strokeWidth={2.5} />
       </div>
       <span className="text-[10px] font-black text-slate-500 text-center leading-[1.1] tracking-widest mt-3 px-1 uppercase opacity-80 group-hover:opacity-100 transition-opacity">
         {label}
@@ -100,7 +108,7 @@ export const ServiceGrid = () => {
   return (
     <div className="grid grid-cols-4 gap-y-8 gap-x-2">
       {[...primaryServices, ...secondaryServices].filter(s => s.label !== "See All").map((service, index) => (
-        <ServiceItem key={index} {...service} />
+        <ServiceItem key={index} {...service} index={index} />
       ))}
     </div>
   );

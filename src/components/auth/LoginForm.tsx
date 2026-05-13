@@ -117,12 +117,12 @@ export function LoginForm() {
                     <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>
                         <div className="relative group">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 id="email"
                                 type="email"
                                 placeholder="name@example.com"
-                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
@@ -133,15 +133,15 @@ export function LoginForm() {
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="password">Password</Label>
-                            <Link to="/auth/forgot-password" className="text-xs text-blue-600 hover:underline">Forgot password?</Link>
+                            <Link to="/auth/forgot-password" className="text-xs text-[#FF671F] hover:underline">Forgot password?</Link>
                         </div>
                         <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 id="password"
                                 type="password"
                                 placeholder="••••••••"
-                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
@@ -149,7 +149,7 @@ export function LoginForm() {
                         {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
                     </div>
 
-                    <Button type="submit" disabled={loading} className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-base font-medium transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <Button type="submit" disabled={loading} className="w-full h-11 bg-[#FF671F] hover:bg-orange-600 text-base font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-600/20">
                         {loading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -163,8 +163,8 @@ export function LoginForm() {
                     <div className="text-center mt-6">
                         <p className="text-sm text-slate-500">
                             Don't have an account?{' '}
-                            <Link to="/register" className="text-blue-600 font-semibold hover:underline">
-                                Register here
+                            <Link to="/register" className="text-[#046A38] font-black hover:underline">
+                                Create Account 🇮🇳
                             </Link>
                         </p>
                     </div>

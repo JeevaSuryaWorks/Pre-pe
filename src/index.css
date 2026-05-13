@@ -20,11 +20,15 @@ All colors MUST be HSL.
     --popover: 0 0% 89%;
     --popover-foreground: 0 0% 9%;
 
-    --primary: 158 64% 51%; /* Emerald 600 */
-    --primary-foreground: 0 0% 98%;
+    --primary: 18 100% 56%; /* India Saffron #FF671F */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 32%;
-    --secondary-foreground: 0 0% 98%;
+    --india-green: 151 93% 22%; /* India Green #046A38 */
+    --india-saffron: 18 100% 56%;
+    --india-navy: 241 96% 28%; /* Navy Blue #06038D */
+    
+    --secondary: 151 93% 22%; /* Using green as secondary */
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 63%;
     --muted-foreground: 0 0% 9%;
@@ -156,6 +160,26 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  .bg-india-tricolor {
+    background: linear-gradient(180deg, #FF671F 0%, #FFFFFF 50%, #046A38 100%);
+  }
+  
+  .bg-india-saffron {
+    background-color: #FF671F;
+  }
+  
+  .bg-india-green {
+    background-color: #046A38;
+  }
+  
+  .text-india-saffron {
+    color: #FF671F;
+  }
+  
+  .text-india-green {
+    color: #046A38;
   }
 
   .no-scrollbar::-webkit-scrollbar {

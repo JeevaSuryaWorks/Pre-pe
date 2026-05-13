@@ -65,8 +65,8 @@ const HomePage = () => {
             <div className="relative pb-10 flex flex-col">
                 
                 {/* Dynamic Background Accents */}
-                <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-[#065f46]/10 to-transparent pointer-events-none" />
-                <div className="absolute top-20 -right-20 w-64 h-64 bg-emerald-100/30 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-[#FF671F]/10 to-transparent pointer-events-none" />
+                <div className="absolute top-20 -right-20 w-64 h-64 bg-orange-100/30 rounded-full blur-3xl pointer-events-none" />
 
                 <AnnouncementBar />
 
@@ -79,16 +79,16 @@ const HomePage = () => {
                         <Link to="/profile">
                             <Avatar className="h-10 w-10 border-2 border-white shadow-md transition-transform active:scale-95">
                                 <AvatarImage src={user?.user_metadata?.avatar_url} />
-                                <AvatarFallback className="bg-emerald-600 text-white font-black text-sm">
+                                <AvatarFallback className="bg-[#FF671F] text-white font-black text-sm">
                                     {name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                         </Link>
                         <div className="flex flex-col">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-[#065f46] opacity-70">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#FF671F]">
                                 {greeting()}
                             </p>
-                            <h1 className="text-sm font-black text-slate-900 tracking-tight">
+                            <h1 className="text-sm font-black text-[#000080] tracking-tight">
                                 {name.split(' ')[0]}
                             </h1>
                         </div>
@@ -97,7 +97,7 @@ const HomePage = () => {
                     <div className="flex items-center gap-2">
                         <Link to="/notifications" className="h-10 w-10 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-600 relative active:scale-90 transition-all">
                             <Bell className="w-4 h-4" />
-                            <span className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+                            <span className="absolute top-3 right-3 w-2 h-2 bg-[#FF671F] rounded-full border-2 border-white" />
                         </Link>
                     </div>
                 </header>
@@ -110,45 +110,47 @@ const HomePage = () => {
                         className="relative mb-8"
                     >
                         {/* Shadow layers */}
-                        <div className="absolute inset-0 bg-emerald-600/10 blur-2xl translate-y-4 rounded-[32px]" />
+                        <div className="absolute inset-0 bg-[#FF671F]/10 blur-2xl translate-y-4 rounded-[32px]" />
                         
-                        <div className="relative bg-gradient-to-br from-[#065f46] to-[#047857] rounded-[32px] p-6 text-white shadow-xl overflow-hidden group">
-                            {/* Abstract decorative circles */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl transition-transform duration-1000 group-hover:scale-150" />
-                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-400/20 rounded-full -ml-12 -mb-12 blur-xl" />
+                        <div className="relative bg-gradient-to-br from-[#FF671F] via-white to-[#046A38] rounded-[32px] p-0.5 shadow-xl overflow-hidden group">
+                            <div className="bg-white/95 backdrop-blur-xl rounded-[30px] p-6 text-slate-900 h-full border-b-[4px] border-[#046A38]/30">
+                                {/* Abstract decorative circles */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF671F]/10 rounded-full -mr-16 -mt-16 blur-2xl transition-transform duration-1000 group-hover:scale-150" />
+                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#046A38]/20 rounded-full -ml-12 -mb-12 blur-xl" />
 
-                            <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-100/70 mb-1">
-                                            Account Balance
-                                        </p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-sm font-bold opacity-80">₹</span>
-                                            <h2 className="text-3xl font-black tracking-tighter">
-                                                {walletLoading ? "..." : (isApproved ? availableBalance.toFixed(2) : "****.**")}
-                                            </h2>
+                                <div className="relative z-10">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF671F] mb-1">
+                                                Available Balance
+                                            </p>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-sm font-bold text-slate-400">₹</span>
+                                                <h2 className="text-4xl font-black tracking-tighter text-slate-900">
+                                                    {walletLoading ? "..." : (isApproved ? availableBalance.toFixed(2) : "****.**")}
+                                                </h2>
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#000080]/5 rounded-2xl p-2 px-3 flex flex-col items-end border border-[#000080]/10">
+                                            <p className="text-[9px] font-bold text-[#000080] uppercase tracking-wider">Reward Points</p>
+                                            <div className="flex items-center gap-1">
+                                                <Trophy className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                                <span className="text-sm font-black tracking-tight text-[#000080]">
+                                                    {pointsLoading ? "..." : totalPoints.toLocaleString()}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="bg-white/15 backdrop-blur-md rounded-2xl p-2 px-3 flex flex-col items-end">
-                                        <p className="text-[10px] font-bold text-emerald-100 opacity-80">Reward Points</p>
-                                        <div className="flex items-center gap-1">
-                                            <Trophy className="w-3 h-3 text-amber-300 fill-amber-300" />
-                                            <span className="text-sm font-black tracking-tight">
-                                                {pointsLoading ? "..." : totalPoints.toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Action Pillars */}
-                                <div className="grid grid-cols-1">
-                                    <Link to="/fund-request" className="bg-white/15 hover:bg-white/25 backdrop-blur-md transition-all rounded-2xl py-3 flex flex-col items-center gap-1 group/btn">
-                                        <div className="bg-white text-emerald-700 p-1.5 rounded-lg shadow-sm group-hover/btn:scale-110 transition-transform">
-                                            <Plus className="w-4 h-4" />
-                                        </div>
-                                        <span className="text-[10px] font-black uppercase tracking-wider">Add Money</span>
-                                    </Link>
+                                    {/* Action Pillars */}
+                                    <div className="grid grid-cols-1">
+                                        <Link to="/fund-request" className="bg-[#000080] hover:bg-[#06038D] transition-all rounded-2xl py-4 flex items-center justify-center gap-3 group/btn shadow-lg shadow-blue-900/20">
+                                            <div className="bg-white/20 p-1.5 rounded-lg">
+                                                <Plus className="w-4 h-4 text-white" />
+                                            </div>
+                                            <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Add Money</span>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         </div>

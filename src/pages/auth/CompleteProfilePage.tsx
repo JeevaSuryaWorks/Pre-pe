@@ -74,27 +74,31 @@ export default function CompleteProfilePage() {
 
     return (
         <Layout hideHeader>
-            <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 shadow-inner mx-auto">
-                        <ShieldCheck className="w-8 h-8 text-blue-600" />
+            <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/10 relative overflow-hidden">
+                {/* Decorative patriotic elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32" />
+
+                <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-[32px] p-10 shadow-2xl border border-white/20 animate-in fade-in zoom-in-95 duration-500 text-center">
+                    <div className="w-20 h-20 bg-[#046A38]/10 rounded-full flex items-center justify-center mb-8 ring-8 ring-[#046A38]/5 mx-auto">
+                        <ShieldCheck className="w-10 h-10 text-[#046A38]" />
                     </div>
 
-                    <div className="text-center mb-8">
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">One Last Step</h1>
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">One Last Step</h1>
                         <p className="text-slate-500 mt-2 font-medium">
-                            Please provide your phone number to secure your account and proceed to KYC verification.
+                            Please provide your phone number to secure your account and proceed to KYC verification. 🇮🇳
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Mobile Number</Label>
+                        <div className="space-y-2 text-left">
+                            <Label htmlFor="phone" className="text-xs font-black uppercase tracking-wider text-slate-500 ml-1">Mobile Number</Label>
                             <div className="relative group flex items-center">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10 flex items-center justify-center">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-[#FF671F] transition-colors z-10 flex items-center justify-center">
                                     <Smartphone className="w-4 h-4" />
                                 </div>
-                                <div className="absolute left-10 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-600 z-10">
+                                <div className="absolute left-10 top-1/2 -translate-y-1/2 text-sm font-black text-slate-600 z-10">
                                     +91
                                 </div>
                                 <Input
@@ -102,19 +106,19 @@ export default function CompleteProfilePage() {
                                     placeholder="9876543210"
                                     type="tel"
                                     maxLength={10}
-                                    className="pl-20 h-14 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-lg font-medium tracking-wide"
+                                    className="pl-20 h-14 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all text-lg font-black tracking-widest"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                                     disabled={loading}
                                 />
                             </div>
-                            {error && <p className="text-sm font-medium text-rose-500 mt-2 ml-1">{error}</p>}
+                            {error && <p className="text-xs font-bold text-rose-500 mt-2 ml-1 uppercase tracking-tighter">⚠️ {error}</p>}
                         </div>
 
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-base font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-600/20"
+                            className="w-full h-14 rounded-2xl bg-[#FF671F] hover:bg-orange-600 text-white text-lg font-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-600/20"
                         >
                             {loading ? (
                                 <>
@@ -122,7 +126,7 @@ export default function CompleteProfilePage() {
                                     Saving...
                                 </>
                             ) : (
-                                <>Proceed to KYC <ArrowRight className="ml-2 w-5 h-5" /></>
+                                <>Proceed to KYC 🇮🇳 <ArrowRight className="ml-2 w-5 h-5" /></>
                             )}
                         </Button>
                     </form>

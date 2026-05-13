@@ -102,23 +102,23 @@ const SavedPage = () => {
             <div className="container max-w-2xl px-4 py-8 pb-24 space-y-6">
                 <header className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Favorites</h1>
-                        <p className="text-slate-500 font-medium">Your circle & favorites</p>
+                        <h1 className="text-3xl font-black text-[#000080] tracking-tight">Executive Circle</h1>
+                        <p className="text-slate-500 font-medium">Your family & favorite accounts</p>
                     </div>
                     <Button 
                         onClick={() => setIsAddDialogOpen(true)}
-                        className="rounded-2xl bg-slate-900 hover:bg-blue-600 text-white font-bold h-12 px-6 shadow-lg shadow-slate-900/10 transition-all duration-300"
+                        className="rounded-2xl bg-[#FF671F] hover:bg-orange-600 text-white font-black h-12 px-6 shadow-lg shadow-orange-500/20 transition-all duration-300 uppercase tracking-widest text-[10px]"
                     >
                         <Plus className="w-5 h-5 mr-2" /> Add Member
                     </Button>
                 </header>
 
                 <Tabs defaultValue="circle" className="w-full">
-                    <TabsList className="w-full grid grid-cols-2 p-1 bg-slate-100/50 rounded-2xl mb-8 h-12">
-                        <TabsTrigger value="circle" className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                    <TabsList className="w-full grid grid-cols-2 p-1 bg-white border border-slate-100 shadow-sm rounded-2xl mb-8 h-12">
+                        <TabsTrigger value="circle" className="rounded-xl font-bold data-[state=active]:bg-[#046A38] data-[state=active]:text-white data-[state=active]:shadow-sm uppercase tracking-widest text-[9px]">
                            <Users className="w-4 h-4 mr-2" /> Circle
                         </TabsTrigger>
-                        <TabsTrigger value="favorites" className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        <TabsTrigger value="favorites" className="rounded-xl font-bold data-[state=active]:bg-[#046A38] data-[state=active]:text-white data-[state=active]:shadow-sm uppercase tracking-widest text-[9px]">
                            <Heart className="w-4 h-4 mr-2" /> Favorites
                         </TabsTrigger>
                     </TabsList>

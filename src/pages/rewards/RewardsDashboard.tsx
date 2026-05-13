@@ -313,22 +313,22 @@ export default function RewardsDashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="relative px-6 py-10 rounded-[3rem] bg-slate-900 border border-white/10 shadow-3xl text-center overflow-hidden mb-10"
           >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-transparent to-emerald-600/10 pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#FF671F]/20 via-transparent to-[#046A38]/20 pointer-events-none"></div>
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] transform translate-x-1/2 -translate-y-1/2"></div>
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FF671F]/10 rounded-full blur-[120px] transform translate-x-1/2 -translate-y-1/2"></div>
               
               <div className="space-y-6 relative z-10 w-full max-w-2xl">
                   <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
+                      <div className="absolute inset-0 bg-[#FF671F]/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
                       <div className="bg-white/10 px-5 py-1.5 rounded-full backdrop-blur-3xl border border-white/20 flex items-center gap-2 mb-3 mx-auto w-fit">
-                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="tracking-widest uppercase text-[9px] font-black text-indigo-200">Executive Rewards</span>
+                          <TrendingUp className="w-3.5 h-3.5 text-[#FF671F]" />
+                          <span className="tracking-widest uppercase text-[9px] font-black text-orange-200">Executive Rewards</span>
                       </div>
                        <div className="flex items-baseline justify-center gap-2 relative">
                            <h2 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
                                {totalPoints.toLocaleString()}
                            </h2>
-                           <span className="text-sm text-yellow-500 font-black tracking-tight drop-shadow-lg">PTS</span>
+                           <span className="text-sm text-[#FF671F] font-black tracking-tight drop-shadow-lg">PTS</span>
                        </div>
 
                       {/* Redeem Button */}
@@ -341,7 +341,7 @@ export default function RewardsDashboard() {
                             className={`
                                 relative px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-2xl
                                 ${totalPoints >= 1000 
-                                    ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-900 shadow-yellow-500/20 hover:shadow-yellow-500/40' 
+                                    ? 'bg-gradient-to-r from-[#FF671F] to-orange-600 text-white shadow-orange-500/20 hover:shadow-orange-500/40' 
                                     : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
                                 }
                             `}
@@ -357,7 +357,7 @@ export default function RewardsDashboard() {
                           </motion.button>
                           
                           {totalPoints >= 1000 && (
-                             <p className="text-[10px] font-bold text-indigo-300/60 uppercase tracking-widest animate-pulse">
+                             <p className="text-[10px] font-bold text-orange-200/60 uppercase tracking-widest animate-pulse">
                                 Convert to ₹{(Math.floor(totalPoints / 1000) * 10).toFixed(2)} instantly
                              </p>
                           )}
@@ -370,19 +370,19 @@ export default function RewardsDashboard() {
                     {/* Current Streak Card */}
                     <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
                         <div className="flex items-center gap-2 mb-1">
-                           <CalendarDays className="w-3.5 h-3.5 text-indigo-300" />
-                           <p className="text-[8px] font-black uppercase tracking-widest text-indigo-300/80">Streak</p>
+                           <CalendarDays className="w-3.5 h-3.5 text-orange-300" />
+                           <p className="text-[8px] font-black uppercase tracking-widest text-orange-300/80">Streak</p>
                         </div>
                         <p className="text-2xl font-black tabular-nums tracking-tighter text-white">
-                          {streak} <span className="text-[8px] font-black text-indigo-300/40 uppercase ml-1">{streak === 1 ? 'Day' : 'Days'}</span>
+                          {streak} <span className="text-[8px] font-black text-orange-300/40 uppercase ml-1">{streak === 1 ? 'Day' : 'Days'}</span>
                         </p>
                     </div>
 
                     {/* Cashback Card */}
                     <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
                         <div className="flex items-center gap-2 mb-1">
-                           <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-                           <p className="text-[8px] font-black uppercase tracking-widest text-emerald-400/80">Earned</p>
+                           <Banknote className="w-3.5 h-3.5 text-[#046A38]" />
+                           <p className="text-[8px] font-black uppercase tracking-widest text-green-400/80">Earned</p>
                         </div>
                         <p className="text-2xl font-black tabular-nums tracking-tighter text-white font-mono leading-none pt-1">
                           ₹{kycLoading ? "..." : (isApproved ? cashback.toFixed(2) : "**.**")}

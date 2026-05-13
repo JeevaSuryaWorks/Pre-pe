@@ -25,6 +25,9 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
   return (
     <div className="min-h-screen bg-[#F1F5F9] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] flex justify-center w-full overflow-x-hidden app-native-container">
       <div className={`w-full ${isFullWidth ? 'max-w-none' : 'max-w-[448px]'} bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] ${noScroll ? 'h-screen overflow-hidden' : 'min-h-screen'} relative flex flex-col mx-auto safe-area-pt`}>
+        
+        {/* Patriotic Accent Bar */}
+        <div className="h-1.5 w-full bg-india-tricolor shrink-0" />
 
         {/* KYC Warning Banner */}
         {!hideHeader && !isKYCPage && status && !isApproved && (
@@ -52,6 +55,9 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
           {children}
         </main>
         {showBottomNav && <BottomNav />}
+        
+        {/* Patriotic Bottom Bar (Green) */}
+        <div className="h-1.5 w-full bg-[#046A38] shrink-0" />
       </div>
     </div>
   );

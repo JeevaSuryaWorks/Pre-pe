@@ -144,11 +144,11 @@ export function RegisterForm() {
                     <div className="space-y-2">
                         <Label htmlFor="fullname">Full Name</Label>
                         <div className="relative group">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 id="fullname"
                                 placeholder="John Doe"
-                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
                             />
@@ -159,7 +159,7 @@ export function RegisterForm() {
                     <div className="space-y-2">
                         <Label htmlFor="phone">Phone</Label>
                         <div className="relative group flex items-center">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors z-10">
                                 <Smartphone />
                             </div>
                             <div className="absolute left-9 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500 z-10">
@@ -170,7 +170,7 @@ export function RegisterForm() {
                                 placeholder="9876543210"
                                 type="tel"
                                 maxLength={10}
-                                className="pl-20 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                                className="pl-20 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                             />
@@ -181,16 +181,16 @@ export function RegisterForm() {
                     <div className="space-y-2">
                         <Label htmlFor="sim-provider">SIM Provider</Label>
                         <div className="relative group">
-                            <Signal className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" />
+                            <Signal className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors z-10" />
                             <Select onValueChange={setSimProvider} value={simProvider}>
-                                <SelectTrigger className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all">
+                                <SelectTrigger className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all">
                                     <SelectValue placeholder="Choose SIM Provider" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-white border-slate-200">
-                                    <SelectItem value="Airtel" className="hover:bg-slate-50">Airtel</SelectItem>
-                                    <SelectItem value="Jio" className="hover:bg-slate-50">Jio</SelectItem>
-                                    <SelectItem value="Vi" className="hover:bg-slate-50">Vi</SelectItem>
-                                    <SelectItem value="BSNL" className="hover:bg-slate-50">BSNL</SelectItem>
+                                    <SelectItem value="Airtel" className="hover:bg-orange-50">Airtel</SelectItem>
+                                    <SelectItem value="Jio" className="hover:bg-orange-50">Jio</SelectItem>
+                                    <SelectItem value="Vi" className="hover:bg-orange-50">Vi</SelectItem>
+                                    <SelectItem value="BSNL" className="hover:bg-orange-50">BSNL</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -198,14 +198,14 @@ export function RegisterForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">Email Address</Label>
                         <div className="relative group">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 id="email"
                                 type="email"
                                 placeholder="you@example.com"
-                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
@@ -216,12 +216,12 @@ export function RegisterForm() {
                     <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
                         <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 id="password"
                                 type="password"
                                 placeholder="••••••••"
-                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 transition-all"
+                                className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] transition-all"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
@@ -230,7 +230,7 @@ export function RegisterForm() {
                     </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-base font-semibold mt-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-slate-200">
+                <Button type="submit" disabled={loading} className="w-full h-12 bg-[#FF671F] hover:bg-orange-600 text-base font-bold mt-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-orange-600/20">
                     {loading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -244,8 +244,8 @@ export function RegisterForm() {
                 <div className="text-center mt-6">
                     <p className="text-sm text-slate-500">
                         Already have an account?{' '}
-                        <Link to="/login" className="text-blue-600 font-semibold hover:underline">
-                            Sign In here
+                        <Link to="/login" className="text-[#046A38] font-black hover:underline">
+                            Sign In here 🇮🇳
                         </Link>
                     </p>
                 </div>

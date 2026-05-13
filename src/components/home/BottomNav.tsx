@@ -25,7 +25,7 @@ export const BottomNav = () => {
             <div className="w-full max-w-md pointer-events-auto relative">
                 
                 {/* Main Navigation Bar */}
-                <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-2 py-2 safe-area-pb">
+                <div className="bg-white/95 backdrop-blur-xl border-t-[3px] border-[#046A38] shadow-[0_-10px_30px_rgba(4,106,56,0.1)] px-2 py-2 safe-area-pb">
                     <div className="grid grid-cols-5 items-end gap-1">
                         {navItems.map((item, index) => {
                             const active = isActive(item.path);
@@ -38,18 +38,18 @@ export const BottomNav = () => {
                                             className={cn(
                                                 "absolute bottom-4 flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 shadow-xl",
                                                 active 
-                                                    ? "bg-blue-600 scale-110 shadow-blue-600/40" 
-                                                    : "bg-slate-800 hover:bg-slate-700 shadow-slate-900/20"
+                                                    ? "bg-[#FF671F] scale-110 shadow-orange-600/40" 
+                                                    : "bg-[#000080] hover:bg-slate-700 shadow-slate-900/20"
                                             )}
                                         >
                                             <item.icon className="w-7 h-7 text-white" />
                                             {active && (
-                                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-[#FF671F] animate-pulse" />
                                             )}
                                         </button>
                                         <span className={cn(
                                             "absolute bottom-0 text-[9px] font-bold uppercase tracking-tight transition-colors whitespace-nowrap",
-                                            active ? "text-blue-600" : "text-slate-400"
+                                            active ? "text-[#FF671F]" : "text-slate-400"
                                         )}>
                                             AI
                                         </span>
@@ -65,7 +65,7 @@ export const BottomNav = () => {
                                 >
                                     <div className={cn(
                                         "p-1.5 rounded-xl transition-all duration-300",
-                                        active ? "bg-emerald-50 text-emerald-600 scale-110" : "text-slate-400 group-hover:text-slate-600"
+                                        active ? "bg-emerald-50 text-[#046A38] scale-110" : "text-slate-400 group-hover:text-slate-600"
                                     )}>
                                         <item.icon
                                             className="w-5 h-5"
@@ -76,7 +76,7 @@ export const BottomNav = () => {
                                     </div>
                                     <span className={cn(
                                         "text-[9px] font-bold uppercase tracking-tighter transition-colors",
-                                        active ? "text-emerald-600" : "text-slate-400"
+                                        active ? "text-[#046A38]" : "text-slate-400"
                                     )}>
                                         {item.label}
                                     </span>

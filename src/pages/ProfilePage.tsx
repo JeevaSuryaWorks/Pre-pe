@@ -116,11 +116,11 @@ const ProfilePage = () => {
             <div className="w-full max-w-md bg-[#F8FAFC] min-h-screen relative pb-28 flex flex-col">
 
                 {/* Hero Header Section */}
-                <div className="relative h-56 bg-slate-950 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-transparent to-emerald-600/20"></div>
+                <div className="relative h-56 bg-slate-900 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#FF671F]/40 via-white/10 to-[#046A38]/40"></div>
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px]"></div>
-                    <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px]"></div>
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#FF671F]/30 rounded-full blur-[100px]"></div>
+                    <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#046A38]/30 rounded-full blur-[100px]"></div>
                     
                     <div className="relative z-10 px-6 pt-8 flex items-center justify-between">
                         <Button 
@@ -131,7 +131,7 @@ const ProfilePage = () => {
                         >
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
-                        <h1 className="text-sm font-black text-white uppercase tracking-[0.3em]">Settings</h1>
+                        <h1 className="text-sm font-black text-white uppercase tracking-[0.3em]">Executive Profile</h1>
                         <Button 
                             variant="ghost" 
                             size="icon" 
@@ -155,12 +155,12 @@ const ProfilePage = () => {
                             <div className="relative">
                                 <Avatar className="h-20 w-20 ring-4 ring-slate-50 shadow-2xl rounded-[1.5rem] overflow-hidden">
                                     <AvatarImage src={user?.user_metadata?.avatar_url} className="object-cover w-full h-full" />
-                                    <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-2xl">
+                                    <AvatarFallback className="bg-gradient-to-br from-[#FF671F] to-[#000080] text-white font-black text-2xl">
                                         {getInitials()}
                                     </AvatarFallback>
                                 </Avatar>
                                 {kycStatus === 'APPROVED' && (
-                                    <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1.5 rounded-full ring-4 ring-white shadow-lg">
+                                    <div className="absolute -bottom-1 -right-1 bg-[#046A38] text-white p-1.5 rounded-full ring-4 ring-white shadow-lg">
                                         <ShieldCheck className="w-3.5 h-3.5" />
                                     </div>
                                 )}

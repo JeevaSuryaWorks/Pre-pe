@@ -309,56 +309,56 @@ export const KYCPage = () => {
     if (kycStatus === 'APPROVED' && kycData) {
         return (
             <Layout hideHeader>
-                <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-8 px-4">
-                    <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="p-4 border-b border-gray-50 flex items-center gap-3">
-                            <button onClick={() => navigate('/home')} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100">
+                <div className="min-h-screen bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 flex flex-col items-center pt-8 px-4">
+                    <div className="w-full max-w-md bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-50 flex items-center gap-3">
+                            <button onClick={() => navigate('/home')} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-all">
                                 <ChevronLeft className="w-5 h-5 text-slate-600" />
                             </button>
-                            <h1 className="text-lg font-bold text-slate-800">KYC Verification</h1>
+                            <h1 className="text-lg font-black text-slate-800 tracking-tight">Identity Verified</h1>
                         </div>
 
                         <div className="p-8 flex flex-col items-center text-center">
-                            <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50/50">
-                                <div className="w-12 h-12 bg-green-400 rounded-full flex items-center justify-center shadow-lg shadow-green-200">
+                            <div className="w-24 h-24 bg-[#046A38]/10 rounded-full flex items-center justify-center mb-6 ring-8 ring-[#046A38]/5">
+                                <div className="w-14 h-14 bg-[#046A38] rounded-full flex items-center justify-center shadow-lg shadow-[#046A38]/20">
                                     <CheckCircle className="w-8 h-8 text-white" />
                                 </div>
                             </div>
 
-                            <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Verified!</h2>
-                            <p className="text-slate-500 mb-8 max-w-xs">
-                                Your KYC documents have been approved. You have full access to all features.
+                            <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Jai Hind! 🇮🇳</h2>
+                            <p className="text-slate-500 mb-8 max-w-xs font-medium">
+                                Your KYC is approved. You are now a verified member of the PrePe Digital India family.
                             </p>
 
                             <div className="w-full space-y-3">
-                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-4 text-left">
-                                    <div className="w-10 h-10 bg-white border border-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                                        <ShieldCheck className="w-6 h-6 text-blue-600" />
+                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-4 text-left shadow-inner">
+                                    <div className="w-10 h-10 bg-white border border-[#FF671F]/20 rounded-xl flex items-center justify-center shrink-0">
+                                        <ShieldCheck className="w-6 h-6 text-[#FF671F]" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900">Aadhaar Card</p>
-                                        <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.decrypted_aadhar ? kycData.decrypted_aadhar.slice(-4) : '****'}</span>
+                                        <p className="font-bold text-slate-900 text-sm">Aadhaar Card</p>
+                                        <p className="text-xs text-[#046A38] font-black flex items-center gap-1">
+                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600 font-mono">•••• {kycData.decrypted_aadhar ? kycData.decrypted_aadhar.slice(-4) : '****'}</span>
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-4 text-left">
-                                    <div className="w-10 h-10 bg-white border border-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                                        <CreditCard className="w-6 h-6 text-blue-600" />
+                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-4 text-left shadow-inner">
+                                    <div className="w-10 h-10 bg-white border border-[#FF671F]/20 rounded-xl flex items-center justify-center shrink-0">
+                                        <CreditCard className="w-6 h-6 text-[#FF671F]" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900">PAN Card</p>
-                                        <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600">•••• {kycData.decrypted_pan ? kycData.decrypted_pan.slice(-4) : '****'}</span>
+                                        <p className="font-bold text-slate-900 text-sm">PAN Card</p>
+                                        <p className="text-xs text-[#046A38] font-black flex items-center gap-1">
+                                            VERIFIED <span className="text-slate-300">•</span> <span className="text-slate-600 font-mono">•••• {kycData.decrypted_pan ? kycData.decrypted_pan.slice(-4) : '****'}</span>
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mt-8 bg-blue-50/50 border border-blue-100 rounded-xl p-4 text-left w-full">
-                                <p className="text-xs text-blue-700 leading-relaxed">
-                                    <span className="font-bold">Note:</span> If you need to update your documents or re-verify, please contact our support team.
+                            <div className="mt-8 bg-orange-50 border border-[#FF671F]/10 rounded-2xl p-4 text-left w-full">
+                                <p className="text-[11px] text-orange-900 font-bold leading-relaxed">
+                                    <span className="text-[#FF671F] uppercase tracking-tighter">Official Note:</span> Your data is protected with 256-bit encryption under Digital India guidelines.
                                 </p>
                             </div>
                         </div>
@@ -371,8 +371,8 @@ export const KYCPage = () => {
     if (hookLoading || profileLoading) {
         return (
             <Layout hideHeader>
-                <div className="min-h-screen flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div className="min-h-screen flex items-center justify-center bg-white">
+                    <Loader2 className="w-10 h-10 animate-spin text-[#FF671F]" />
                 </div>
             </Layout>
         );
@@ -381,50 +381,48 @@ export const KYCPage = () => {
     if (kycStatus === 'PENDING') {
         return (
             <Layout hideHeader>
-                <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-8 px-4">
-                    <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div className="p-4 border-b border-gray-50 flex items-center gap-3">
+                <div className="min-h-screen bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 flex flex-col items-center pt-8 px-4">
+                    <div className="w-full max-w-md bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-50 flex items-center gap-3">
                             <button
                                 onClick={() => navigate('/home', { replace: true })}
-                                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+                                className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-all"
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
-                            <h1 className="text-lg font-bold text-slate-800">KYC Verification</h1>
+                            <h1 className="text-lg font-black text-slate-800 tracking-tight">Processing KYC</h1>
                         </div>
 
                         <div className="p-8 flex flex-col items-center text-center">
-                            <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-amber-50/50">
-                                <div className="w-12 h-12 bg-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-200">
-                                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                            <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/50">
+                                <div className="w-14 h-14 bg-[#FF671F] rounded-full flex items-center justify-center shadow-lg shadow-orange-600/20">
+                                    <Loader2 className="w-7 h-7 text-white animate-spin" />
                                 </div>
                             </div>
 
-                            <h2 className="text-2xl font-bold text-slate-900 mb-2">Verification Pending</h2>
-                            <p className="text-slate-500 mb-8 max-w-xs">
-                                Your KYC documents have been submitted and are currently under review.
-                                <br /><br />
-                                <span className="font-semibold text-slate-700">Please wait for admin approval.</span>
+                            <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Review in Progress</h2>
+                            <p className="text-slate-500 mb-8 max-w-xs font-medium">
+                                Our officials are verifying your documents. This usually takes 2-4 working hours.
                             </p>
 
                             <div className="w-full space-y-3">
-                                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-left">
-                                    <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                                <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-4 text-left shadow-inner">
+                                    <p className="text-xs text-orange-900 font-black flex items-center gap-2 uppercase tracking-tight">
                                         <AlertCircle className="w-4 h-4" />
-                                        Access Restricted
+                                        Limited Access Mode
                                     </p>
-                                    <p className="text-xs text-amber-700 mt-1">
-                                        Full wallet features and limits will be unlocked once your verification is approved.
+                                    <p className="text-[11px] text-orange-800 mt-1 font-medium">
+                                        You can browse the app, but transaction limits will be unlocked after approval.
                                     </p>
                                 </div>
                                 <Button
-                                    className="w-full" variant="outline"
+                                    className="w-full h-12 bg-white border-2 border-[#FF671F] text-[#FF671F] hover:bg-orange-50 font-black rounded-xl"
                                     onClick={() => window.location.reload()}
                                 >
                                     Check Status Again
                                 </Button>
                                 <Button
-                                    className="w-full"
+                                    className="w-full h-12 bg-[#FF671F] hover:bg-orange-600 text-white font-black rounded-xl shadow-lg shadow-orange-600/20"
                                     onClick={() => navigate('/home', { replace: true })}
                                 >
                                     Go to Dashboard
@@ -444,12 +442,12 @@ export const KYCPage = () => {
                 <div className="w-full max-w-md mb-8 flex justify-between items-center relative px-2">
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 -z-0 rounded-full" />
                     <div
-                        className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-green-500 transition-all duration-300 -z-0 rounded-full"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#FF671F] transition-all duration-300 -z-0 rounded-full"
                         style={{ width: `${((step - 1) / 2) * 100}%` }}
                     />
 
                     {[1, 2, 3].map((num) => (
-                        <div key={num} className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${step >= num ? 'bg-green-600 text-white shadow-green-200 scale-110' : 'bg-white text-slate-400 border border-slate-200'
+                        <div key={num} className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${step >= num ? 'bg-[#FF671F] text-white shadow-orange-200 scale-110' : 'bg-white text-slate-400 border border-slate-200'
                             }`}>
                             {step > num ? <CheckCircle className="w-6 h-6" /> : num}
                         </div>
@@ -457,16 +455,16 @@ export const KYCPage = () => {
                 </div>
 
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900">Complete KYC</h1>
-                    <p className="text-slate-500 text-sm">Verify your identity to unlock {planType} plan features</p>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">Complete KYC</h1>
+                    <p className="text-slate-500 text-sm font-medium">Verify your identity to unlock <span className="text-[#046A38] font-bold">{planType}</span> plan features</p>
                 </div>
 
-                <Card className="w-full max-w-md shadow-xl border-slate-100 overflow-hidden bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            {step === 1 && <User className="w-5 h-5 text-blue-500" />}
-                            {step === 2 && <CreditCard className="w-5 h-5 text-blue-500" />}
-                            {step === 3 && <ShieldCheck className="w-5 h-5 text-blue-500" />}
+                <Card className="w-full max-w-md shadow-2xl border-slate-100 overflow-hidden bg-white/90 backdrop-blur-md rounded-[32px]">
+                    <CardHeader className="bg-gradient-to-r from-[#FF671F]/5 via-white to-[#046A38]/5 border-b border-slate-100 pb-4">
+                        <CardTitle className="flex items-center gap-2 text-lg font-black text-slate-800">
+                            {step === 1 && <User className="w-5 h-5 text-[#FF671F]" />}
+                            {step === 2 && <CreditCard className="w-5 h-5 text-[#FF671F]" />}
+                            {step === 3 && <ShieldCheck className="w-5 h-5 text-[#046A38]" />}
 
                             {step === 1 && "Personal Details"}
                             {step === 2 && "Identity Proof"}
@@ -480,23 +478,23 @@ export const KYCPage = () => {
                         {step === 1 && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div className="space-y-2">
-                                    <Label>Date of Birth</Label>
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Date of Birth</Label>
                                     <Input
                                         type="date"
                                         value={dob}
                                         onChange={(e) => setDob(e.target.value)}
-                                        className="bg-slate-50"
+                                        className="h-12 bg-slate-50 border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Gender</Label>
+                                <div className="space-y-2 pt-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Gender</Label>
                                     <div className="grid grid-cols-3 gap-3">
                                         {['Male', 'Female', 'Other'].map((g) => (
                                             <button
                                                 key={g}
                                                 onClick={() => setGender(g)}
-                                                className={`py-2 rounded-lg border text-sm font-medium transition-all ${gender === g
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500'
+                                                className={`h-11 rounded-xl border text-sm font-bold transition-all ${gender === g
+                                                    ? 'border-[#FF671F] bg-[#FF671F]/5 text-[#FF671F] ring-1 ring-[#FF671F]'
                                                     : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                                                     }`}
                                             >
@@ -512,11 +510,11 @@ export const KYCPage = () => {
                         {step === 2 && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 {/* Numbers Section */}
-                                <div className="grid grid-cols-1 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                <div className="grid grid-cols-1 gap-4 p-4 bg-slate-50/50 rounded-[24px] border border-slate-100">
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-end">
-                                            <Label className="text-xs uppercase text-slate-500 font-semibold tracking-wider">PAN Number</Label>
-                                            <span className="text-[10px] text-slate-400 font-mono">{panNumber.length}/10</span>
+                                            <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">PAN Number</Label>
+                                            <span className="text-[10px] text-[#FF671F] font-black font-mono">{panNumber.length}/10</span>
                                         </div>
                                         <Input
                                             placeholder="BNJPV6685R"
@@ -526,11 +524,11 @@ export const KYCPage = () => {
                                                 const val = e.target.value.toUpperCase();
                                                 if (val.length <= 10) setPanNumber(val);
                                             }}
-                                            className="font-mono bg-white border-slate-200 uppercase tracking-widest text-lg h-12"
+                                            className="font-mono bg-white border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl uppercase tracking-widest text-lg h-12"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-xs uppercase text-slate-500 font-semibold tracking-wider">Aadhaar Number</Label>
+                                        <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">Aadhaar Number</Label>
                                         <Input
                                             placeholder="1234-5678-9012"
                                             maxLength={14}
@@ -555,13 +553,13 @@ export const KYCPage = () => {
 
                                                 setAadharNumber(formatted);
                                             }}
-                                            className="font-mono bg-white border-slate-200"
+                                            className="font-mono bg-white border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl text-lg h-12"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Uploads Section */}
-                                <div className="space-y-6">
+                                <div className="space-y-6 pt-2">
                                     <DocumentUpload
                                         label="Aadhaar Front Photo"
                                         file={aadharFront}
@@ -578,7 +576,7 @@ export const KYCPage = () => {
                                         setFile={setPanCard}
                                     />
 
-                                    <div className="pt-2 border-t border-slate-100">
+                                    <div className="pt-4 border-t border-slate-100">
                                         <DocumentUpload
                                             label="Live Selfie Verification"
                                             file={selfie}
@@ -587,9 +585,9 @@ export const KYCPage = () => {
                                         />
                                     </div>
                                     {isBusiness && (
-                                        <div className="pt-2 border-t border-slate-100">
-                                            <div className="bg-blue-50/50 p-3 rounded-xl mb-3 border border-blue-100/50">
-                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                                        <div className="pt-4 border-t border-slate-100">
+                                            <div className="bg-[#FF671F]/5 p-3 rounded-xl mb-3 border border-[#FF671F]/10">
+                                                <p className="text-[10px] font-black text-[#FF671F] uppercase tracking-widest flex items-center gap-1.5">
                                                     <Building2 className="w-3 h-3" /> Required for Business Plan
                                                 </p>
                                             </div>
@@ -611,24 +609,24 @@ export const KYCPage = () => {
                         {/* Step 3: Verification */}
                         {step === 3 && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 text-center">
-                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto ring-8 ring-green-50">
-                                    <ShieldCheck className="w-10 h-10 text-green-600" />
+                                <div className="w-20 h-20 bg-[#046A38]/10 rounded-full flex items-center justify-center mx-auto ring-8 ring-[#046A38]/5">
+                                    <ShieldCheck className="w-10 h-10 text-[#046A38]" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-900">Confirm Details</h3>
-                                    <p className="text-slate-500 mt-2 text-sm">
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Confirm Details</h3>
+                                    <p className="text-slate-500 mt-2 text-sm font-medium">
                                         Please verify that all uploaded documents are clear and readable.
                                     </p>
                                 </div>
 
-                                <div className="bg-slate-50 p-4 rounded-xl space-y-3 text-sm border border-slate-100">
-                                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                                        <span className="text-slate-500">PAN Number</span>
-                                        <span className="font-mono font-medium">{panNumber}</span>
+                                <div className="bg-slate-50 p-4 rounded-2xl space-y-3 text-sm border border-slate-100 shadow-inner">
+                                    <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                                        <span className="text-slate-500 font-bold">PAN Number</span>
+                                        <span className="font-mono font-black text-[#FF671F]">{panNumber}</span>
                                     </div>
-                                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                                        <span className="text-slate-500">Aadhaar</span>
-                                        <span className="font-mono font-medium">XXXX-XXXX-{aadharNumber.slice(-4)}</span>
+                                    <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                                        <span className="text-slate-500 font-bold">Aadhaar</span>
+                                        <span className="font-mono font-black text-[#046A38]">XXXX-XXXX-{aadharNumber.slice(-4)}</span>
                                     </div>
                                     <div className="grid grid-cols-5 gap-2 pt-1">
                                         {[
@@ -638,7 +636,7 @@ export const KYCPage = () => {
                                             { file: selfie, label: 'SELF' }, 
                                             ...(isBusiness ? [{ file: shopPhoto, label: 'SHOP' }] : [])
                                         ].map((item, i) => (
-                                            <div key={i} className={`aspect-square rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-200 relative ${item.file ? 'bg-white' : 'bg-red-50'}`}>
+                                            <div key={i} className={`aspect-square rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-200 relative ${item.file ? 'bg-white shadow-sm' : 'bg-red-50'}`}>
                                                 {item.file ? (
                                                     <img
                                                         src={URL.createObjectURL(item.file)}
@@ -648,7 +646,7 @@ export const KYCPage = () => {
                                                 ) : (
                                                     <X className="w-5 h-5 text-red-400" />
                                                 )}
-                                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-[8px] text-white text-center py-0.5 font-bold uppercase">
+                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[7px] text-white text-center py-0.5 font-black tracking-tighter uppercase">
                                                     {item.label}
                                                 </div>
                                             </div>
@@ -656,16 +654,16 @@ export const KYCPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-start gap-3 text-left p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                                <div className="flex items-start gap-3 text-left p-4 bg-[#FF671F]/5 rounded-2xl border border-[#FF671F]/10">
                                     <input
                                         type="checkbox"
-                                        className="mt-1 accent-blue-600 w-4 h-4 cursor-pointer"
+                                        className="mt-1 accent-[#FF671F] w-4 h-4 cursor-pointer"
                                         id="terms"
                                         checked={termsAccepted}
                                         onChange={(e) => setTermsAccepted(e.target.checked)}
                                     />
-                                    <label htmlFor="terms" className="text-xs text-blue-800 font-medium cursor-pointer">
-                                        I hereby declare that the proofs submitted are valid and belong to me.
+                                    <label htmlFor="terms" className="text-xs text-orange-900 font-bold cursor-pointer leading-relaxed">
+                                        I hereby declare that the proofs submitted are valid and belong to me. 🇮🇳
                                     </label>
                                 </div>
                             </div>
@@ -673,13 +671,13 @@ export const KYCPage = () => {
 
                         <div className="mt-auto pt-8 flex gap-3">
                             {step > 1 && (
-                                <Button variant="outline" onClick={handleBack} className="flex-1 h-11">
+                                <Button variant="outline" onClick={handleBack} className="flex-1 h-12 rounded-xl font-bold border-slate-200 text-slate-600">
                                     <ChevronLeft className="w-4 h-4 mr-2" /> Back
                                 </Button>
                             )}
                             <Button
                                 onClick={step === 3 ? handleSubmit : handleNext}
-                                className="flex-1 bg-slate-900 hover:bg-slate-800 h-11"
+                                className="flex-1 bg-[#FF671F] hover:bg-orange-600 h-12 rounded-xl font-black text-white shadow-lg shadow-orange-600/20 active:scale-95 transition-all"
                                 disabled={loading}
                             >
                                 {step === 3 ? (loading ? 'Submitting...' : 'Submit Verification') : (

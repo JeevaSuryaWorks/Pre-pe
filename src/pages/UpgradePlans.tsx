@@ -27,28 +27,28 @@ const getPlanIcon = (id: string) => {
 const getPlanTheme = (id: string) => {
     switch (id.toUpperCase()) {
         case 'BASIC': return { 
-            color: 'text-slate-600', 
-            bgColor: 'bg-slate-100', 
-            grad: 'from-slate-500/10 to-slate-600/10',
-            border: 'border-slate-200'
+            color: 'text-[#046A38]', 
+            bgColor: 'bg-[#046A38]/5', 
+            grad: 'from-[#046A38]/10 to-[#046A38]/5',
+            border: 'border-[#046A38]/20'
         };
         case 'PRO': return { 
-            color: 'text-blue-600', 
-            bgColor: 'bg-blue-100', 
-            grad: 'from-blue-600/10 to-indigo-600/10',
-            border: 'border-blue-200'
+            color: 'text-[#000080]', 
+            bgColor: 'bg-[#000080]/5', 
+            grad: 'from-[#000080]/10 to-[#000080]/5',
+            border: 'border-[#000080]/20'
         };
         case 'BUSINESS': return { 
-            color: 'text-purple-600', 
-            bgColor: 'bg-purple-100', 
-            grad: 'from-purple-600/10 to-fuchsia-600/10',
-            border: 'border-purple-200'
+            color: 'text-[#FF671F]', 
+            bgColor: 'bg-[#FF671F]/5', 
+            grad: 'from-[#FF671F]/10 to-[#FF671F]/5',
+            border: 'border-[#FF671F]/20'
         };
         default: return { 
-            color: 'text-blue-600', 
-            bgColor: 'bg-blue-50', 
-            grad: 'from-blue-600/5 to-blue-600/5',
-            border: 'border-blue-100'
+            color: 'text-[#000080]', 
+            bgColor: 'bg-[#000080]/5', 
+            grad: 'from-[#000080]/5 to-[#000080]/5',
+            border: 'border-[#000080]/10'
         };
     }
 };
@@ -229,17 +229,17 @@ export default function UpgradePlans() {
         <Layout hideHeader showBottomNav>
             <div className="min-h-screen bg-slate-50/50 pb-32">
                 {/* Executive Header */}
-                <div className="bg-white px-6 pt-12 pb-10 border-b border-slate-100 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 -mr-32 -mt-32" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-50 rounded-full blur-3xl opacity-50 -ml-32 -mb-32" />
+                <div className="bg-slate-900 px-6 pt-12 pb-10 border-b border-white/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/20 rounded-full blur-3xl -mr-32 -mt-32" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32" />
                     
                     <div className="relative z-10 flex flex-col items-center text-center">
-                        <div className="bg-blue-600/10 p-3 rounded-2xl mb-4">
-                            <Crown className="w-8 h-8 text-blue-600" />
+                        <div className="bg-white/10 p-3 rounded-2xl mb-4 backdrop-blur-xl border border-white/10">
+                            <Crown className="w-8 h-8 text-[#FF671F]" />
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Upgrade Your Status</h1>
-                        <p className="text-slate-500 text-sm font-medium max-w-[280px]">
-                            Unlock higher limits, premium rewards, and executive features.
+                        <h1 className="text-3xl font-black text-white tracking-tight mb-2">Upgrade Your Status</h1>
+                        <p className="text-orange-100/60 text-sm font-medium max-w-[280px] uppercase tracking-widest text-[10px]">
+                            Unlock Executive Digital India Features
                         </p>
                     </div>
                 </div>
