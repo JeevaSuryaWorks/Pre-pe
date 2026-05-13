@@ -6,7 +6,7 @@ import {
     Smartphone, Tv, Lightbulb, Play, 
     ChevronRight, CreditCard, Wallet, 
     Trophy, ShieldCheck, BadgeCheck,
-    ScanLine, ArrowUpRight, ArrowRight
+    ScanLine, ArrowUpRight, ArrowRight, Globe, ShieldAlert
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
@@ -192,6 +192,22 @@ const HomePage = () => {
                                     Learn About Safety
                                 </Button>
                             </Link>
+                        </div>
+                    </div>
+
+                    {/* --- Security Badges --- */}
+                    <div className="pt-8 pb-4 flex items-center justify-around opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700 select-none px-4">
+                        <div className="flex flex-col items-center gap-2">
+                            <Zap className="w-6 h-6 text-slate-400" />
+                            <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">PCI-DSS</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-2">
+                            <Globe className="w-6 h-6 text-slate-400" />
+                            <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">ISO 27001</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-2">
+                            <ShieldAlert className="w-6 h-6 text-slate-400" />
+                            <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">SECURE</span>
                         </div>
                     </div>
 

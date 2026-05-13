@@ -12,25 +12,18 @@ const ContactPage = () => {
     const userId = user?.id?.substring(0, 8) || 'N/A';
     const greeting = "Greetings!";
 
-    const getWhatsAppUrl = (phone: string, executiveName: string) => {
-        const message = `${greeting} I'm ${userName} (ID: ${userId}). I would like to connect with you regarding Pre-pe.`;
+    const getWhatsAppUrl = (phone: string) => {
+        const message = `${greeting} I'm ${userName} (ID: ${userId}). I would like to connect with Customer Support regarding Pre-pe.`;
         return `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
     };
 
     const contacts = [
         {
-            name: "Boopathiraja",
-            role: "Founder of Prepe",
+            name: "Customer Care Support",
+            role: "Official WhatsApp Support",
             phone: "8668075429",
             color: "bg-green-600",
-            icon: UserCheck
-        },
-        {
-            name: "Surya",
-            role: "CTO",
-            phone: "9789456787",
-            color: "bg-indigo-600",
-            icon: ShieldCheck
+            icon: MessageCircle
         }
     ];
 
@@ -44,13 +37,13 @@ const ContactPage = () => {
                 <div className="p-5 space-y-6">
                     {/* Hero Section */}
                     <div className="space-y-2 py-4">
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Contact Support</h1>
-                        <p className="text-slate-500 font-medium">Have questions? Our leadership and support team are here to help you grow your business.</p>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Support Center</h1>
+                        <p className="text-slate-500 font-medium">Need help? Our support team is available 24/7 to assist you with any queries.</p>
                     </div>
 
-                    {/* Executive Section */}
+                    {/* Support Section */}
                     <div className="space-y-4">
-                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">Core Leadership</h2>
+                        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">WhatsApp Support</h2>
                         <div className="grid gap-4">
                             {contacts.map((contact, idx) => (
                                 <motion.a
@@ -58,22 +51,22 @@ const ContactPage = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.1 }}
-                                    href={getWhatsAppUrl(contact.phone, contact.name)}
+                                    href={getWhatsAppUrl(contact.phone)}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-100 transition-all active:scale-95"
+                                    className="group bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-xl hover:shadow-green-500/10 hover:border-green-100 transition-all active:scale-95"
                                 >
                                     <div className="flex items-center gap-4 text-left">
-                                        <div className={`h-12 w-12 rounded-2xl ${contact.color}/10 flex items-center justify-center`}>
-                                            <contact.icon className={`h-6 w-6 ${contact.color.replace('bg-', 'text-')}`} />
+                                        <div className="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center">
+                                            <MessageCircle className="h-6 w-6 text-green-600" />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors leading-none mb-1">{contact.name}</h4>
+                                            <h4 className="font-bold text-slate-800 group-hover:text-green-600 transition-colors leading-none mb-1">{contact.name}</h4>
                                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{contact.role}</p>
                                         </div>
                                     </div>
                                     <div className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-all shrink-0">
-                                        <MessageCircle className="h-5 w-5" />
+                                        <ChevronRight className="h-5 w-5" />
                                     </div>
                                 </motion.a>
                             ))}
