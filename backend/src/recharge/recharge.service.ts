@@ -10,6 +10,8 @@ import { ConfigService } from '@nestjs/config';
 import { Decimal } from '@prisma/client/runtime/library';
 import * as https from 'https';
 
+import { NotificationService } from '../notifications/notifications.service';
+
 @Injectable()
 export class RechargeService {
   private readonly logger = new Logger(RechargeService.name);
@@ -18,6 +20,7 @@ export class RechargeService {
     private prisma: PrismaService,
     private walletService: WalletService,
     private configService: ConfigService,
+    private notificationService: NotificationService,
   ) { }
 
   async initiateRecharge(
@@ -103,6 +106,8 @@ export class RechargeService {
         });
 
         this.logger.log(`[RECHARGE:SUCCESS] Completed for ${mobileNumber}`);
+        this.sendStatusNotification(userId, isPending ? 'PENDING' : 'SUCCESS', amount, mobileNumber, referenceId);
+        
         return {
           success: true,
           status: isPending ? 'PENDING' : 'SUCCESS',
@@ -112,6 +117,8 @@ export class RechargeService {
       } else {
         // ✅ AUTO-REFUND ONLY ON FAILURE
         this.logger.warn(`[RECHARGE:API_FAILED] Refunding ${userId} due to: ${result.message}`);
+        this.sendStatusNotification(userId, 'FAILED', amount, mobileNumber, referenceId);
+
         await this.walletService.credit(
           userId,
           amount,
@@ -175,6 +182,35 @@ export class RechargeService {
       return await response.json();
     } catch (error: any) {
       throw new BadRequestException('Failed to fetch bill: ' + error.message);
+    }
+  }
+
+  private async sendStatusNotification(userId: string, status: string, amount: number, mobileNumber: string, referenceId: string) {
+    try {
+      const profile = await this.prisma.profiles.findUnique({
+        where: { user_id: userId },
+        select: { fcm_token: true } as any
+      });
+
+      if (profile && (profile as any).fcm_token) {
+        let title = '';
+        let body = '';
+
+        if (status === 'SUCCESS') {
+          title = 'Recharge Successful! 🎉';
+          body = `Your recharge of ₹${amount} for ${mobileNumber} is successful. Ref: ${referenceId}`;
+        } else if (status === 'PENDING') {
+          title = 'Recharge Pending ⏳';
+          body = `Your recharge of ₹${amount} for ${mobileNumber} is pending. We'll update you soon.`;
+        } else if (status === 'FAILED') {
+          title = 'Recharge Failed ❌';
+          body = `Recharge of ₹${amount} failed. Refund initiated to your wallet.`;
+        }
+
+        await this.notificationService.sendPushNotification((profile as any).fcm_token, title, body);
+      }
+    } catch (e) {
+      this.logger.error('Failed to send status notification', e);
     }
   }
 

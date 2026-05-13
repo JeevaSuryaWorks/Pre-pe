@@ -77,12 +77,23 @@ import AIChat from "./pages/AIChat";
 import SafetyPage from "./pages/SafetyPage";
 
 import { useMobileFeatures } from "./hooks/useMobileFeatures";
+import { usePushNotifications } from "./hooks/usePushNotifications";
+import { useAppUpdate } from "./hooks/useAppUpdate";
+import { UpdateDialog } from "./components/mobile/UpdateDialog";
 
 const queryClient = new QueryClient();
 
 const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   useMobileFeatures();
-  return <div className="app-native-container min-h-screen flex flex-col">{children}</div>;
+  usePushNotifications();
+  const { updateAvailable, remoteVersion } = useAppUpdate();
+
+  return (
+    <div className="app-native-container min-h-screen flex flex-col">
+      {children}
+      <UpdateDialog isOpen={updateAvailable} version={remoteVersion} />
+    </div>
+  );
 };
 
 const App = () => (
