@@ -57,6 +57,7 @@ import { useKYC } from '@/hooks/useKYC';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
+import { paymentService } from '@/services/payment.service';
 
 import type {
   Operator,
@@ -101,6 +102,9 @@ export function MobileRechargeForm() {
   const [processing, setProcessing] = useState(false);
   const [resultStatus, setResultStatus] = useState<'SUCCESS' | 'PENDING' | 'FAILED' | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isTopupFlow, setIsTopupFlow] = useState(false);
+  const [topupRefId, setTopupRefId] = useState<string | null>(null);
+  const [shortfall, setShortfall] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -175,7 +179,60 @@ export function MobileRechargeForm() {
     setStep('confirm');
   };
 
-  const handleExecuteRecharge = async () => {
+  const handleAutoTopup = async (neededAmount: number) => {
+    setIsTopupFlow(true);
+    setShortfall(neededAmount);
+    setProcessing(true);
+    
+    try {
+      const result = await paymentService.createUpiIntent(neededAmount);
+      if (result.intent_url) {
+        setTopupRefId(result.reference_id);
+        
+        // Open UPI Intent
+        window.location.href = result.intent_url;
+        
+        // Start polling for payment
+        const poll = setInterval(async () => {
+          try {
+            const status = await paymentService.getPaymentStatus(result.reference_id);
+            if (status.status === 'SUCCESS') {
+              clearInterval(poll);
+              await refetch(); // Sync wallet
+              setIsTopupFlow(false);
+              setTopupRefId(null);
+              // Small delay to ensure DB sync before retrying recharge
+              setTimeout(() => handleExecuteRecharge(true), 1000);
+            } else if (status.status === 'FAILED') {
+              clearInterval(poll);
+              setIsTopupFlow(false);
+              setProcessing(false);
+              toast({ title: 'Top-up Failed', variant: 'destructive' });
+            }
+          } catch (e) {
+            console.warn('Polling top-up error:', e);
+          }
+        }, 3000);
+
+        // Safety timeout for polling
+        setTimeout(() => clearInterval(poll), 120000);
+      }
+    } catch (error: any) {
+      setIsTopupFlow(false);
+      setProcessing(false);
+      toast({ title: 'Top-up Initiation Failed', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleExecuteRecharge = async (force: boolean = false) => {
+    const numAmount = parseFloat(amount);
+    
+    // Check balance before processing
+    if (!force && availableBalance < numAmount) {
+      handleAutoTopup(numAmount - availableBalance);
+      return;
+    }
+
     setProcessing(true);
     const rawNumber = mobileNumber.replace(/\s/g, '');
     try {
@@ -209,6 +266,25 @@ export function MobileRechargeForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (isTopupFlow && processing) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center py-20 space-y-6 animate-in fade-in duration-500">
+        <div className="relative h-20 w-20 mx-auto">
+          <Loader2 className="h-20 w-20 text-blue-600 animate-spin absolute inset-0" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Zap className="h-8 w-8 text-blue-400 fill-current" />
+          </div>
+        </div>
+        <div className="space-y-2 text-center">
+          <p className="font-black text-2xl text-slate-800 tracking-tighter">Verifying Top-up...</p>
+          <p className="text-sm font-medium text-slate-400 max-w-[240px] mx-auto leading-relaxed">
+            We are waiting for your ₹{shortfall.toFixed(2)} payment. Your recharge will proceed automatically once confirmed.
+          </p>
+        </div>
       </div>
     );
   }
@@ -328,7 +404,7 @@ export function MobileRechargeForm() {
         <div className="shrink-0 px-2 pb-2 w-full">
           <Button
             className="w-full h-16 rounded-[28px] text-lg font-black bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-100 transition-all active:scale-[0.98]"
-            onClick={handleExecuteRecharge}
+            onClick={() => handleExecuteRecharge()}
             disabled={processing}
           >
             {processing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "SECURE PAYMENT"}
