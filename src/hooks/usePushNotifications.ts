@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -9,7 +10,7 @@ export const usePushNotifications = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || Capacitor.getPlatform() === 'web') return;
 
     // 1. Request Permission
     const registerPush = async () => {

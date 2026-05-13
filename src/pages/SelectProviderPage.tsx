@@ -62,7 +62,9 @@ export const SelectProviderPage = ({ type, title = "Select Provider" }: SelectPr
 
     const handleProviderClick = (provider: Provider) => {
         if (type === 'dth') {
-            navigate(`/dth-recharge/pay?operator=${provider.id}`);
+            navigate(`/dth-recharge/enter-details?operator=${provider.id}`);
+        } else if (type === 'electricity') {
+            navigate(`/services/electricity/details?operator=${provider.id}`);
         } else {
             // For other services, navigate to the bill fetch details entry page
             navigate(`/bills/fetch?operatorId=${provider.id}`);
@@ -75,7 +77,7 @@ export const SelectProviderPage = ({ type, title = "Select Provider" }: SelectPr
                 {/* Custom Header Extension for Branding - if standard header doesn't have it */}
                 <div className="absolute top-3 right-4 z-50">
                     <img
-                        src="https://www.bharat-connect.com/assets/images/vectors/icon_logo.svg"
+                        src="/bharat-connect.svg"
                         alt="Bharat Connect"
                         className="h-8 w-auto object-contain"
                     />

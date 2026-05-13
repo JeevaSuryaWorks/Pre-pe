@@ -19,6 +19,7 @@ import { SelectProviderPage } from "./pages/SelectProviderPage";
 import { RedeemCodePage } from "./pages/RedeemCodePage";
 import { DTHSelectProvider } from "./pages/dth/DTHSelectProvider";
 import { DTHEnterDetails } from "./pages/dth/DTHEnterDetails";
+import { ElectricityEnterDetails } from "./pages/bills/ElectricityEnterDetails";
 
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "@/layouts/AdminLayout";
@@ -145,6 +146,7 @@ const App = () => (
               <Route path="/dth-recharge" element={<DTHSelectProvider />} />
               <Route path="/dth-recharge/enter-details" element={<DTHEnterDetails />} />
               <Route path="/services/electricity" element={<SelectProviderPage type="electricity" title="Select Provider" />} />
+              <Route path="/services/electricity/details" element={<ElectricityEnterDetails />} />
               <Route path="/services/broadband" element={<SelectProviderPage type="broadband" title="Select Broadband" />} />
               <Route path="/services/redeem-code" element={<RedeemCodePage />} />
 

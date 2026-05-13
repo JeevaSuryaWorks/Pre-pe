@@ -162,6 +162,15 @@ export default function ServicesPage() {
               </div>
             )}
           </div>
+          <div className="mt-12 mb-8 flex flex-col items-center justify-center space-y-4 pb-12">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Powered & Assured By</p>
+            <img 
+              src="/bharat-connect.svg" 
+              alt="Bharat Connect" 
+              className="h-8 w-auto opacity-40 grayscale hover:grayscale-0 transition-all duration-500 cursor-pointer"
+              onClick={() => window.open('https://www.bharat-connect.com/', '_blank')}
+            />
+          </div>
         </div>
       </div>
     </Layout>

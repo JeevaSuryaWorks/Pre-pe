@@ -26,15 +26,12 @@ export const RedeemCodePage = () => {
             <div className="bg-blue-50/30 min-h-screen p-4">
                 {/* Header Card */}
                 <div className="bg-white rounded-xl p-4 flex items-center gap-4 mb-6 shadow-sm border border-gray-100">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-100">
-                        {/* Google Play Logo Proxy */}
-                        <div className="relative w-8 h-8">
-                            <span className="absolute top-0 left-0 text-blue-500">
-                                <Play className="fill-current w-full h-full" />
-                            </span>
-                            {/* Overlay colors to mimic google play logic roughly */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/40 to-green-400/40 rounded-full mix-blend-overlay"></div>
-                        </div>
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100 overflow-hidden p-2">
+                        <img 
+                            src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Play_Arrow_logo.svg" 
+                            alt="Google Play"
+                            className="w-full h-full object-contain"
+                        />
                     </div>
                     <span className="font-semibold text-lg text-slate-800">Play Store</span>
                 </div>

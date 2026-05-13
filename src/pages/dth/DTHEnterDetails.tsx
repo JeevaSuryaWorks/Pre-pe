@@ -215,7 +215,15 @@ export const DTHEnterDetails = () => {
 
     return (
         <Layout title="Enter Details" showBack>
-            <div className="bg-slate-50 min-h-screen p-4 space-y-6">
+            <div className="bg-slate-50 min-h-screen p-4 space-y-6 relative">
+                {/* Bharat Connect Logo */}
+                <div className="absolute top-2 right-4 opacity-70">
+                    <img 
+                        src="/bharat-connect.svg" 
+                        alt="Bharat Connect"
+                        className="h-6 w-auto grayscale contrast-125" 
+                    />
+                </div>
 
                 {/* Operator Header Card */}
                 {operator && (

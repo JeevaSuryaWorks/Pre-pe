@@ -38,9 +38,9 @@ export const DTHSelectProvider = () => {
                 {/* Bharat Connect Header */}
                 <div className="absolute top-3 right-4 z-50">
                     <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/2/23/Bharat_BillPay_logo.svg"
+                        src="/bharat-connect.svg" 
                         alt="Bharat Connect"
-                        className="h-8 w-auto object-contain opacity-80"
+                        className="h-8 w-auto object-contain"
                     />
                 </div>
 
