@@ -211,17 +211,26 @@ const HomePage = () => {
                         </div>
                     </div>
 
-                    {/* --- Trust Tagline --- */}
-                    <div className="py-12 flex flex-col items-center opacity-30 select-none">
-                        <div className="h-[1px] w-12 bg-slate-300 mb-4" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 text-center italic leading-relaxed">
-                            Prepe &bull; Your Trusted Payment Partner
-                        </p>
+                    {/* --- Made in India --- */}
+                    <div className="py-12 flex flex-col items-center gap-4 select-none">
+                        <div className="flex items-center gap-1">
+                            <div className="w-12 h-1 bg-[#FF671F] rounded-full shadow-sm" />
+                            <div className="w-12 h-1 bg-white border border-slate-100 rounded-full shadow-sm" />
+                            <div className="w-12 h-1 bg-[#046A38] rounded-full shadow-sm" />
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center leading-relaxed flex items-center gap-2">
+                                Made in India with <span className="text-red-500 text-xs animate-pulse">❤️</span> Love
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                                Prepe &bull; Your Trusted Payment Partner
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </Layout>
     );
-};
+}
 
 export default HomePage;

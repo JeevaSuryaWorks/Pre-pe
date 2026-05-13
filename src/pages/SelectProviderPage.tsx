@@ -37,6 +37,47 @@ export const SelectProviderPage = ({ type, title = "Select Provider" }: SelectPr
                 ]
             };
         }
+        if (type === 'broadband') {
+            return {
+                recent: [
+                    { id: 'airtel_broadband', name: 'Airtel Broadband', logo: 'https://companieslogo.com/img/orig/BHARTIARTL.NS-40393f9b.png' },
+                    { id: 'jio_fiber', name: 'Jio Fiber', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/Reliance_Jio_Logo.svg' }
+                ],
+                all: [
+                    { id: 'act_corp', name: 'ACT Fibernet', logo: '' },
+                    { id: 'airtel_broadband', name: 'Airtel Broadband', logo: 'https://companieslogo.com/img/orig/BHARTIARTL.NS-40393f9b.png' },
+                    { id: 'all_broadband', name: 'Alliance Broadband Services Pvt. Ltd.', logo: '' },
+                    { id: 'bsnl_broadband', name: 'BSNL Broadband', logo: '' },
+                    { id: 'gtpl', name: 'GTPL Broadband', logo: '' },
+                    { id: 'hathway', name: 'Hathway Broadband', logo: '' },
+                    { id: 'jio_fiber', name: 'Jio Fiber', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/bf/Reliance_Jio_Logo.svg' },
+                    { id: 'tata_play_fiber', name: 'Tata Play Fiber', logo: '' },
+                ]
+            };
+        }
+
+        if (type === 'gas') {
+            return {
+                recent: [],
+                all: [
+                    { id: 'indane', name: 'Indane Gas', logo: '' },
+                    { id: 'hp', name: 'HP Gas', logo: '' },
+                    { id: 'bharat', name: 'Bharat Gas', logo: '' },
+                ]
+            };
+        }
+
+        if (type === 'water') {
+            return {
+                recent: [],
+                all: [
+                    { id: 'bwssb', name: 'Bangalore Water Supply and Sewerage Board', logo: '' },
+                    { id: 'djb', name: 'Delhi Jal Board', logo: '' },
+                    { id: 'mcgm', name: 'Municipal Corporation of Greater Mumbai', logo: '' },
+                ]
+            };
+        }
+
         // Default / Electricity
         return {
             recent: [
