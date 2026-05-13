@@ -18,6 +18,13 @@ import {
 } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Loader2,
   Contact,
   FlaskConical,
@@ -58,6 +65,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 import { paymentService } from '@/services/payment.service';
+import { useProfile } from '@/hooks/useProfile';
 
 import type {
   Operator,
@@ -77,7 +85,9 @@ type FlowStep = 'number' | 'details' | 'confirm' | 'result';
 export function MobileRechargeForm() {
   const { user } = useAuth();
   const { availableBalance, refetch } = useWallet();
+  const { profile } = useProfile();
   const { toast } = useToast();
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const { isApproved } = useKYC();
   const { limits, checkRechargeLimit } = usePlanLimits();
   const location = useLocation();
@@ -105,6 +115,8 @@ export function MobileRechargeForm() {
   const [isTopupFlow, setIsTopupFlow] = useState(false);
   const [topupRefId, setTopupRefId] = useState<string | null>(null);
   const [shortfall, setShortfall] = useState(0);
+  const [showTopupQr, setShowTopupQr] = useState(false);
+  const [intentUrl, setIntentUrl] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -188,9 +200,14 @@ export function MobileRechargeForm() {
       const result = await paymentService.createUpiIntent(neededAmount);
       if (result.intent_url) {
         setTopupRefId(result.reference_id);
+        setIntentUrl(result.intent_url);
         
-        // Open UPI Intent
-        window.location.href = result.intent_url;
+        // Open UPI Intent on mobile, or show QR on desktop
+        if (isMobile) {
+          window.location.href = result.intent_url;
+        } else {
+          setShowTopupQr(true);
+        }
         
         // Start polling for payment
         const poll = setInterval(async () => {
@@ -201,6 +218,7 @@ export function MobileRechargeForm() {
               await refetch(); // Sync wallet
               setIsTopupFlow(false);
               setTopupRefId(null);
+              setShowTopupQr(false);
               // Small delay to ensure DB sync before retrying recharge
               setTimeout(() => handleExecuteRecharge(true), 1000);
             } else if (status.status === 'FAILED') {
@@ -561,6 +579,46 @@ export function MobileRechargeForm() {
       </div>
 
       <KYCNudgeDialog isOpen={showKYCNudge} onClose={() => setShowKYCNudge(false)} featureName="Recharge" />
+
+      {/* Auto-Topup QR Dialog for Desktop */}
+      <Dialog open={showTopupQr} onOpenChange={(open) => {
+        if (!open) {
+          setShowTopupQr(false);
+          setIsTopupFlow(false);
+          setProcessing(false);
+        }
+      }}>
+        <DialogContent className="max-w-xs rounded-[32px] p-8">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-xl font-black">Scan to Pay</DialogTitle>
+            <DialogDescription className="font-bold text-slate-400">
+              ₹{shortfall.toFixed(2)} shortfall for recharge
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center justify-center space-y-6 py-4">
+            <div className="bg-slate-50 p-4 rounded-[28px] border-2 border-dashed border-slate-200">
+              <div className="bg-white p-3 rounded-2xl shadow-sm">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(intentUrl)}`}
+                  alt="UPI QR Code"
+                  className="w-40 h-40"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-1 text-center">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">VPA ID</p>
+              <p className="text-sm font-black text-emerald-600">bmsmobiles@barodampay</p>
+            </div>
+
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">
+              <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+              <p className="text-[9px] font-black text-blue-600 uppercase tracking-tight">Waiting for payment...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
