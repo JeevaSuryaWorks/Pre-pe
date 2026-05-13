@@ -117,7 +117,7 @@ export default function PlanSelectionPage() {
                                 title: "Plan Activated!",
                                 description: `Welcome to the ${plan.name} plan.`,
                             });
-                            navigate('/onboarding/consent');
+                            navigate('/kyc');
                         } catch (error) {
                             toast({
                                 title: "Payment Failure",
@@ -149,7 +149,7 @@ export default function PlanSelectionPage() {
                     title: "Plan Selected",
                     description: `You've successfully selected the ${planId} plan.`,
                 });
-                navigate('/onboarding/consent');
+                navigate('/kyc');
             } else {
                 toast({
                     title: "Update Failed",
@@ -192,7 +192,7 @@ export default function PlanSelectionPage() {
                         if (error) throw error;
 
                         toast({ title: "Plan Activated!", description: `Welcome to the ${plan.name} plan.` });
-                        navigate('/onboarding/consent');
+                        navigate('/kyc');
                     } else if (result.status === 'FAILED') {
                         clearInterval(interval);
                         toast({ title: "Payment Failed", description: "The transaction was unsuccessful.", variant: "destructive" });
@@ -235,20 +235,29 @@ export default function PlanSelectionPage() {
 
     return (
         <Layout hideHeader>
-            <div className="min-h-screen pt-12 pb-24 px-4 bg-slate-50/50">
-                <div className="max-w-6xl mx-auto space-y-12">
+            <div className="min-h-screen pt-12 pb-24 px-4 bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 relative overflow-hidden">
+                {/* Decorative patriotic elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
+
+                <div className="max-w-6xl mx-auto space-y-12 relative z-10">
                     <div className="text-center space-y-4">
-                        <h1 className="text-4xl font-bold tracking-tight text-slate-900">Choose Your Plan</h1>
-                        <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-                            Pick the right plan that fits your needs. You can upgrade or downgrade at any time. For a limited time, all selected plans are free to try.
+                        <div className="mx-auto w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-6 ring-8 ring-slate-50">
+                            <Smartphone className="w-8 h-8 text-[#FF671F]" />
+                        </div>
+                        <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">Choose Your Plan</h1>
+                        <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
+                            Pick the right plan that fits your needs. Each plan unlocks different features and requires specific verification. 🇮🇳
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-8 max-w-lg mx-auto w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto w-full">
                         {plans.map((plan, index) => {
                             const Icon = getPlanIcon(plan.id);
                             const { color, bgColor } = getPlanColors(plan.id);
                             const isPopular = plan.is_popular;
+                            const isBusiness = plan.id === 'BUSINESS';
+                            const isBasic = plan.id === 'BASIC';
 
                             return (
                                 <motion.div
@@ -256,70 +265,68 @@ export default function PlanSelectionPage() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
+                                    className="flex"
                                 >
-                                    <Card className={`relative w-full flex flex-col transition-all duration-300 ${isPopular ? 'border-2 border-blue-500 shadow-xl z-10' : 'border border-slate-200 shadow-sm'}`}>
+                                    <Card className={`relative w-full flex flex-col transition-all duration-500 bg-white/90 backdrop-blur-xl rounded-[32px] overflow-hidden ${isPopular ? 'border-2 border-[#FF671F] shadow-2xl scale-105 z-10' : 'border border-slate-100 shadow-xl shadow-slate-200/50'}`}>
+                                        <div className={`absolute top-0 left-0 w-full h-1.5 ${isBasic ? 'bg-slate-400' : isBusiness ? 'bg-[#046A38]' : 'bg-[#FF671F]'}`} />
+                                        
                                         {isPopular && (
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase">
-                                                Most Popular
+                                            <div className="absolute top-4 right-4 bg-[#FF671F] text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase shadow-lg shadow-orange-600/20">
+                                                Best Value
                                             </div>
                                         )}
-                                        <CardHeader className="text-center pb-2 relative">
+                                        
+                                        <CardHeader className="text-center pb-2 relative pt-8">
                                             <div className={`mx-auto p-4 rounded-2xl mb-4 ${bgColor} ${color} shadow-inner`}>
                                                 <Icon className="w-8 h-8" />
                                             </div>
-                                            <CardTitle className="text-2xl font-bold tracking-tight">{plan.name}</CardTitle>
+                                            <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">{plan.name}</CardTitle>
                                             {plan.subtitle && (
-                                                <div className="text-sm font-medium text-slate-500 mt-1">{plan.subtitle}</div>
+                                                <div className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">{plan.subtitle}</div>
                                             )}
-                                            <div className="text-3xl font-extrabold tracking-tight mt-4 text-slate-900 break-words">
-                                                {plan.price?.replace(/\/ Lifetime/gi, '').trim()}
+                                            <div className={`text-4xl font-black tracking-tight mt-6 ${isBasic ? 'text-slate-600' : isBusiness ? 'text-[#046A38]' : 'text-[#FF671F]'}`}>
+                                                {plan.price === 'Free' ? 'FREE' : plan.price?.split('/')[0]}
+                                                {plan.price !== 'Free' && <span className="text-sm text-slate-400 font-bold ml-1">/mo</span>}
                                             </div>
-                                            <CardDescription className="pt-2 text-slate-500 leading-relaxed min-h-[48px] break-words">
+                                            <CardDescription className="pt-4 text-slate-500 font-medium leading-relaxed min-h-[64px] px-2">
                                                 {plan.description}
                                             </CardDescription>
                                         </CardHeader>
-                                        <CardContent className="flex-1 mt-6">
+                                        
+                                        <CardContent className="flex-1 mt-6 px-8">
+                                            <div className="h-px bg-slate-100 mb-6" />
                                             <ul className="space-y-4">
                                                 {plan.features.map((feature: string, i: number) => (
                                                     <li key={i} className="flex items-start">
-                                                        <CheckCircle2 className={`w-5 h-5 mr-3 shrink-0 ${isPopular ? 'text-blue-500' : 'text-slate-400'}`} />
-                                                        <span className="text-slate-600 text-sm leading-tight">{feature}</span>
+                                                        <div className={`mt-1 mr-3 p-0.5 rounded-full ${isPopular ? 'bg-[#FF671F]/10' : 'bg-slate-100'}`}>
+                                                            <CheckCircle2 className={`w-4 h-4 ${isPopular ? 'text-[#FF671F]' : 'text-slate-400'}`} />
+                                                        </div>
+                                                        <span className="text-slate-600 text-sm font-bold leading-tight">{feature}</span>
                                                     </li>
                                                 ))}
+                                                <li className="flex items-start pt-2">
+                                                    <div className="mt-1 mr-3 p-0.5 rounded-full bg-blue-50">
+                                                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                                    </div>
+                                                    <span className="text-blue-700 text-xs font-black uppercase tracking-tighter">
+                                                        {isBasic ? 'MINI KYC REQUIRED' : isBusiness ? 'BUSINESS KYC REQUIRED' : 'FULL KYC REQUIRED'}
+                                                    </span>
+                                                </li>
                                             </ul>
                                         </CardContent>
-                                        <CardFooter className="pt-6">
-                                            <div className="flex flex-col gap-3 w-full">
-                                                <Button 
-                                                    className={`w-full h-14 text-base font-bold transition-all rounded-2xl ${isPopular ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'}`}
-                                                    onClick={() => {
-                                                        setPaymentMode('RZP');
-                                                        handleSelectPlan(plan);
-                                                    }}
-                                                    disabled={submitting !== null}
-                                                >
-                                                    {submitting === plan.id && paymentMode === 'RZP' ? (
-                                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                                                    ) : (
-                                                        <><Zap className="w-4 h-4 mr-2 fill-current" /> Pay with Card / Netbanking</>
-                                                    )}
-                                                </Button>
 
-                                                {plan.price_amount > 0 && (
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => handleUpiUpgrade(plan)}
-                                                        disabled={submitting !== null}
-                                                        className="w-full h-14 rounded-2xl border-2 border-slate-100 font-bold text-slate-700 hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
-                                                    >
-                                                        {submitting === plan.id && paymentMode === 'UPI' ? (
-                                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying UPI...</>
-                                                        ) : (
-                                                            <><Smartphone className="w-4 h-4" /> Instant UPI Upgrade</>
-                                                        )}
-                                                    </Button>
+                                        <CardFooter className="p-8">
+                                            <Button 
+                                                className={`w-full h-14 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${isPopular ? 'bg-[#FF671F] hover:bg-orange-600 text-white shadow-orange-600/20' : isBusiness ? 'bg-[#046A38] hover:bg-green-700 text-white shadow-green-700/20' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'}`}
+                                                onClick={() => handleSelectPlan(plan)}
+                                                disabled={submitting !== null}
+                                            >
+                                                {submitting === plan.id ? (
+                                                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> {paymentMode === 'RZP' ? 'Initiating...' : 'Selecting...'}</>
+                                                ) : (
+                                                    <>{isBasic ? 'Start Free' : 'Get Started'} <ArrowRight className="ml-2 w-5 h-5" /></>
                                                 )}
-                                            </div>
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 </motion.div>
@@ -331,8 +338,8 @@ export default function PlanSelectionPage() {
                         <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-3xl bg-white/50 space-y-4">
                             <AlertCircle className="w-12 h-12 text-amber-500" />
                             <div className="text-center">
-                                <h3 className="text-lg font-bold text-slate-900">No active plans found</h3>
-                                <p className="text-slate-500">Please check back later or contact support.</p>
+                                <h3 className="text-lg font-black text-slate-900 uppercase">No active plans found</h3>
+                                <p className="text-slate-500 font-medium">Please check back later or contact support.</p>
                             </div>
                         </div>
                     )}

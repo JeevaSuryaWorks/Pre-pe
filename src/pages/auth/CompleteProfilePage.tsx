@@ -56,8 +56,7 @@ export default function CompleteProfilePage() {
             });
 
             // Post-update, redirect to KYC if new or rejected, otherwise home
-            const isNeedKYC = kycStatus === null || kycStatus === 'REJECTED';
-            navigate(isNeedKYC ? '/kyc' : '/home', { replace: true });
+            navigate('/onboarding/plans', { replace: true });
 
         } catch (err: any) {
             console.error(err);

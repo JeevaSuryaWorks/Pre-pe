@@ -42,6 +42,7 @@ export const KYCPage = () => {
 
     const planType = (profile?.plan_type || 'BASIC').toUpperCase();
     const isBusiness = planType === 'BUSINESS';
+    const isBasic = planType === 'BASIC';
 
     // Local state for UI
     const [step, setStep] = useState(1);
@@ -115,18 +116,24 @@ export const KYCPage = () => {
             }
         }
         if (step === 2) {
-            const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-            if (!panRegex.test(panNumber)) {
-                toast({ title: "Invalid PAN", description: "Please provide a valid 10-character PAN (e.g., BNJPV6685R)", variant: "destructive" });
-                return;
+            if (!isBasic) {
+                const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+                if (!panRegex.test(panNumber)) {
+                    toast({ title: "Invalid PAN", description: "Please provide a valid 10-character PAN (e.g., BNJPV6685R)", variant: "destructive" });
+                    return;
+                }
             }
+            
             if (aadharNumber.length < 14) { // Including hyphens
                 toast({ title: "Invalid Aadhaar", description: "Please provide a valid 12-digit Aadhaar number", variant: "destructive" });
                 return;
             }
-            if (!aadharFront || !aadharBack || !panCard || !selfie || (isBusiness && !shopPhoto)) {
-                toast({ title: "Documents Missing", description: "Please upload all required photos", variant: "destructive" });
-                return;
+
+            if (!isBasic) {
+                if (!aadharFront || !aadharBack || !panCard || !selfie || (isBusiness && !shopPhoto)) {
+                    toast({ title: "Documents Missing", description: "Please upload all required photos", variant: "destructive" });
+                    return;
+                }
             }
         }
         setStep(prev => prev + 1);
@@ -150,15 +157,19 @@ export const KYCPage = () => {
 
         setLoading(true);
         try {
-            // 1. Upload Documents
-            const afPath = await uploadKYCDocument(user.id, aadharFront!, 'aadhar_front');
-            const abPath = await uploadKYCDocument(user.id, aadharBack!, 'aadhar_back');
-            const panPath = await uploadKYCDocument(user.id, panCard!, 'pan_card');
-            const selfiePath = await uploadKYCDocument(user.id, selfie!, 'selfie');
-            const shopPath = shopPhoto ? await uploadKYCDocument(user.id, shopPhoto, 'shop_photo') : null;
+            let afPath = null, abPath = null, panPath = null, selfiePath = null, shopPath = null;
+
+            if (!isBasic) {
+                // 1. Upload Documents
+                afPath = await uploadKYCDocument(user.id, aadharFront!, 'aadhar_front');
+                abPath = await uploadKYCDocument(user.id, aadharBack!, 'aadhar_back');
+                panPath = await uploadKYCDocument(user.id, panCard!, 'pan_card');
+                selfiePath = await uploadKYCDocument(user.id, selfie!, 'selfie');
+                shopPath = shopPhoto ? await uploadKYCDocument(user.id, shopPhoto, 'shop_photo') : null;
+            }
 
             // 2. Securely Encrypt Sensitive Numbers
-            const encryptedPan = await encryptSensitiveData(panNumber);
+            const encryptedPan = panNumber ? await encryptSensitiveData(panNumber) : null;
             const encryptedAadhar = await encryptSensitiveData(aadharNumber.replace(/\s/g, ''));
 
             // 3. Submit Data
@@ -511,22 +522,24 @@ export const KYCPage = () => {
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 {/* Numbers Section */}
                                 <div className="grid grid-cols-1 gap-4 p-4 bg-slate-50/50 rounded-[24px] border border-slate-100">
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-end">
-                                            <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">PAN Number</Label>
-                                            <span className="text-[10px] text-[#FF671F] font-black font-mono">{panNumber.length}/10</span>
+                                    {!isBasic && (
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-end">
+                                                <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">PAN Number</Label>
+                                                <span className="text-[10px] text-[#FF671F] font-black font-mono">{panNumber.length}/10</span>
+                                            </div>
+                                            <Input
+                                                placeholder="BNJPV6685R"
+                                                maxLength={10}
+                                                value={panNumber}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.toUpperCase();
+                                                    if (val.length <= 10) setPanNumber(val);
+                                                }}
+                                                className="font-mono bg-white border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl uppercase tracking-widest text-lg h-12"
+                                            />
                                         </div>
-                                        <Input
-                                            placeholder="BNJPV6685R"
-                                            maxLength={10}
-                                            value={panNumber}
-                                            onChange={(e) => {
-                                                const val = e.target.value.toUpperCase();
-                                                if (val.length <= 10) setPanNumber(val);
-                                            }}
-                                            className="font-mono bg-white border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl uppercase tracking-widest text-lg h-12"
-                                        />
-                                    </div>
+                                    )}
                                     <div className="space-y-2">
                                         <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">Aadhaar Number</Label>
                                         <Input
@@ -559,50 +572,52 @@ export const KYCPage = () => {
                                 </div>
 
                                 {/* Uploads Section */}
-                                <div className="space-y-6 pt-2">
-                                    <DocumentUpload
-                                        label="Aadhaar Front Photo"
-                                        file={aadharFront}
-                                        setFile={setAadharFront}
-                                    />
-                                    <DocumentUpload
-                                        label="Aadhaar Back Photo"
-                                        file={aadharBack}
-                                        setFile={setAadharBack}
-                                    />
-                                    <DocumentUpload
-                                        label="PAN Card Photo"
-                                        file={panCard}
-                                        setFile={setPanCard}
-                                    />
-
-                                    <div className="pt-4 border-t border-slate-100">
+                                {!isBasic && (
+                                    <div className="space-y-6 pt-2">
                                         <DocumentUpload
-                                            label="Live Selfie Verification"
-                                            file={selfie}
-                                            setFile={setSelfie}
-                                            captureMode="user"
+                                            label="Aadhaar Front Photo"
+                                            file={aadharFront}
+                                            setFile={setAadharFront}
                                         />
-                                    </div>
-                                    {isBusiness && (
+                                        <DocumentUpload
+                                            label="Aadhaar Back Photo"
+                                            file={aadharBack}
+                                            setFile={setAadharBack}
+                                        />
+                                        <DocumentUpload
+                                            label="PAN Card Photo"
+                                            file={panCard}
+                                            setFile={setPanCard}
+                                        />
+
                                         <div className="pt-4 border-t border-slate-100">
-                                            <div className="bg-[#FF671F]/5 p-3 rounded-xl mb-3 border border-[#FF671F]/10">
-                                                <p className="text-[10px] font-black text-[#FF671F] uppercase tracking-widest flex items-center gap-1.5">
-                                                    <Building2 className="w-3 h-3" /> Required for Business Plan
+                                            <DocumentUpload
+                                                label="Live Selfie Verification"
+                                                file={selfie}
+                                                setFile={setSelfie}
+                                                captureMode="user"
+                                            />
+                                        </div>
+                                        {isBusiness && (
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <div className="bg-[#FF671F]/5 p-3 rounded-xl mb-3 border border-[#FF671F]/10">
+                                                    <p className="text-[10px] font-black text-[#FF671F] uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Building2 className="w-3 h-3" /> Required for Business Plan
+                                                    </p>
+                                                </div>
+                                                <DocumentUpload
+                                                    label="Shop Photo"
+                                                    file={shopPhoto}
+                                                    setFile={setShopPhoto}
+                                                    captureMode="environment"
+                                                />
+                                                <p className="text-[10px] text-slate-400 mt-2 px-1 italic">
+                                                    Please capture a clear photo of your shop front showing the name board if possible.
                                                 </p>
                                             </div>
-                                            <DocumentUpload
-                                                label="Shop Photo"
-                                                file={shopPhoto}
-                                                setFile={setShopPhoto}
-                                                captureMode="environment"
-                                            />
-                                            <p className="text-[10px] text-slate-400 mt-2 px-1 italic">
-                                                Please capture a clear photo of your shop front showing the name board if possible.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
