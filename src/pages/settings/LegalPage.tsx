@@ -20,190 +20,126 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex justify-center w-full">
-            <div className="w-full max-w-md bg-white min-h-screen relative flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 flex justify-center w-full relative overflow-x-hidden">
+            {/* Decorative patriotic elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
+
+            <div className="w-full max-w-md min-h-screen relative flex flex-col z-10">
                 {/* Header */}
-                <div className="bg-white px-4 py-4 flex items-center gap-4 shadow-sm sticky top-0 z-10 border-b border-slate-100">
-                    <Button variant="ghost" size="icon" className="rounded-full bg-slate-100 h-10 w-10 text-slate-600" onClick={() => navigate(-1)}>
+                <div className="bg-white/80 backdrop-blur-xl px-4 py-5 flex items-center gap-4 sticky top-0 z-20 border-b border-slate-100 shadow-sm">
+                    <Button variant="ghost" size="icon" className="rounded-full bg-slate-50 h-10 w-10 text-slate-600 hover:bg-[#FF671F]/10 hover:text-[#FF671F] transition-all" onClick={() => navigate(-1)}>
                         <ChevronLeft className="h-6 w-6" />
                     </Button>
-                    <h1 className="text-xl font-bold text-slate-800">{title}</h1>
+                    <h1 className="text-xl font-black text-slate-900 tracking-tight">{title} 🇮🇳</h1>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 flex flex-col items-center">
-                    <div className="mb-6 p-4 bg-slate-50 rounded-full">
+                <div className="p-6 pb-20 flex flex-col items-center">
+                    <div className="mb-8 p-6 bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-50 flex items-center justify-center ring-8 ring-slate-50">
                         {getIcon()}
                     </div>
 
-                    <div className="space-y-4 text-slate-600 leading-relaxed text-sm text-justify">
+                    <div className="bg-white/90 backdrop-blur-md rounded-[32px] p-8 shadow-2xl shadow-slate-200/40 border border-white space-y-6 text-slate-600 leading-relaxed text-sm text-justify">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#FF671F] via-white to-[#046A38] rounded-t-[32px]" />
+                        
                         {type === 'terms' && (
-                            <div className="space-y-4">
-                                <p>
-                                    Welcome to <strong>Prepe</strong>! By using our app, you agree to comply with and be bound by the following terms and conditions. Please review them carefully.
+                            <div className="space-y-4 pt-2">
+                                <p className="font-medium">
+                                    Welcome to <strong className="text-slate-900">Prepe</strong>! By using our platform, you agree to comply with and be bound by the following terms and conditions. Please review them carefully.
                                 </p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">1. Acceptance of Terms</h3>
-                                <p>
-                                    By accessing and using <strong>Prepe</strong>, you accept and agree to be bound by these terms. If you do not agree, please refrain from using the app.
-                                </p>
+                                <div className="p-4 bg-[#FF671F]/5 rounded-2xl border border-[#FF671F]/10">
+                                    <h3 className="font-black text-[#FF671F] uppercase tracking-wider text-xs mb-1">1. Acceptance of Terms</h3>
+                                    <p className="text-xs leading-relaxed text-slate-700">
+                                        By accessing and using <strong>Prepe</strong>, you accept and agree to be bound by these terms. If you do not agree, please refrain from using the app.
+                                    </p>
+                                </div>
 
-                                <h3 className="font-bold text-slate-800 mt-4">2. Use of Cookies</h3>
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">2. Use of Cookies</h3>
                                 <p>
                                     Our app uses cookies to enhance user experience. By using the app, you consent to the use of cookies in accordance with our Privacy Policy.
                                 </p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">3. Intellectual Property Rights</h3>
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">3. Intellectual Property</h3>
                                 <p>
-                                    Unless otherwise stated, <strong>Prepe</strong> and/or its licensors own the intellectual property rights for all material in the app. All rights are reserved. You may access this material for personal use, subject to restrictions outlined in these terms.
+                                    Unless otherwise stated, <strong>Prepe</strong> and/or its licensors own the intellectual property rights for all material in the app. All rights are reserved.
                                 </p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">4. User Comments and Content</h3>
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">4. Content Liability</h3>
                                 <p>
-                                    Users may post and exchange opinions and information in certain areas of the app. <strong>Prepe</strong> does not filter, edit, publish, or review Comments prior to their presence in the app. Comments reflect the views of the person who posts them. To the extent permitted by applicable laws, <strong>Prepe</strong> shall not be liable for the Comments or any liability caused by the use of and/or posting of and/or appearance of the Comments in the app.
+                                    We shall not be held responsible for any content that appears in the app. No link(s) should appear in any context that may be interpreted as libelous, obscene, or criminal.
                                 </p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">5. Hyperlinking to Our Content</h3>
-                                <p>The following organizations may link to our app without prior written approval:</p>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li>Government agencies</li>
-                                    <li>Search engines</li>
-                                    <li>News organizations</li>
-                                    <li>Online directory distributors</li>
-                                    <li>System-wide Accredited Businesses</li>
-                                </ul>
-
-                                <h3 className="font-bold text-slate-800 mt-4">6. Content Liability</h3>
-                                <p>
-                                    We shall not be held responsible for any content that appears in the app. No link(s) should appear in any context that may be interpreted as libelous, obscene, or criminal, or which infringes, otherwise violates, or advocates the infringement or other violation of, any third-party rights.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">7. Reservation of Rights</h3>
-                                <p>
-                                    We reserve the right to request that you remove all links or any particular link to our app. You approve to immediately remove all links to our app upon request. We also reserve the right to amend these terms and conditions and its linking policy at any time.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">8. Disclaimer</h3>
-                                <p>
-                                    To the maximum extent permitted by applicable law, we exclude all representations, warranties, and conditions relating to our app and the use of this app. Nothing in this disclaimer will:
-                                </p>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li>Limit or exclude our or your liability for death or personal injury;</li>
-                                    <li>Limit or exclude our or your liability for fraud or fraudulent misrepresentation;</li>
-                                    <li>Limit any of our or your liabilities in any way that is not permitted under applicable law;</li>
-                                    <li>Exclude any of our or your liabilities that may not be excluded under applicable law.</li>
-                                </ul>
-                                <p className="mt-2">
-                                    The limitations and prohibitions of liability set in this Section and elsewhere in this disclaimer: (a) are subject to the preceding paragraph; and (b) govern all liabilities arising under the disclaimer, including liabilities arising in contract, in tort, and for breach of statutory duty.
-                                </p>
-                                <p className="mt-2">
-                                    As long as the app and the information and services on the app are provided free of charge, we will not be liable for any loss or damage of any nature.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">9. Third-Party Information and Data Use</h3>
-                                <p>
-                                    We use third-party sources to provide plan details and related information. Before making any recharge, please verify the plan directly with the official operator. We are not responsible for discrepancies, inaccuracies, or delays in third-party information. Your personal data is handled securely and used only to process your transactions, in accordance with our Privacy Policy.
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">5. Third-Party Data</h3>
+                                <p className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs italic">
+                                    We use third-party sources to provide plan details. Before making any recharge, please verify the plan directly with the official operator. We are not responsible for discrepancies in third-party information.
                                 </p>
                             </div>
                         )}
 
                         {type === 'privacy' && (
-                            <div className="space-y-4">
-                                <p>
-                                    At <strong>Prepe</strong>, accessible from <a href="https://pre-pe.com/" className="text-blue-600 underline">https://pre-pe.com/</a>, one of our main priorities is the privacy of our users. This Privacy Policy document outlines the types of information we collect and how we use it.
+                            <div className="space-y-4 pt-2">
+                                <p className="font-medium">
+                                    At <strong className="text-slate-900">Prepe</strong>, accessible from <a href="https://pre-pe.com/" className="text-[#FF671F] font-bold underline">https://pre-pe.com/</a>, your privacy is our priority.
                                 </p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">Consent</h3>
-                                <p>
-                                    By using our app, you hereby consent to our Privacy Policy and agree to its terms.
-                                </p>
+                                <div className="bg-[#046A38]/5 p-5 rounded-2xl border border-[#046A38]/10 space-y-3">
+                                    <h3 className="font-black text-[#046A38] uppercase tracking-wider text-xs">Information We Collect</h3>
+                                    <ul className="space-y-2 text-xs font-medium text-slate-700">
+                                        <li className="flex items-start gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-[#046A38] mt-1.5 shrink-0" />
+                                            Name, email address, and phone number.
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-[#046A38] mt-1.5 shrink-0" />
+                                            KYC documents for identity verification.
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-[#046A38] mt-1.5 shrink-0" />
+                                            Transaction history and usage patterns.
+                                        </li>
+                                    </ul>
+                                </div>
 
-                                <h3 className="font-bold text-slate-800 mt-4">Information We Collect</h3>
-                                <p>
-                                    The personal information we collect, and the reasons for collecting it, will be made clear to you at the point we ask for it. This may include:
-                                </p>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li>Contact information such as name, email address, and phone number.</li>
-                                    <li>Details you provide when you contact us directly, including the contents of your messages and attachments.</li>
-                                    <li>Information provided during account registration, such as name, company name, address, email address, and telephone number.</li>
-                                </ul>
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#FF671F] pl-3">How We Use Data</h3>
+                                <p>We use the information we collect to provide, operate, and maintain our services, and to prevent fraud in line with Digital India security standards.</p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">How We Use Your Information</h3>
-                                <p>We use the information we collect in various ways, including to:</p>
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li>Provide, operate, and maintain our app.</li>
-                                    <li>Improve, personalize, and expand our services.</li>
-                                    <li>Understand and analyze how you use our app.</li>
-                                    <li>Develop new products, services, features, and functionality.</li>
-                                    <li>Communicate with you for customer service, updates, and marketing purposes.</li>
-                                    <li>Send you emails.</li>
-                                    <li>Find and prevent fraud.</li>
-                                </ul>
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#FF671F] pl-3">Log Files</h3>
+                                <p className="text-xs">Prepe follows standard procedures using log files to analyze trends and gather demographic information for platform improvement.</p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">Log Files</h3>
-                                <p>
-                                    <strong>Prepe</strong> follows a standard procedure of using log files. These files log visitors when they use the app. The information collected includes internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks. This information is not linked to any personally identifiable information and is used for analyzing trends, administering the app, tracking user's movement, and gathering demographic information.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Cookies and Web Beacons</h3>
-                                <p>
-                                    Like many apps, <strong>Prepe</strong> uses 'cookies' to store information including visitor's preferences and the pages accessed or visited. This information is used to optimize the user experience by customizing our content based on visitor's browser type and/or other information.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Third-Party Privacy Policies</h3>
-                                <p>
-                                    <strong>Prepe</strong> Privacy Policy does not apply to other advertisers or websites. Thus, we advise you to consult the respective Privacy Policies of these third-party services for more detailed information.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Children's Information</h3>
-                                <p>
-                                    Protecting children's privacy is important. <strong>Prepe</strong> does not knowingly collect any personal information from children under the age of 13. If you believe that your child has provided such information, please contact us, and we will make efforts to remove it promptly.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Contact Us</h3>
-                                <p>
-                                    If you have additional questions or require more information about our Privacy Policy, do not hesitate to contact us through the app or via email at <a href="mailto:connect.prepe@gmail.com" className="text-blue-600 underline">connect.prepe@gmail.com</a>.
-                                </p>
+                                <div className="mt-8 p-4 bg-slate-900 rounded-2xl text-white">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Contact Security</h4>
+                                    <p className="text-xs">Questions? Email us at <a href="mailto:connect.prepe@gmail.com" className="text-[#FF671F] font-bold">connect.prepe@gmail.com</a></p>
+                                </div>
                             </div>
                         )}
 
                         {type === 'refund' && (
-                            <div className="space-y-4">
-                                <p>
-                                    Thank you for choosing <strong>Prepe</strong> for your recharge needs. We aim to provide a seamless and reliable platform for all your mobile and DTH recharge transactions. However, we understand that circumstances may arise where a refund is required. Please take a moment to review our refund policy to ensure clarity and transparency regarding refund procedures.
+                            <div className="space-y-4 pt-2">
+                                <p className="font-medium">
+                                    Thank you for choosing <strong className="text-slate-900">Prepe</strong>. We strive for seamless transactions, but we have a clear policy for failed payments.
                                 </p>
 
-                                <h3 className="font-bold text-slate-800 mt-4">Refund Duration</h3>
-                                <p>
-                                    Refund requests for failed transactions can be initiated within 7 business days from the date of the transaction.
-                                </p>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl">
+                                        <h3 className="font-black text-orange-900 text-xs uppercase mb-1">Refund Duration</h3>
+                                        <p className="text-xs text-orange-800">Refunds for failed transactions are initiated within 7 business days.</p>
+                                    </div>
+                                    <div className="p-4 bg-green-50 border border-green-100 rounded-2xl">
+                                        <h3 className="font-black text-green-900 text-xs uppercase mb-1">Automatic Refunds</h3>
+                                        <p className="text-xs text-green-800">Failed orders result in a full automatic refund to the source account.</p>
+                                    </div>
+                                </div>
 
-                                <h3 className="font-bold text-slate-800 mt-4">Conditions for Refunds</h3>
-                                <p>
-                                    Refunds are strictly issued for failed transactions. Our automated system ensures swift processing of refunds in such instances.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Refund Request Process</h3>
-                                <p>
-                                    To request a refund, users may initiate a complaint for the specific transaction or directly reach out to our dedicated support team. Our representatives are committed to assisting you promptly and efficiently.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Fees and Deductions</h3>
-                                <p>
-                                    We prioritize transparency in our refund process. Rest assured, there are no additional fees or deductions associated with refunds. The entire transaction amount will be refunded to your original payment method.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Modes of Refund</h3>
-                                <p>
-                                    Refunds will be credited back to the original payment method utilized for the transaction. We value your trust and strive to ensure a seamless experience throughout the refund process.
-                                </p>
-
-                                <h3 className="font-bold text-slate-800 mt-4">Automatic Refunds</h3>
-                                <p>
-                                    If your payment fails and we could not process your order from our end, you will receive a full refund automatically to the source account after 5-8 business days.
-                                </p>
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">Modes of Refund</h3>
+                                <p className="text-xs">Refunds will be credited back to the original payment method utilized. No additional fees or deductions apply to your refunds.</p>
                             </div>
                         )}
+                    </div>
+
+                    <div className="mt-8 text-center">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">© 2024 PrePe Technologies 🇮🇳</p>
                     </div>
                 </div>
             </div>

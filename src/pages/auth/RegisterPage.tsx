@@ -1,7 +1,7 @@
 import { Layout } from '@/components/layout/Layout';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ const RegisterPage = () => {
                     </Card>
 
                     <p className="text-center text-xs text-slate-400 px-4">
-                        By continuing, you agree to our <a href="#" className="underline hover:text-slate-600">Terms of Service</a> and <a href="#" className="underline hover:text-slate-600">Privacy Policy</a>.
+                        By continuing, you agree to our <Link to="/legal/terms" className="underline hover:text-[#FF671F] transition-colors">Terms of Service</Link> and <Link to="/legal/privacy" className="underline hover:text-[#FF671F] transition-colors">Privacy Policy</Link>.
                     </p>
                 </div>
             </div>
