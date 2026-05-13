@@ -199,9 +199,9 @@ export class RechargeService {
     // ✅ OPERATOR MAPPING
     const operatorMap: Record<string, string> = {
       '1': '1',   // Airtel
-      '2': '3',   // VI
+      '2': '2',   // BSNL
       '3': '12',  // Jio
-      '4': '2',   // BSNL
+      '4': '3',   // VI
       '5': '10',  // Dish TV
       '6': '11',  // Tata Sky
     };
