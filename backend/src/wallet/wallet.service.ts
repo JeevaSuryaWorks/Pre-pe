@@ -393,11 +393,13 @@ export class WalletService {
 
         const referenceId = `UPI_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-        // Professional UPI URL
-        const vpa = this.configService.get<string>('UPI_VPA') || 'bmsmo63811085@barodampay';
+        const vpa = this.configService.get<string>('UPI_VPA') || 'bmsmobiles@barodampay';
         const businessName = 'PrePe Technologies Pvt Ltd';
         const merchantCode = '0000'; // General Merchant / Personal
-        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent('Wallet Topup - PrePe')}`;
+        const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
+        const userName = profile?.full_name || 'User';
+        const note = `Wallet Topup - ${userName} (${userId.substring(0, 8)})`;
+        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent(note)}`;
 
         this.logger.log(`📱 [INIT] Creating UPI Intent for user ${userId}, amount: ${amount}`);
 
