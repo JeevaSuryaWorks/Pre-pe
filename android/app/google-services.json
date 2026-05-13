@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "51191110634",
+    "project_id": "prepe-india",
+    "storage_bucket": "prepe-india.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51191110634:android:db2365cf020e035cd8b093",
+        "android_client_info": {
+          "package_name": "com.prepe.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAi5Y7sUXpCjsgz3AkZ7FNjPSJS-Wr4Hdg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

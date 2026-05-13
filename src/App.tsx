@@ -76,13 +76,21 @@ import NotificationsPage from "./pages/NotificationsPage";
 import AIChat from "./pages/AIChat";
 import SafetyPage from "./pages/SafetyPage";
 
+import { useMobileFeatures } from "./hooks/useMobileFeatures";
+
 const queryClient = new QueryClient();
+
+const AppInitializer = ({ children }: { children: React.ReactNode }) => {
+  useMobileFeatures();
+  return <div className="app-native-container min-h-screen flex flex-col">{children}</div>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ProfileProvider>
-        <TooltipProvider>
+        <AppInitializer>
+          <TooltipProvider>
         <Toaster />
         <Sonner />
         <Analytics />
@@ -180,6 +188,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </AppInitializer>
       </ProfileProvider>
     </AuthProvider>
   </QueryClientProvider>

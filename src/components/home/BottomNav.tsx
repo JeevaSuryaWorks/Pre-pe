@@ -25,7 +25,7 @@ export const BottomNav = () => {
             <div className="w-full max-w-md pointer-events-auto relative">
                 
                 {/* Main Navigation Bar */}
-                <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-2 py-2 pb-safe-area-bottom">
+                <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] px-2 py-2 safe-area-pb">
                     <div className="grid grid-cols-5 items-end gap-1">
                         {navItems.map((item, index) => {
                             const active = isActive(item.path);

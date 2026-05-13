@@ -165,4 +165,29 @@ All colors MUST be HSL.
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Native Mobile Optimization */
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-mt {
+    margin-top: env(safe-area-inset-top);
+  }
+  .safe-area-mb {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Prevent text selection in native app for premium feel */
+  .app-native-container {
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  input, textarea {
+    -webkit-user-select: text;
+  }
 }
