@@ -14,8 +14,9 @@ import ServicePlaceholder from "./pages/ServicePlaceholder";
 import MobileRecharge from "./pages/MobileRecharge";
 import Postpaid from "./pages/Postpaid";
 import Wallet from "./pages/Wallet";
-import Transactions from "./pages/Transactions";
-import { SelectProviderPage } from "./pages/SelectProviderPage";
+import { Transactions } from "./pages/Transactions";
+import { ReceiptPage } from "./pages/ReceiptPage";
+import { TransactionDetailsPage } from "./pages/TransactionDetailsPage";
 import { RedeemCodePage } from "./pages/RedeemCodePage";
 import { DTHSelectProvider } from "./pages/dth/DTHSelectProvider";
 import { DTHEnterDetails } from "./pages/dth/DTHEnterDetails";
@@ -163,6 +164,7 @@ const App = () => (
               <Route path="/saved" element={<SavedPage />} />
               <Route path="/upgrade" element={<UpgradePlans />} />
               <Route path="/transactions" element={<Transactions />} />
+              <Route path="/recharge/receipt" element={<ReceiptPage />} />
               <Route path="/transaction/:id" element={<TransactionDetailsPage />} />
               <Route path="/business/bulk-recharge" element={<BulkRechargePage />} />
               <Route path="/notifications" element={<NotificationsPage />} />

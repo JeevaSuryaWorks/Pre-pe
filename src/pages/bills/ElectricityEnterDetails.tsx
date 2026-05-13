@@ -105,7 +105,18 @@ export const ElectricityEnterDetails = () => {
                         
                         <Button 
                             className="w-full h-14 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-black text-lg shadow-lg shadow-green-100"
-                            onClick={() => toast({ title: "Payment initiated", description: "This feature is coming in the next build." })}
+                            onClick={() => {
+                                toast({ title: "Success", description: "Bill Paid Successfully!" });
+                                navigate('/recharge/receipt', { 
+                                    state: { 
+                                        amount: billDetails.amount, 
+                                        operator: operatorId?.toUpperCase() || 'EB', 
+                                        number: consumerNumber, 
+                                        refId: 'EB-' + Math.random().toString(36).substring(7).toUpperCase(),
+                                        type: 'Electricity Bill'
+                                    } 
+                                });
+                            }}
                         >
                             PROCEED TO PAY
                         </Button>

@@ -40,29 +40,22 @@ import {
   Phone,
   Smartphone,
 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
-
-const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getOperators,
   getCircles,
   detectOperator,
 } from '@/services/operator.service';
-
 import { getPlans } from '@/services/plans.service';
-
 import {
   processRecharge,
   getTransactionHistory,
 } from '@/services/recharge.service';
-
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { useKYC } from '@/hooks/useKYC';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
-
 import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 import { paymentService } from '@/services/payment.service';
 import { useProfile } from '@/hooks/useProfile';
@@ -72,6 +65,8 @@ import type {
   Circle,
   RechargePlan,
 } from '@/types/recharge.types';
+
+const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 const OPERATOR_LOGOS: Record<string, string> = {
   '1': '/logos/airtel_new.svg',
@@ -83,6 +78,7 @@ const OPERATOR_LOGOS: Record<string, string> = {
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
 
 export function MobileRechargeForm() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { availableBalance, refetch } = useWallet();
   const { profile } = useProfile();
@@ -263,9 +259,16 @@ export function MobileRechargeForm() {
       });
 
       if (result.status === 'SUCCESS' || result.status === 'PENDING') {
-        setResultStatus(result.status as any);
-        refetch();
-        setStep('result');
+        const operatorObj = operators.find(o => o.id === selectedOperator);
+        navigate('/recharge/receipt', {
+          state: {
+            amount,
+            operator: operatorObj?.name || selectedOperator,
+            number: rawNumber,
+            refId: (result as any).referenceId || 'N/A',
+            type: 'Mobile Recharge'
+          }
+        });
       } else {
         setResultStatus('FAILED');
         setErrorMessage(result.message);

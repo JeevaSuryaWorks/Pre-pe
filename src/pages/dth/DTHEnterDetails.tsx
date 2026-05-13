@@ -120,9 +120,17 @@ export const DTHEnterDetails = () => {
         setProcessing(false);
         setShowConfirm(false);
 
-        if (result.status === 'SUCCESS') {
+        if (result.status === 'SUCCESS' || result.status === 'PENDING') {
             toast({ title: 'Success', description: 'Recharge Successful!' });
-            navigate('/home'); // Or receipt page
+            navigate('/recharge/receipt', { 
+                state: { 
+                    amount, 
+                    operator: operator.name, 
+                    number: dthId, 
+                    refId: (result as any).referenceId || 'N/A',
+                    type: 'DTH Recharge'
+                } 
+            });
         } else {
             toast({ title: 'Failed', description: result.message, variant: 'destructive' });
         }
@@ -200,7 +208,15 @@ export const DTHEnterDetails = () => {
 
             if (result.status === 'SUCCESS' || result.status === 'PENDING') {
                 toast({ title: 'Success', description: 'Recharge Successful!' });
-                navigate('/home');
+                navigate('/recharge/receipt', { 
+                    state: { 
+                        amount, 
+                        operator: operator!.name, 
+                        number: dthId, 
+                        refId: (result as any).referenceId || 'N/A',
+                        type: 'DTH Recharge'
+                    } 
+                });
             } else {
                 toast({ title: 'Recharge Failed', description: result.message, variant: 'destructive' });
             }

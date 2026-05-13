@@ -7,7 +7,10 @@ import { useState } from "react";
 import { useKYC } from "@/hooks/useKYC";
 import { KYCNudgeDialog } from "@/components/kyc/KYCNudgeDialog";
 
+import { useNavigate } from "react-router-dom";
+
 export const RedeemCodePage = () => {
+    const navigate = useNavigate();
     const [phone, setPhone] = useState("");
     const [amount, setAmount] = useState("");
     const { isApproved } = useKYC();
@@ -18,7 +21,17 @@ export const RedeemCodePage = () => {
             setShowKYCNudge(true);
             return;
         }
-        // Proceed with logic
+        
+        // Simulate Success
+        navigate('/recharge/receipt', { 
+            state: { 
+                amount, 
+                operator: "Google Play", 
+                number: phone, 
+                refId: 'GP-' + Math.random().toString(36).substring(7).toUpperCase(),
+                type: 'Google Play Gift Card'
+            } 
+        });
     };
 
     return (
