@@ -7,6 +7,7 @@ import { Loader2, CreditCard, Smartphone, CheckCircle, XCircle, Zap, ShieldCheck
 import { useToast } from '@/hooks/use-toast';
 import { paymentService } from '@/services/payment.service';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useProfile } from '@/hooks/useProfile';
 
 type PaymentState = 'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'manual';
 
@@ -16,6 +17,7 @@ interface AddMoneyProps {
 }
 
 export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
+  const { profile } = useProfile();
   const [amount, setAmount] = useState(initialAmount);
   const [state, setState] = useState<PaymentState>('idle');
   const [referenceId, setReferenceId] = useState<string | null>(null);
@@ -74,8 +76,31 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   useEffect(() => {
     return () => stopPolling();
   }, [stopPolling]);  const handleUpiPayment = async () => {
-    // We now prioritize Razorpay for UPI as it handles intents better on mobile
-    // and provides better tracking. Direct intent is kept as a fallback.
+    const numAmount = parseFloat(amount);
+    if (!numAmount || numAmount < 1) {
+      toast({ title: 'Invalid amount', description: 'Enter at least ₹1', variant: 'destructive' });
+      return;
+    }
+
+    if (isMobile) {
+      setState('processing');
+      try {
+        const result = await paymentService.createUpiIntent(numAmount);
+        if (result.intent_url) {
+          // Start polling for status before redirecting
+          setReferenceId(result.reference_id);
+          startPolling(result.reference_id);
+          
+          // Open UPI Intent
+          window.location.href = result.intent_url;
+          return;
+        }
+      } catch (error) {
+        console.error('UPI Intent failed, falling back to Razorpay', error);
+      }
+    }
+    
+    // Fallback to Razorpay
     handleRazorpayPayment();
   };
 
@@ -97,6 +122,11 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         name: 'PrePe Wallet',
         description: 'Wallet Top-up',
         order_id: order.id,
+        prefill: {
+          name: profile?.full_name || '',
+          email: profile?.email || '',
+          contact: profile?.phone || '',
+        },
         handler: async (response: any) => {
           setState('verifying');
           setReferenceId(order.id);
@@ -118,7 +148,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               if (onSuccess) onSuccess();
             }
           } catch (error: any) {
-            this.logger.warn('Initial verification failed, continuing to poll...', error);
+            console.warn('Initial verification failed, continuing to poll...', error);
             // Don't set state to failed here, let polling continue
           }
         },
@@ -235,7 +265,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             <div className="space-y-4">
               <div className="relative">
                 <Button 
-                  onClick={handleRazorpayPayment} 
+                  onClick={handleUpiPayment} 
                   className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
@@ -284,7 +314,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
                   <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
                     <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=bmsmo63811085@barodampay&pn=PrePe&am=${amount}&cu=INR`)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=bmsmobiles@barodampay&pn=PrePe&am=${amount}&cu=INR&tn=${encodeURIComponent(`Wallet Topup - ${profile?.full_name || 'User'} (${profile?.user_id?.substring(0, 8) || ''})`)}`)}`}
                       alt="Payment QR Code"
                       className="w-full h-full"
                     />
@@ -292,7 +322,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
-                  <p className="text-lg font-black text-emerald-600 select-all">bmsmo63811085@barodampay</p>
+                  <p className="text-lg font-black text-emerald-600 select-all">bmsmobiles@barodampay</p>
                 </div>
               </div>
               

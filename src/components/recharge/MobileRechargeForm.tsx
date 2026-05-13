@@ -22,11 +22,20 @@ import {
   Contact,
   FlaskConical,
   ArrowLeft,
+  CheckCircle2,
+  Zap,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  XCircle,
+  Clock,
+  Phone,
+  Smartphone,
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-const IS_DEMO_MODE =
-  import.meta.env.VITE_DEMO_MODE === 'true';
+const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 import {
   getOperators,
@@ -55,310 +64,142 @@ import type {
   RechargePlan,
 } from '@/types/recharge.types';
 
+const OPERATOR_LOGOS: Record<string, string> = {
+  '1': '/logos/jio_new.svg',
+  '2': '/logos/airtel_new.svg',
+  '3': '/logos/vi_new.svg',
+  '4': '/logos/bsnl_new.svg',
+};
+
+type FlowStep = 'number' | 'details' | 'confirm' | 'result';
+
 export function MobileRechargeForm() {
   const { user } = useAuth();
-  const { availableBalance, refetch } =
-    useWallet();
-
+  const { availableBalance, refetch } = useWallet();
   const { toast } = useToast();
   const { isApproved } = useKYC();
-  const { limits, checkRechargeLimit } =
-    usePlanLimits();
-
+  const { limits, checkRechargeLimit } = usePlanLimits();
   const location = useLocation();
 
-  const [showKYCNudge, setShowKYCNudge] =
-    useState(false);
-
-  const [mobileNumber, setMobileNumber] =
-    useState('');
-
-  const [selectedOperator, setSelectedOperator] =
-    useState('');
-
-  const [selectedCircle, setSelectedCircle] =
-    useState('');
-
+  const [step, setStep] = useState<FlowStep>('number');
+  const [showKYCNudge, setShowKYCNudge] = useState(false);
+  const [mobileNumber, setMobileNumber] = useState(''); // Formatted with space
+  const [selectedOperator, setSelectedOperator] = useState('');
+  const [selectedCircle, setSelectedCircle] = useState('');
   const [amount, setAmount] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<RechargePlan | null>(null);
+  const [planCategory, setPlanCategory] = useState('all');
+  
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [circles, setCircles] = useState<Circle[]>([]);
+  const [plans, setPlans] = useState<RechargePlan[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  const [detecting, setDetecting] = useState(false);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [resultStatus, setResultStatus] = useState<'SUCCESS' | 'PENDING' | 'FAILED' | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const [selectedPlan, setSelectedPlan] =
-    useState<RechargePlan | null>(null);
-
-  const [planCategory, setPlanCategory] =
-    useState('all');
-
-  const [operators, setOperators] = useState<
-    Operator[]
-  >([]);
-
-  const [circles, setCircles] = useState<
-    Circle[]
-  >([]);
-
-  const [plans, setPlans] = useState<
-    RechargePlan[]
-  >([]);
-
-  const [recentTransactions, setRecentTransactions] =
-    useState<any[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [detecting, setDetecting] =
-    useState(false);
-
-  const [loadingPlans, setLoadingPlans] =
-    useState(false);
-
-  const [processing, setProcessing] =
-    useState(false);
-
-  const [step, setStep] = useState<'form' | 'confirm'>('form');
-
-  /* ========================================
-     Prefill mobile
-  ======================================== */
   useEffect(() => {
-    if (location.state?.mobileNumber) {
-      setMobileNumber(
-        location.state.mobileNumber
-      );
-    }
-  }, [location.state]);
-
-  /* ========================================
-     Load Initial Data
-  ======================================== */
-  useEffect(() => {
-    let cancelled = false;
-
     const load = async () => {
       setLoading(true);
-
       try {
-        const [ops, circs] =
-          await Promise.all([
-            getOperators('prepaid'),
-            getCircles(),
-          ]);
-
-        if (cancelled) return;
-
+        const [ops, circs] = await Promise.all([
+          getOperators('prepaid'),
+          getCircles(),
+        ]);
         setOperators(ops);
         setCircles(circs);
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
-
     load();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
     const loadHistory = async () => {
-      if (!user) {
-        setRecentTransactions([]);
-        return;
-      }
-
-      const history =
-        await getTransactionHistory(
-          user.id,
-          5,
-          'MOBILE_PREPAID'
-        );
-
-      if (cancelled) return;
-
-      setRecentTransactions(
-        history.filter(
-          (t: any) =>
-            t.status === 'SUCCESS'
-        )
-      );
+      if (!user) return;
+      const history = await getTransactionHistory(user.id, 5, 'MOBILE_PREPAID');
+      setRecentTransactions(history.filter((t: any) => t.status === 'SUCCESS'));
     };
-
     loadHistory();
-
-    return () => {
-      cancelled = true;
-    };
   }, [user?.id]);
 
-  /* ========================================
-     Auto Detect Operator
-  ======================================== */
-  useEffect(() => {
-    const run = async () => {
-      if (mobileNumber.length === 10) {
-        setDetecting(true);
-
-        const result =
-          await detectOperator(
-            mobileNumber
-          );
-
-        if (
-          result.status ===
-          'SUCCESS' &&
-          result.data
-        ) {
-          setSelectedOperator(
-            result.data.operator.id
-          );
-
-          setSelectedCircle(
-            result.data.circle.id
-          );
-
-          toast({
-            title:
-              'Operator Detected',
-            description: `${result.data.operator.name} - ${result.data.circle.name}`,
-          });
-        }
-
-        setDetecting(false);
-      }
-    };
-
-    run();
-  }, [mobileNumber]);
-
-  /* ========================================
-     Load Plans
-  ======================================== */
-  useEffect(() => {
-    const loadPlans = async () => {
-      if (!selectedOperator) return;
-
-      setLoadingPlans(true);
-
-      const result =
-        await getPlans(
-          selectedOperator,
-          selectedCircle || '1',
-          planCategory
-        );
-
-      if (
-        result.status ===
-        'SUCCESS' &&
-        Array.isArray(result.data)
-      ) {
-        setPlans(result.data);
-      } else {
-        setPlans([]);
-      }
-
-      setLoadingPlans(false);
-    };
-
-    loadPlans();
-  }, [
-    selectedOperator,
-    selectedCircle,
-    planCategory,
-  ]);
-
-  const handlePlanSelect = (
-    plan: RechargePlan
-  ) => {
-    setSelectedPlan(plan);
-    setAmount(
-      plan.amount.toString()
-    );
+  const handleMobileChange = (val: string) => {
+    const cleaned = val.replace(/\D/g, '').slice(0, 10);
+    // Format: 00000 00000
+    let formatted = cleaned;
+    if (cleaned.length > 5) {
+      formatted = cleaned.slice(0, 5) + ' ' + cleaned.slice(5);
+    }
+    setMobileNumber(formatted);
   };
 
-  /* ========================================
-     PROCEED TO CONFIRM
-  ======================================== */
-  const handleProceedToConfirm = async () => {
-    if (!user) {
-      toast({ title: 'Please login', variant: 'destructive' });
-      return;
+  useEffect(() => {
+    const rawNumber = mobileNumber.replace(/\s/g, '');
+    if (rawNumber.length === 10) {
+      const run = async () => {
+        setDetecting(true);
+        try {
+          const result = await detectOperator(rawNumber);
+          if (result.status === 'SUCCESS' && result.data) {
+            setSelectedOperator(result.data.operator.id);
+            setSelectedCircle(result.data.circle.id);
+            setTimeout(() => setStep('details'), 500);
+          }
+        } finally {
+          setDetecting(false);
+        }
+      };
+      run();
     }
+  }, [mobileNumber]);
 
-    if (!isApproved) {
-      setShowKYCNudge(true);
-      return;
-    }
+  useEffect(() => {
+    if (!selectedOperator || step !== 'details') return;
+    const load = async () => {
+      setLoadingPlans(true);
+      const result = await getPlans(selectedOperator, selectedCircle || '1', planCategory);
+      setPlans(result.status === 'SUCCESS' ? result.data : []);
+      setLoadingPlans(false);
+    };
+    load();
+  }, [selectedOperator, selectedCircle, planCategory, step]);
 
-    if (mobileNumber.length !== 10) {
-      toast({ title: 'Invalid mobile number', variant: 'destructive' });
-      return;
-    }
-
-    if (!selectedOperator || !amount) {
-      toast({ title: 'Missing details', variant: 'destructive' });
-      return;
-    }
-
-    const rechargeAmount = parseFloat(amount);
-    if (rechargeAmount > availableBalance) {
-      toast({ title: 'Insufficient Balance', variant: 'destructive' });
-      return;
-    }
-
-    // Pass limit check
-    const limitCheck = await checkRechargeLimit();
-    if (!limitCheck.allowed) {
-      toast({
-        title: 'Limit Reached',
-        description: `${limits.name} allows ${limits.dailyRechargeLimit} recharges/day`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handlePlanSelect = (plan: RechargePlan) => {
+    setSelectedPlan(plan);
+    setAmount(plan.amount.toString());
     setStep('confirm');
   };
 
-  const executeRecharge = async () => {
+  const handleExecuteRecharge = async () => {
     setProcessing(true);
-    const rechargeAmount = parseFloat(amount);
-
+    const rawNumber = mobileNumber.replace(/\s/g, '');
     try {
-      const result = await processRecharge(user.id, {
-        mobile_number: mobileNumber,
+      const result = await processRecharge(user!.id, {
+        mobile_number: rawNumber,
         operator_id: selectedOperator,
         circle_id: selectedCircle,
-        amount: rechargeAmount,
+        amount: parseFloat(amount),
         plan_id: selectedPlan?.id,
       });
 
       if (result.status === 'SUCCESS' || result.status === 'PENDING') {
-        toast({
-          title: result.status === 'SUCCESS' ? 'Recharge Successful' : 'Recharge Pending',
-          description: `₹${rechargeAmount} processed for ${mobileNumber}`,
-        });
+        setResultStatus(result.status as any);
         refetch();
-        setStep('form');
-        setMobileNumber('');
-        setAmount('');
-        setSelectedPlan(null);
+        setStep('result');
       } else {
-        toast({
-          title: 'Recharge Failed',
-          description: result.message,
-          variant: 'destructive',
-        });
+        setResultStatus('FAILED');
+        setErrorMessage(result.message);
+        setStep('result');
       }
     } catch (error: any) {
-      toast({
-        title: 'System Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+      setResultStatus('FAILED');
+      setErrorMessage(error.message);
+      setStep('result');
     } finally {
       setProcessing(false);
     }
@@ -366,373 +207,284 @@ export function MobileRechargeForm() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-12 w-12 animate-spin text-emerald-600" />
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
       </div>
     );
   }
 
-  // ============================================================
-  // CONFIRMATION VIEW (FULL PAGE)
-  // ============================================================
+  if (step === 'result') {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 p-6">
+        <div className="w-full max-w-sm text-center space-y-6">
+          {resultStatus === 'SUCCESS' ? (
+            <div className="space-y-4">
+              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-emerald-100">
+                <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+              </div>
+              <h1 className="text-3xl font-black tracking-tighter text-slate-900">Success!</h1>
+              <p className="text-sm text-slate-500 font-medium tracking-tight px-4">₹{amount} processed successfully for {mobileNumber}.</p>
+            </div>
+          ) : resultStatus === 'PENDING' ? (
+            <div className="space-y-4">
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-amber-100">
+                <Clock className="w-10 h-10 text-amber-600 animate-pulse" />
+              </div>
+              <h1 className="text-3xl font-black tracking-tighter text-amber-900">Pending</h1>
+              <p className="text-sm text-slate-500 font-medium tracking-tight px-4">Verifying your transaction...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-rose-100">
+                <XCircle className="w-10 h-10 text-rose-600" />
+              </div>
+              <h1 className="text-3xl font-black tracking-tighter text-rose-900">Failed</h1>
+              <p className="text-sm text-slate-500 font-medium tracking-tight px-4">{errorMessage}</p>
+            </div>
+          )}
+
+          <div className="pt-6">
+            <Button 
+              className="w-full h-14 rounded-2xl text-lg font-black bg-slate-900 text-white shadow-xl active:scale-95 transition-all"
+              onClick={() => {
+                setStep('number');
+                setMobileNumber('');
+                setAmount('');
+                setSelectedPlan(null);
+                setResultStatus(null);
+              }}
+            >
+              DONE
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'confirm') {
     const operatorObj = operators.find(o => o.id === selectedOperator);
     const circleObj = circles.find(c => c.id === selectedCircle);
 
     return (
-      <div className="min-h-[80vh] flex flex-col pt-4 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => setStep('form')} className="rounded-full">
-            <ArrowLeft className="w-6 h-6" />
+      <div className="flex-1 flex flex-col pt-0 animate-in fade-in slide-in-from-right-8 duration-500 relative h-full overflow-hidden w-full">
+        <div className="absolute top-3 left-3 z-50">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setStep('details')} 
+            className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/30 shadow-lg"
+          >
+            <ChevronLeft className="w-5 h-5" />
           </Button>
-          <h2 className="text-xl font-bold">Confirm Payment</h2>
         </div>
 
-        <Card className="border-none shadow-2xl shadow-slate-100 rounded-[35px] overflow-hidden mb-8">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-70 mb-2">Recharging for</p>
-            <h1 className="text-3xl font-black mb-1">{mobileNumber}</h1>
-            <p className="text-sm font-medium opacity-80">{operatorObj?.name} • {circleObj?.name}</p>
+        <Card className="border-none shadow-[0_20px_40px_rgba(0,0,0,0.05)] rounded-[35px] overflow-hidden flex flex-col flex-1 mb-4 w-full">
+          <div className="bg-slate-900 p-8 text-white flex flex-col items-center text-center relative overflow-hidden shrink-0 pt-12">
+             <div className="absolute top-0 right-0 p-4 opacity-5">
+              <Zap size={140} />
+            </div>
+            <div className="w-16 h-16 bg-white rounded-2xl p-4 mb-4 shadow-2xl relative z-10 flex items-center justify-center">
+              {OPERATOR_LOGOS[selectedOperator] ? (
+                 <img 
+                    src={OPERATOR_LOGOS[selectedOperator]} 
+                    alt="Logo" 
+                    className="w-full h-full object-contain"
+                    onError={(e) => { (e.target as any).style.display = 'none'; (e.target as any).nextSibling.style.display = 'block'; }} 
+                  />
+              ) : null}
+              <Smartphone className={`w-8 h-8 text-slate-200 ${OPERATOR_LOGOS[selectedOperator] ? 'hidden' : 'block'}`} />
+            </div>
+            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-blue-400 mb-1 relative z-10">{operatorObj?.name} • {circleObj?.name}</p>
+            <h1 className="text-3xl font-black tracking-tighter relative z-10">{mobileNumber}</h1>
           </div>
-          <CardContent className="p-8 space-y-6">
-            <div className="flex justify-between items-center py-4 border-b border-slate-50">
-              <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Amount</span>
-              <h1 className="text-5xl font-black italic tracking-tighter text-slate-900">₹{amount}</h1>
+          
+          <CardContent className="p-8 space-y-6 bg-white flex-1 overflow-y-auto custom-scrollbar w-full">
+            <div className="flex justify-between items-center pb-6 border-b border-slate-50">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Amount</span>
+              <h1 className="text-4xl font-black tracking-tighter text-slate-900 leading-none">₹{amount}</h1>
             </div>
 
-            {selectedPlan && (
-              <div className="bg-slate-50 p-4 rounded-2xl space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">Validity</span>
-                  <span className="text-sm font-black text-slate-700">{selectedPlan.validity}</span>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">{selectedPlan.description}</p>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-400 uppercase tracking-widest text-[9px]">Plan Benefits</span>
+                <span className="text-blue-600">{selectedPlan?.validity}</span>
               </div>
-            )}
+              <p className="text-xs text-slate-600 leading-relaxed font-medium bg-slate-50 p-5 rounded-[24px] border border-slate-100/30">{selectedPlan?.description}</p>
+            </div>
 
-            <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+            <div className="flex items-center gap-3 p-5 bg-blue-50/40 rounded-[28px] border border-blue-100/20 shrink-0">
               <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                <FlaskConical className="w-5 h-5 text-emerald-600" />
+                <FlaskConical className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">Wallet Balance</p>
-                <p className="text-sm font-bold text-slate-700">₹{availableBalance.toFixed(2)}</p>
+                <p className="text-[8px] font-black text-blue-800/60 uppercase tracking-widest leading-none mb-1">PrePe Wallet</p>
+                <p className="text-lg font-black text-slate-800 leading-none">₹{availableBalance.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="mt-auto space-y-4">
+        <div className="shrink-0 px-2 pb-2 w-full">
           <Button
-            className="w-full h-16 rounded-2xl text-lg font-bold bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-200 transition-all active:scale-95"
-            onClick={executeRecharge}
+            className="w-full h-16 rounded-[28px] text-lg font-black bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-100 transition-all active:scale-[0.98]"
+            onClick={handleExecuteRecharge}
             disabled={processing}
           >
-            {processing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "PAY SECURELY NOW"}
+            {processing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "SECURE PAYMENT"}
           </Button>
-          <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Encrypted & Secure Transaction
-          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'details') {
+    return (
+      <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 overflow-hidden h-full w-full">
+        <div className="flex items-center justify-between bg-slate-50/80 p-3 rounded-[24px] border border-slate-100 shrink-0 w-full">
+          <div className="flex items-center gap-3 px-1">
+            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm">
+              <Phone className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-lg font-black text-slate-900 tracking-tighter leading-none">{mobileNumber}</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Select a Plan</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setStep('number')} className="h-8 rounded-lg text-blue-600 text-xs font-bold hover:bg-blue-50 px-3">Change</Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 shrink-0 w-full px-1">
+          <div className="space-y-1.5">
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operator</Label>
+            <Select value={selectedOperator} onValueChange={setSelectedOperator}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
+                <SelectValue placeholder="Operator" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {operators.map((op) => (
+                  <SelectItem key={op.id} value={op.id} className="font-bold py-2 text-sm">{op.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Circle</Label>
+            <Select value={selectedCircle} onValueChange={setSelectedCircle}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
+                <SelectValue placeholder="Circle" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {circles.map((circle) => (
+                  <SelectItem key={circle.id} value={circle.id} className="font-bold py-2 text-sm">{circle.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col overflow-hidden w-full">
+          <Tabs value={planCategory} onValueChange={setPlanCategory} className="flex-1 flex flex-col">
+            <TabsList className="flex bg-slate-100/50 p-1 rounded-[18px] gap-1 mb-4 h-11 shrink-0 w-full">
+              {['all', 'unlimited', 'data', 'combo'].map((cat) => (
+                <TabsTrigger
+                  key={cat}
+                  value={cat}
+                  className="flex-1 rounded-[14px] text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full"
+                >
+                  {cat}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value={planCategory} className="flex-1 overflow-hidden mt-0 w-full">
+              <div className="grid gap-3 h-full overflow-y-auto pr-1 custom-scrollbar pb-2 w-full">
+                {plans.length === 0 ? (
+                   <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 w-full">
+                      <Search className="w-8 h-8 mb-2" />
+                      <p className="text-[9px] font-black uppercase tracking-widest">No Plans Available</p>
+                   </div>
+                ) : plans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    onClick={() => handlePlanSelect(plan)}
+                    className="p-5 rounded-[28px] border-2 border-slate-100 bg-white hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98] w-full"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex flex-col">
+                        <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">₹{plan.amount}</span>
+                        <span className="text-[9px] font-black text-blue-600 mt-1 uppercase tracking-widest">{plan.validity}</span>
+                      </div>
+                      <div className="w-7 h-7 bg-slate-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium leading-normal line-clamp-2">{plan.description}</p>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-500">
-
-      {IS_DEMO_MODE && (
-        <div className="rounded-xl border bg-yellow-50 p-3 text-sm">
-          Demo Mode Enabled
-        </div>
-      )}
-
-      {/* MOBILE */}
-      <div>
-        <Label>
-          Mobile Number
-        </Label>
-
-        <div className="relative">
-          <Input
-            maxLength={10}
-            value={
-              mobileNumber
-            }
-            onChange={(e) =>
-              setMobileNumber(
-                e.target.value.replace(
-                  /\D/g,
-                  ''
-                )
-              )
-            }
-          />
-
-          <div className="absolute right-3 top-3">
-            {detecting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Contact className="h-4 w-4" />
-            )}
+    <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-700 pt-6 overflow-hidden h-full w-full">
+      <div className="relative group shrink-0 w-full">
+        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[40px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
+        <div className="relative bg-white border-2 border-slate-100 rounded-[30px] p-8 focus-within:border-blue-500 transition-all shadow-xl shadow-slate-100/20 w-full">
+          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 block ml-1">Mobile Number</Label>
+          <div className="flex items-center gap-3 h-14 w-full">
+            <span className="text-4xl font-black text-slate-400 select-none tracking-tighter shrink-0">+91</span>
+            <input
+              type="tel"
+              maxLength={11} // Accounting for space
+              autoFocus
+              className="border-none p-0 h-full text-4xl font-black tracking-tighter focus:outline-none placeholder:text-slate-100 bg-transparent flex-1 min-w-0"
+              placeholder="00000 00000"
+              value={mobileNumber}
+              onChange={(e) => handleMobileChange(e.target.value)}
+            />
+            <div className="flex-shrink-0">
+              {detecting ? (
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                  <Phone className="h-5 w-5 text-slate-300" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* RECENT */}
-      {!mobileNumber && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <h3 className="font-semibold">
-              Recent Recharges
-            </h3>
-
-            {recentTransactions.length ===
-              0 ? (
-              <p className="text-sm text-muted-foreground">
-                No recent history
-              </p>
-            ) : (
-              recentTransactions.map(
-                (txn) => (
-                  <div
-                    key={txn.id}
-                    className="flex justify-between border rounded-lg p-3"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {
-                          txn.mobile_number
-                        }
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        ₹
-                        {
-                          txn.amount
-                        }
-                      </p>
-                    </div>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setMobileNumber(
-                          txn.mobile_number
-                        );
-                        setAmount(
-                          txn.amount.toString()
-                        );
-                        setSelectedOperator(
-                          txn.operator_id
-                        );
-                      }}
-                    >
-                      Repeat
-                    </Button>
-                  </div>
-                )
-              )
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* FORM */}
-      {mobileNumber && (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-
-            <div>
-              <Label>
-                Operator
-              </Label>
-
-              <Select
-                value={
-                  selectedOperator
-                }
-                onValueChange={
-                  setSelectedOperator
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {operators.map(
-                    (op) => (
-                      <SelectItem
-                        key={op.id}
-                        value={op.id}
-                      >
-                        {
-                          op.name
-                        }
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>
-                Circle
-              </Label>
-
-              <Select
-                value={
-                  selectedCircle
-                }
-                onValueChange={
-                  setSelectedCircle
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {circles.map(
-                    (circle) => (
-                      <SelectItem
-                        key={
-                          circle.id
-                        }
-                        value={
-                          circle.id
-                        }
-                      >
-                        {
-                          circle.name
-                        }
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Amount */}
-          <div className="flex gap-2">
-            <Input
-              value={amount}
-              onChange={(e) =>
-                setAmount(
-                  e.target.value
-                )
-              }
-              placeholder="Amount"
-            />
-
-            <Button
-              className="h-14 px-8 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all"
-              onClick={handleProceedToConfirm}
-              disabled={processing}
+      <div className="flex-1 flex flex-col space-y-4 overflow-hidden w-full">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 shrink-0">Recent Transactions</h3>
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar pb-6 w-full">
+          {recentTransactions.map((txn) => (
+            <div
+              key={txn.id}
+              onClick={() => handleMobileChange(txn.mobile_number)}
+              className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full"
             >
-              Proceed
-            </Button>
-          </div>
+              <div className="w-12 h-12 bg-slate-50 rounded-[18px] flex items-center justify-center text-xl font-black text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+                {txn.mobile_number.slice(0, 2)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-lg font-black text-slate-800 tracking-tight leading-none truncate">{txn.mobile_number}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">₹{txn.amount}</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-blue-600 transition-all shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
 
-          {/* PLANS */}
-          {selectedOperator && (
-            <Tabs
-              value={
-                planCategory
-              }
-              onValueChange={
-                setPlanCategory
-              }
-            >
-              <TabsList className="grid grid-cols-4">
-                <TabsTrigger value="all">
-                  All
-                </TabsTrigger>
-
-                <TabsTrigger value="unlimited">
-                  Unlimited
-                </TabsTrigger>
-
-                <TabsTrigger value="data">
-                  Data
-                </TabsTrigger>
-
-                <TabsTrigger value="combo">
-                  Combo
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={planCategory}>
-                {loadingPlans ? (
-                  <div className="py-5 flex justify-center">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {plans.map(
-                      (plan) => (
-                        <Card
-                          key={
-                            plan.id
-                          }
-                          className={`cursor-pointer ${selectedPlan?.id ===
-                            plan.id
-                            ? 'border-blue-500'
-                            : ''
-                            }`}
-                          onClick={() =>
-                            handlePlanSelect(
-                              plan
-                            )
-                          }
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex justify-between">
-                              <span className="font-bold">
-                                ₹
-                                {
-                                  plan.amount
-                                }
-                              </span>
-
-                              <Badge>
-                                {
-                                  plan.validity
-                                }
-                              </Badge>
-                            </div>
-
-                            <p className="text-sm text-muted-foreground mt-2">
-                              {
-                                plan.description
-                              }
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )
-                    )}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          )}
-        </>
-      )}
-
-      <KYCNudgeDialog
-        isOpen={
-          showKYCNudge
-        }
-        onClose={() =>
-          setShowKYCNudge(
-            false
-          )
-        }
-        featureName="Recharge"
-      />
+      <KYCNudgeDialog isOpen={showKYCNudge} onClose={() => setShowKYCNudge(false)} featureName="Recharge" />
     </div>
   );
 }
