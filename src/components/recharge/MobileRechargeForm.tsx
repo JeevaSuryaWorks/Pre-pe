@@ -65,10 +65,10 @@ import type {
 } from '@/types/recharge.types';
 
 const OPERATOR_LOGOS: Record<string, string> = {
-  '1': '/logos/jio_new.svg',
-  '2': '/logos/airtel_new.svg',
-  '3': '/logos/vi_new.svg',
-  '4': '/logos/bsnl_new.svg',
+  '1': '/logos/airtel_new.svg',
+  '2': '/logos/bsnl_new.png',
+  '3': '/logos/jio_new.svg',
+  '4': '/logos/vi_new.svg',
 };
 
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
