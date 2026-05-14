@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { adminService } from '@/services/admin';
 import { supabase } from '@/integrations/supabase/client';
-import { Smartphone, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Smartphone, ShieldCheck, ArrowRight, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { paymentService } from '@/services/payment.service';
 
 declare global {
@@ -44,6 +45,7 @@ export default function PlanSelectionPage() {
     const [plans, setPlans] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [paymentMode, setPaymentMode] = useState<'RZP' | 'UPI' | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         // Load Razorpay Script
@@ -220,6 +222,11 @@ export default function PlanSelectionPage() {
         }
     };
 
+    const filteredPlans = plans.filter(plan => 
+        plan.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        plan.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     if (loading) {
         return (
             <Layout hideHeader>
@@ -249,10 +256,20 @@ export default function PlanSelectionPage() {
                         <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
                             Pick the right plan that fits your needs. Each plan unlocks different features and requires specific verification. 🇮🇳
                         </p>
+
+                        <div className="max-w-md mx-auto mt-8 relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                            <Input
+                                placeholder="Search plans..."
+                                className="pl-12 h-14 bg-white border-slate-200 rounded-2xl shadow-sm focus:ring-[#FF671F]/20 focus:border-[#FF671F]"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto w-full">
-                        {plans.map((plan, index) => {
+                        {filteredPlans.map((plan, index) => {
                             const Icon = getPlanIcon(plan.id);
                             const { color, bgColor } = getPlanColors(plan.id);
                             const isPopular = plan.is_popular;

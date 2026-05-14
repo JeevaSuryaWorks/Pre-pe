@@ -96,6 +96,7 @@ export function MobileRechargeForm() {
   const [amount, setAmount] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<RechargePlan | null>(null);
   const [planCategory, setPlanCategory] = useState('all');
+  const [planSearchQuery, setPlanSearchQuery] = useState("");
   
   const [operators, setOperators] = useState<Operator[]>([]);
   const [circles, setCircles] = useState<Circle[]>([]);
@@ -481,15 +482,48 @@ export function MobileRechargeForm() {
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden w-full">
+          <div className="relative mb-3 shrink-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Search plans (e.g. 1.5GB, Unlimited...)"
+              className="pl-10 h-11 bg-slate-50/50 border-slate-100 rounded-xl font-bold placeholder:text-slate-300"
+              value={planSearchQuery}
+              onChange={(e) => setPlanSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Quick Filter Chips */}
+          <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1 shrink-0">
+             {['1.5GB', '2GB', '28 Days', '84 Days', 'Unlimited'].map(chip => (
+               <button 
+                 key={chip}
+                 onClick={() => setPlanSearchQuery(prev => prev === chip ? "" : chip)}
+                 className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+                   planSearchQuery === chip 
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                    : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
+                 }`}
+               >
+                 {chip}
+               </button>
+             ))}
+          </div>
+
           <Tabs value={planCategory} onValueChange={setPlanCategory} className="flex-1 flex flex-col">
             <TabsList className="flex bg-slate-100/50 p-1 rounded-[18px] gap-1 mb-4 h-11 shrink-0 w-full">
-              {['all', 'unlimited', 'data', 'combo'].map((cat) => (
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'unlimited', label: 'Unlimited' },
+                { id: 'data', label: 'Data (GB)' },
+                { id: 'combo', label: 'Validity' },
+                { id: 'topup', label: 'Talktime' }
+              ].map((cat) => (
                 <TabsTrigger
-                  key={cat}
-                  value={cat}
-                  className="flex-1 rounded-[14px] text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full"
+                  key={cat.id}
+                  value={cat.id}
+                  className="flex-1 rounded-[14px] text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full px-0"
                 >
-                  {cat}
+                  {cat.label}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -501,7 +535,14 @@ export function MobileRechargeForm() {
                       <Search className="w-8 h-8 mb-2" />
                       <p className="text-[9px] font-black uppercase tracking-widest">No Plans Available</p>
                    </div>
-                ) : plans.map((plan) => (
+                ) : plans
+                    .filter(plan => planCategory === 'all' || plan.category === planCategory)
+                    .filter(plan => 
+                      plan.amount.toString().includes(planSearchQuery) || 
+                      plan.description.toLowerCase().includes(planSearchQuery.toLowerCase()) ||
+                      plan.validity.toLowerCase().includes(planSearchQuery.toLowerCase())
+                    )
+                    .map((plan) => (
                   <div
                     key={plan.id}
                     onClick={() => handlePlanSelect(plan)}
@@ -531,15 +572,16 @@ export function MobileRechargeForm() {
     <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-700 pt-6 overflow-hidden h-full w-full">
       <div className="relative group shrink-0 w-full">
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[40px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
-        <div className="relative bg-white border-2 border-slate-100 rounded-[30px] p-8 focus-within:border-blue-500 transition-all shadow-xl shadow-slate-100/20 w-full">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 block ml-1">Mobile Number</Label>
-          <div className="flex items-center gap-3 h-14 w-full">
-            <span className="text-4xl font-black text-slate-400 select-none tracking-tighter shrink-0">+91</span>
+        <div className="relative bg-white border-2 border-slate-100 rounded-[30px] p-5 focus-within:border-blue-500 transition-all shadow-xl shadow-slate-100/20 w-full">
+          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block ml-1">Mobile Number</Label>
+          <div className="flex items-center gap-4 h-12 w-full">
+            <span className="text-2xl font-bold text-slate-400 select-none shrink-0">+91</span>
+            <div className="w-px h-6 bg-slate-100 shrink-0" />
             <input
               type="tel"
               maxLength={11} // Accounting for space
               autoFocus
-              className="border-none p-0 h-full text-4xl font-black tracking-tighter focus:outline-none placeholder:text-slate-100 bg-transparent flex-1 min-w-0"
+              className="border-none p-0 h-full text-2xl font-bold tracking-tight focus:outline-none placeholder:text-slate-100 bg-transparent flex-1 min-w-0"
               placeholder="00000 00000"
               value={mobileNumber}
               onChange={(e) => handleMobileChange(e.target.value)}
