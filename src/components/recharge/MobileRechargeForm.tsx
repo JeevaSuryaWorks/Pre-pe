@@ -61,6 +61,7 @@ import { useKYC } from '@/hooks/useKYC';
 import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 import { paymentService } from '@/services/payment.service';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
 
 import type {
@@ -582,9 +583,12 @@ export function MobileRechargeForm() {
                       plan.description.toLowerCase().includes(planSearchQuery.toLowerCase()) ||
                       plan.validity.toLowerCase().includes(planSearchQuery.toLowerCase())
                     )
-                    .map((plan) => (
-                  <div
+                    .map((plan, idx) => (
+                  <motion.div
                     key={plan.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
                     onClick={() => handlePlanSelect(plan)}
                     className="p-5 rounded-[28px] border-2 border-slate-100 bg-white hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98] w-full"
                   >
@@ -598,7 +602,7 @@ export function MobileRechargeForm() {
                       </div>
                     </div>
                     <p className="text-[11px] text-slate-500 font-medium leading-normal line-clamp-2">{plan.description}</p>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </TabsContent>

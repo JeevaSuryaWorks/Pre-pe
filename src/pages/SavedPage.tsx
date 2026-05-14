@@ -109,7 +109,7 @@ const SavedPage = () => {
                         onClick={() => setIsAddDialogOpen(true)}
                         className="rounded-2xl bg-[#FF671F] hover:bg-orange-600 text-white font-black h-12 px-6 shadow-lg shadow-orange-500/20 transition-all duration-300 uppercase tracking-widest text-[10px]"
                     >
-                        <Plus className="w-5 h-5 mr-2" /> Add Member
+                        <Plus className="w-5 h-5 mr-2" /> Add More
                     </Button>
                 </header>
 
@@ -134,7 +134,7 @@ const SavedPage = () => {
                                 <h3 className="text-xl font-bold text-slate-800 mb-2">Build Your Circle</h3>
                                 <p className="text-slate-500 max-w-xs mx-auto mb-8">Add family members to quickly manage their recharges and bills in one place.</p>
                                 <Button variant="outline" onClick={() => setIsAddDialogOpen(true)} className="rounded-2xl border-2 border-slate-200 font-bold px-8">
-                                    Add First Member
+                                    Add More
                                 </Button>
                             </div>
                         ) : (
