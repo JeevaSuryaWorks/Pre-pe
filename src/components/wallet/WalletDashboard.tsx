@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, Plus, History, ArrowUpRight, ArrowDownLeft, Lock, Zap, Loader2, CheckCircle, ArrowRightLeft, CreditCard } from 'lucide-react';
+import { Wallet, Plus, History, ArrowUpRight, ArrowDownLeft, Lock, Zap, Loader2, CheckCircle, ArrowRightLeft, CreditCard, Trophy } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { useAuth } from '@/hooks/useAuth';
 import { getWalletLedger } from '@/services/wallet.service';
@@ -12,6 +12,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits';
 import { AdBanner } from './AdBanner';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
+import { getUserTotalPoints } from '@/services/rewards.service';
 
 interface LedgerEntry {
   id: string;
@@ -29,17 +30,24 @@ export function WalletDashboard() {
   const { limits, isFeatureEnabled, planId, loading: planLoading } = usePlanLimits();
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loadingLedger, setLoadingLedger] = useState(false);
+  const [totalPoints, setTotalPoints] = useState<number>(0);
+  const [pointsLoading, setPointsLoading] = useState(true);
 
   useEffect(() => {
-    const loadLedger = async () => {
+    const loadData = async () => {
       if (user) {
         setLoadingLedger(true);
-        const entries = await getWalletLedger(user.id, 20);
+        const [entries, points] = await Promise.all([
+          getWalletLedger(user.id, 20),
+          getUserTotalPoints(user.id)
+        ]);
         setLedger(entries);
+        setTotalPoints(points);
         setLoadingLedger(false);
+        setPointsLoading(false);
       }
     };
-    loadLedger();
+    loadData();
   }, [user]);
 
   const getTypeIcon = (type: string) => {
@@ -114,14 +122,17 @@ export function WalletDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-sm bg-white/50 backdrop-blur-sm border border-slate-100">
+            <Card 
+              className="border-none shadow-sm bg-white/50 backdrop-blur-sm border border-slate-100 cursor-pointer active:scale-95 transition-all group"
+              onClick={() => navigate('/rewards')}
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-2">
-                   <div className="h-1.5 w-1.5 rounded-full bg-slate-300"></div>
-                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">In Reserve</span>
+                   <Trophy className="h-3 w-3 text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Rewards</span>
                 </div>
-                <p className="text-xl font-black text-slate-400">
-                  {loading ? '...' : `₹${lockedBalance.toLocaleString()}`}
+                <p className="text-xl font-black text-[#000080]">
+                  {pointsLoading ? '...' : totalPoints.toLocaleString()}
                 </p>
               </CardContent>
             </Card>

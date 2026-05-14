@@ -120,26 +120,26 @@ const HomePage = () => {
 
                                 <div className="relative z-10">
                                     <div className="flex justify-between items-start mb-6">
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF671F] mb-1">
+                                        <Link to="/wallet" className="group/balance transition-all active:scale-95">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF671F] mb-1 group-hover/balance:text-[#FF671F]/80 transition-colors">
                                                 Available Balance
                                             </p>
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-sm font-bold text-slate-400">₹</span>
-                                                <h2 className="text-4xl font-black tracking-tighter text-slate-900">
+                                                <h2 className="text-4xl font-black tracking-tighter text-slate-900 group-hover/balance:text-slate-700 transition-colors">
                                                     {walletLoading ? "..." : (isApproved ? availableBalance.toFixed(2) : "****.**")}
                                                 </h2>
                                             </div>
-                                        </div>
-                                        <div className="bg-[#000080]/5 rounded-2xl p-2 px-3 flex flex-col items-end border border-[#000080]/10">
+                                        </Link>
+                                        <Link to="/rewards" className="bg-[#000080]/5 rounded-2xl p-2 px-3 flex flex-col items-end border border-[#000080]/10 hover:bg-[#000080]/10 hover:border-[#000080]/20 transition-all active:scale-95 group/rewards">
                                             <p className="text-[9px] font-bold text-[#000080] uppercase tracking-wider">Reward Points</p>
                                             <div className="flex items-center gap-1">
-                                                <Trophy className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                                <Trophy className="w-3 h-3 text-amber-500 fill-amber-500 group-hover/rewards:scale-110 transition-transform" />
                                                 <span className="text-sm font-black tracking-tight text-[#000080]">
                                                     {pointsLoading ? "..." : totalPoints.toLocaleString()}
                                                 </span>
                                             </div>
-                                        </div>
+                                        </Link>
                                     </div>
 
                                     {/* Action Pillars */}

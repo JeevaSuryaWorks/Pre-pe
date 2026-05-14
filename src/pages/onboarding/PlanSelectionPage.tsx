@@ -242,7 +242,7 @@ export default function PlanSelectionPage() {
 
     return (
         <Layout hideHeader>
-            <div className="min-h-screen pt-12 pb-24 px-4 bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 relative overflow-hidden">
+            <div className="min-h-screen pt-12 pb-24 px-4 bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 relative">
                 {/* Decorative patriotic elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />

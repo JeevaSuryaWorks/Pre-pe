@@ -39,6 +39,9 @@ import {
   Clock,
   Phone,
   Smartphone,
+  Trophy,
+  Star,
+  Sparkles
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -482,6 +485,43 @@ export function MobileRechargeForm() {
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden w-full">
+          {/* Suggested Plans */}
+          {plans.length > 0 && !planSearchQuery && planCategory === 'all' && (
+            <div className="mb-6 shrink-0">
+               <div className="flex items-center justify-between mb-3 px-1">
+                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                   Suggested For You
+                 </h3>
+                 <span className="text-[8px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded-full tracking-tighter">AI Optimized</span>
+               </div>
+               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-1">
+                 {plans.slice(0, 4).map((plan, idx) => (
+                   <div 
+                     key={`suggested-${plan.id}`}
+                     onClick={() => handlePlanSelect(plan)}
+                     className={`min-w-[140px] p-4 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
+                       idx % 2 === 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'
+                     }`}
+                   >
+                     <div className="absolute top-[-20%] right-[-10%] w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700" />
+                     <div className="flex justify-between items-start mb-2 relative z-10">
+                       <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
+                       <Star className="w-3 h-3 text-white/50 fill-white/20" />
+                     </div>
+                     <p className="text-[9px] font-bold leading-tight opacity-90 line-clamp-2 mb-2 min-h-[24px] relative z-10">{plan.description}</p>
+                     <div className="flex justify-between items-center relative z-10">
+                       <span className="text-[8px] font-black uppercase tracking-widest opacity-70">{plan.validity}</span>
+                       <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                         <ChevronRight className="w-3 h-3" />
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            </div>
+          )}
+
           <div className="relative mb-3 shrink-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
