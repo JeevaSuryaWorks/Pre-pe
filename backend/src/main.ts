@@ -45,6 +45,20 @@ async function bootstrap() {
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     app.useGlobalInterceptors(new TimeoutInterceptor());
 
+    // Root-level health checker middleware to intercept pings before they throw 404s
+    app.use((req: any, res: any, next: any) => {
+        const cleanPath = req.path.replace(/\/+$/, ''); // Remove trailing slashes
+        if (cleanPath === '' || cleanPath === '/api') {
+            return res.json({ 
+                status: 'ok', 
+                service: 'PrePe Backend API',
+                time: new Date().toISOString(),
+                pid: process.pid
+            });
+        }
+        next();
+    });
+
     // Global health check
     app.use('/api/health', (req: any, res: any) => {
         res.json({ 
