@@ -4,7 +4,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { rawBody: true });
     
     // Custom CORS middleware to avoid conflicts with Nginx adding headers in production
     app.use((req: any, res: any, next: any) => {

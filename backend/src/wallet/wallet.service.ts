@@ -92,15 +92,26 @@ export class WalletService {
     /* =========================================================
        🔻 DEBIT WALLET (FOR RECHARGE)
     ========================================================= */
-    async debit(userId: string, amount: number, description?: string, tx?: any) {
+    async debit(userId: string, amount: number, description?: string, tx?: any, referenceId?: string) {
         if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
         if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
         const execute = async (prismaTx: any) => {
-            const wallet = await this.getOrCreateWallet(prismaTx, userId);
+            if (referenceId) {
+                const existingLedger = await prismaTx.wallet_ledger.findFirst({
+                    where: { reference_id: referenceId }
+                });
+                if (existingLedger) {
+                    this.logger.log(`ℹ️ [DEBIT] Ignoring duplicate request for reference: ${referenceId}`);
+                    return prismaTx.wallets.findUnique({ where: { user_id: userId } });
+                }
+            }
 
-            if (new Decimal(wallet.balance).lessThan(amount)) {
-                throw new BadRequestException('Insufficient balance');
+            const wallet = await this.getOrCreateWallet(prismaTx, userId);
+            const availableBalance = new Decimal(wallet.balance).minus(wallet.locked_balance);
+
+            if (availableBalance.lessThan(amount)) {
+                throw new BadRequestException('Insufficient available balance');
             }
 
             const updatedWallet = await prismaTx.wallets.update({
@@ -118,6 +129,7 @@ export class WalletService {
                     amount: new Decimal(amount),
                     balance_after: updatedWallet.balance,
                     description: description || 'Recharge debit',
+                    reference_id: referenceId || null,
                     created_at: new Date(),
                 },
             });
@@ -129,14 +141,25 @@ export class WalletService {
         return this.prisma.$transaction(async (pTx) => execute(pTx));
     }
 
+
     /* =========================================================
        🔺 CREDIT WALLET (REFUND / ADD MONEY)
     ========================================================= */
-    async credit(userId: string, amount: number, description?: string, tx?: any) {
+    async credit(userId: string, amount: number, description?: string, tx?: any, referenceId?: string) {
         if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
         if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
         const execute = async (prismaTx: any) => {
+            if (referenceId) {
+                const existingLedger = await prismaTx.wallet_ledger.findFirst({
+                    where: { reference_id: referenceId }
+                });
+                if (existingLedger) {
+                    this.logger.log(`ℹ️ [CREDIT] Ignoring duplicate request for reference: ${referenceId}`);
+                    return prismaTx.wallets.findUnique({ where: { user_id: userId } });
+                }
+            }
+
             const wallet = await this.getOrCreateWallet(prismaTx, userId);
 
             const updatedWallet = await prismaTx.wallets.update({
@@ -154,6 +177,7 @@ export class WalletService {
                     amount: new Decimal(amount),
                     balance_after: updatedWallet.balance,
                     description: description || 'Wallet credit',
+                    reference_id: referenceId || null,
                     created_at: new Date(),
                 },
             });
@@ -176,6 +200,10 @@ export class WalletService {
             throw new BadRequestException('Invalid User ID');
         }
 
+        if (!amount || amount < 1) throw new BadRequestException('Minimum amount is ₹1');
+        const maxAmount = parseInt(this.configService.get<string>('MAX_WALLET_TOPUP_AMOUNT') || '10000', 10);
+        if (amount > maxAmount) throw new BadRequestException(`Maximum top-up amount is ₹${maxAmount}`);
+
         if (!this.razorpay) {
             console.error('[TRACE] ❌ Razorpay not initialized');
             throw new BadRequestException('Razorpay not configured');
@@ -193,6 +221,7 @@ export class WalletService {
         // Connectivity check
         try {
             console.log('[TRACE] 2. Checking DB connection...');
+
             await this.prisma.$queryRaw`SELECT 1`;
             console.log('[TRACE] ✅ DB Connection: OK');
         } catch (e: any) {
@@ -236,6 +265,7 @@ export class WalletService {
                     amount: new Decimal(amount),
                     upi_ref_id: order.id,
                     gateway_status: 'PENDING',
+                    payment_method: 'RAZORPAY',
                     created_at: new Date(),
                     updated_at: new Date(),
                 },
@@ -260,21 +290,27 @@ export class WalletService {
     /* =========================================================
        🔔 HANDLE RAZORPAY WEBHOOK
     ========================================================= */
-    async handleRazorpayWebhook(body: any, signature: string) {
+    async handleRazorpayWebhook(rawBody: Buffer, body: any, signature: string) {
         const secret = this.configService.get<string>('RAZORPAY_WEBHOOK_SECRET');
         if (!secret) {
             this.logger.warn('⚠️ Razorpay webhook received but RAZORPAY_WEBHOOK_SECRET not configured');
             return { status: 'ignored' };
         }
 
-        // Verify signature
+        // Verify signature using raw body
         try {
             const expectedSignature = crypto
                 .createHmac('sha256', secret)
-                .update(JSON.stringify(body))
+                .update(rawBody)
                 .digest('hex');
 
-            if (expectedSignature !== signature) {
+            // Use timingSafeEqual to prevent timing attacks
+            const isSignatureValid = crypto.timingSafeEqual(
+                Buffer.from(expectedSignature),
+                Buffer.from(signature)
+            );
+
+            if (!isSignatureValid) {
                 this.logger.error('❌ Invalid Razorpay webhook signature');
                 throw new BadRequestException('Invalid signature');
             }
@@ -289,6 +325,7 @@ export class WalletService {
         if (event === 'payment.captured') {
             const payment = payload.payment.entity;
             const orderId = payment.order_id;
+            const paymentId = payment.id;
             const amount = payment.amount / 100;
             const userId = payment.notes?.userId;
 
@@ -301,19 +338,45 @@ export class WalletService {
 
             try {
                 return await this.prisma.$transaction(async (tx) => {
+                    const txn = await tx.upi_transactions.findFirst({
+                        where: { upi_ref_id: orderId }
+                    });
+
+                    if (!txn) {
+                        this.logger.error(`❌ Webhook error: Transaction not found for order ${orderId}`);
+                        return { status: 'error', message: 'Transaction not found' };
+                    }
+
+                    if (txn.user_id !== userId) {
+                        this.logger.error(`❌ Webhook error: User ID mismatch for order ${orderId}`);
+                        return { status: 'error', message: 'User mismatch' };
+                    }
+
+                    if (Number(txn.amount) !== amount) {
+                        this.logger.error(`❌ Webhook error: Amount mismatch for order ${orderId}. DB: ${txn.amount}, Webhook: ${amount}`);
+                        return { status: 'error', message: 'Amount mismatch' };
+                    }
+
+                    if (txn.gateway_status === 'SUCCESS') {
+                        this.logger.log(`ℹ️ [WEBHOOK] Order ${orderId} already marked as SUCCESS or processed`);
+                        return { status: 'ok' };
+                    }
+
                     // 1. Update transaction status
-                    await tx.upi_transactions.updateMany({
-                        where: { upi_ref_id: orderId },
+                    await tx.upi_transactions.update({
+                        where: { id: txn.id },
                         data: {
                             gateway_status: 'SUCCESS',
+                            razorpay_payment_id: paymentId,
+                            raw_response: payment,
                             updated_at: new Date(),
                         },
                     });
 
-                    // 2. Credit wallet (Passing 'tx' to avoid nested transactions)
-                    await this.credit(userId, amount, `Razorpay Top-up: ${payment.id}`, tx);
+                    // 2. Credit wallet (Passing 'tx' and referenceId)
+                    await this.credit(userId, amount, `Razorpay Top-up: ${paymentId}`, tx, paymentId);
 
-                    this.logger.log(`✅ [WEBHOOK] Wallet credited for user ${userId}`);
+                    this.logger.log(`✅ [WEBHOOK] Wallet credited for user ${userId}, payment: ${paymentId}`);
                     return { status: 'ok' };
                 });
             } catch (error: any) {
@@ -324,6 +387,7 @@ export class WalletService {
 
         return { status: 'ok' };
     }
+
 
     /* =========================================================
        ✅ VERIFY PAYMENT & CREDIT WALLET (Sync fallback)
@@ -336,7 +400,6 @@ export class WalletService {
             razorpay_order_id,
             razorpay_payment_id,
             razorpay_signature,
-            amount,
         } = data;
 
         this.logger.log(`🔍 [VERIFY] Manual verification for order ${razorpay_order_id}, user ${userId}`);
@@ -358,22 +421,31 @@ export class WalletService {
 
         try {
             return await this.prisma.$transaction(async (tx) => {
-                // Check if already credited (via webhook)
                 const txn = await tx.upi_transactions.findFirst({
-                    where: { upi_ref_id: razorpay_order_id, gateway_status: 'SUCCESS' }
+                    where: { upi_ref_id: razorpay_order_id, user_id: userId }
                 });
 
-                if (txn) {
+                if (!txn) {
+                    throw new BadRequestException('Transaction not found');
+                }
+
+                if (txn.gateway_status === 'SUCCESS') {
                     this.logger.log(`ℹ️ [VERIFY] Order ${razorpay_order_id} already marked as SUCCESS`);
                     return { success: true, message: 'Already credited' };
                 }
 
-                await tx.upi_transactions.updateMany({
-                    where: { upi_ref_id: razorpay_order_id },
-                    data: { gateway_status: 'SUCCESS', updated_at: new Date() }
+                const dbAmount = Number(txn.amount);
+
+                await tx.upi_transactions.update({
+                    where: { id: txn.id },
+                    data: { 
+                        gateway_status: 'SUCCESS', 
+                        razorpay_payment_id: razorpay_payment_id,
+                        updated_at: new Date() 
+                    }
                 });
 
-                await this.credit(userId, Number(amount), `Razorpay Top-up: ${razorpay_payment_id}`, tx);
+                await this.credit(userId, dbAmount, `Razorpay Top-up: ${razorpay_payment_id}`, tx, razorpay_payment_id);
 
                 this.logger.log(`✅ [VERIFY] Manual verification success for ${razorpay_order_id}`);
                 return { success: true, message: 'Payment verified & wallet credited' };
@@ -383,6 +455,7 @@ export class WalletService {
             throw new BadRequestException('Verification failed');
         }
     }
+
 
     /* =========================================================
        📱 CREATE UPI INTENT
@@ -401,6 +474,10 @@ export class WalletService {
         const note = `Wallet Topup - ${userName} (${userId.substring(0, 8)})`;
         const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent(note)}`;
 
+        if (process.env.NODE_ENV === 'development') {
+            this.logger.log(`📱 [INIT] Intent URL: ${intentUrl}`);
+        }
+
         this.logger.log(`📱 [INIT] Creating UPI Intent for user ${userId}, amount: ${amount}`);
 
         try {
@@ -411,6 +488,7 @@ export class WalletService {
                     upi_ref_id: referenceId,
                     gateway_status: 'PENDING',
                     intent_url: intentUrl,
+                    payment_method: 'DIRECT_UPI_INTENT',
                     created_at: new Date(),
                     updated_at: new Date(),
                 },
@@ -420,11 +498,47 @@ export class WalletService {
                 success: true,
                 intent_url: intentUrl,
                 reference_id: referenceId,
+                status: 'PENDING',
+                message: 'UPI payment initiated. Wallet will be credited only after confirmation.',
             };
         } catch (error: any) {
             this.logger.error(`🔥 [INIT ERROR] UPI creation failed: ${error.message}`, error.stack);
             throw new BadRequestException(`Payment initiation failed: ${error.message}`);
         }
+    }
+
+    /* =========================================================
+       🚫 MARK UPI INTENT FAILED
+    ========================================================= */
+    async markUpiIntentFailed(userId: string, referenceId: string, reason: string) {
+        if (!this.isValidUuid(userId)) throw new BadRequestException('Invalid User ID');
+        if (!referenceId) throw new BadRequestException('Invalid reference_id');
+
+        const txn = await this.prisma.upi_transactions.findFirst({
+            where: { upi_ref_id: referenceId, user_id: userId },
+        });
+
+        if (!txn) {
+            throw new BadRequestException('Transaction not found');
+        }
+
+        if (txn.gateway_status !== 'PENDING') {
+            return { success: true, message: 'Transaction already processed' };
+        }
+
+        await this.prisma.upi_transactions.update({
+            where: { id: txn.id },
+            data: {
+                gateway_status: 'FAILED',
+                failure_reason: reason,
+                failure_message: reason === 'UPI_RISK_POLICY' 
+                    ? 'Payment failed as per UPI risk policy. Money was not deducted.' 
+                    : 'Payment failed.',
+                updated_at: new Date(),
+            },
+        });
+
+        return { success: true, message: 'Transaction marked as failed' };
     }
 
     /* =========================================================
@@ -450,6 +564,9 @@ export class WalletService {
             return {
                 status: txn.gateway_status || 'PENDING',
                 amount: Number(txn.amount),
+                reference_id: txn.upi_ref_id,
+                created_at: txn.created_at,
+                updated_at: txn.updated_at,
             };
         } catch (error: any) {
             this.logger.error(`🔥 [POLL ERROR] ${error.message}`, error.stack);

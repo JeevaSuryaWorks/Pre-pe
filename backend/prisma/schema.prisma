@@ -33,21 +33,21 @@ enum RechargeStatus {
 // PROFILES (Supabase user profile)
 //////////////////////////////////////
 model profiles {
-  id         String   @id @default(uuid()) @db.Uuid
-  user_id    String   @unique @db.Uuid
+  id                String   @id @default(uuid()) @db.Uuid
+  user_id           String   @unique @db.Uuid
   email             String?
   full_name         String?
   phone             String?
   plan_type         String?  @default("BASIC") @db.VarChar(20)
   whatsapp_consent  Boolean?
-  custom_spin_limit Int?     
+  custom_spin_limit Int?
   created_at        DateTime @db.Timestamptz
   updated_at        DateTime @db.Timestamptz
 
-  wallets    wallets[]
-  user_roles user_roles[]
-  transactions transactions[]
-  upi_transactions upi_transactions[]
+  wallets              wallets[]
+  user_roles           user_roles[]
+  transactions         transactions[]
+  upi_transactions     upi_transactions[]
   loans                loans[]
   manual_fund_requests manual_fund_requests[]
   kyc_verifications    kyc_verifications[]
@@ -83,7 +83,7 @@ model wallets {
   created_at     DateTime @db.Timestamptz
   updated_at     DateTime @db.Timestamptz
 
-  profile       profiles       @relation(fields: [user_id], references: [user_id])
+  profile       profiles        @relation(fields: [user_id], references: [user_id])
   wallet_ledger wallet_ledger[]
 
   @@map("wallets")
@@ -93,14 +93,15 @@ model wallets {
 // WALLET LEDGER (CR / DR)
 //////////////////////////////////////
 model wallet_ledger {
-  id            String   @id @default(uuid()) @db.Uuid
-  wallet_id     String   @db.Uuid
-  transaction_id String? @db.Uuid
-  type          String
-  amount        Decimal  @db.Decimal
-  balance_after Decimal  @db.Decimal
-  description   String?
-  created_at    DateTime @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  wallet_id      String   @db.Uuid
+  transaction_id String?  @db.Uuid
+  reference_id   String?  @unique
+  type           String
+  amount         Decimal  @db.Decimal
+  balance_after  Decimal  @db.Decimal
+  description    String?
+  created_at     DateTime @db.Timestamptz
 
   wallet wallets @relation(fields: [wallet_id], references: [id])
 
@@ -111,11 +112,11 @@ model wallet_ledger {
 // MAIN TRANSACTIONS (Recharge / DTH / Bill)
 //////////////////////////////////////
 model transactions {
-  id                 String   @id @default(uuid()) @db.Uuid
-  user_id            String   @db.Uuid
+  id                 String         @id @default(uuid()) @db.Uuid
+  user_id            String         @db.Uuid
   type               String
   service_type       String
-  amount             Decimal  @db.Decimal
+  amount             Decimal        @db.Decimal
   status             RechargeStatus @default(PENDING)
   operator_id        String?
   operator_name      String?
@@ -127,8 +128,8 @@ model transactions {
   api_transaction_id String?
   commission         Decimal?
   metadata           Json?
-  created_at         DateTime @db.Timestamptz
-  updated_at         DateTime @db.Timestamptz
+  created_at         DateTime       @db.Timestamptz
+  updated_at         DateTime       @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id])
 
@@ -139,16 +140,21 @@ model transactions {
 // UPI TRANSACTIONS (Wallet Topups)
 //////////////////////////////////////
 model upi_transactions {
-  id             String   @id @default(uuid()) @db.Uuid
-  user_id        String   @db.Uuid
-  amount         Decimal  @db.Decimal
-  upi_ref_id     String?
-  gateway_status String?
-  app_used       String?
-  intent_url     String?
-  qr_code        String?
-  created_at     DateTime @db.Timestamptz
-  updated_at     DateTime @db.Timestamptz
+  id                  String   @id @default(uuid()) @db.Uuid
+  user_id             String   @db.Uuid
+  amount              Decimal  @db.Decimal
+  upi_ref_id          String?  @unique
+  razorpay_payment_id String?  @unique
+  gateway_status      String?
+  failure_reason      String?
+  failure_message     String?
+  app_used            String?
+  intent_url          String?
+  qr_code             String?
+  payment_method      String?
+  raw_response        Json?
+  created_at          DateTime @db.Timestamptz
+  updated_at          DateTime @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id])
 
@@ -177,15 +183,15 @@ model commission_slabs {
 // LOANS (Do Now Pay Later)
 //////////////////////////////////////
 model loans {
-  id               String   @id @default(uuid()) @db.Uuid
-  user_id          String   @db.Uuid
-  amount           Decimal  @db.Decimal
-  repayment_date   DateTime @db.Timestamptz
-  bounce_charges   Decimal  @db.Decimal
-  status           String   @default("ACTIVE")
-  nbfc_name        String?
-  created_at       DateTime @default(now()) @db.Timestamptz
-  updated_at       DateTime @updatedAt @db.Timestamptz
+  id             String   @id @default(uuid()) @db.Uuid
+  user_id        String   @db.Uuid
+  amount         Decimal  @db.Decimal
+  repayment_date DateTime @db.Timestamptz
+  bounce_charges Decimal  @db.Decimal
+  status         String   @default("ACTIVE")
+  nbfc_name      String?
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @updatedAt @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id])
 
@@ -211,16 +217,16 @@ model admin_audit_logs {
 // KYC VERIFICATIONS
 //////////////////////////////////////
 model kyc_verifications {
-  id            String   @id @default(uuid()) @db.Uuid
-  user_id       String   @db.Uuid
+  id            String    @id @default(uuid()) @db.Uuid
+  user_id       String    @db.Uuid
   pan_number    String
   aadhar_number String
   dob           DateTime? @db.Date
   gender        String?
-  document_urls Json?    @default("{}")
-  status        String   @default("PENDING")
-  created_at    DateTime @default(now()) @db.Timestamptz
-  updated_at    DateTime @default(now()) @db.Timestamptz
+  document_urls Json?     @default("{}")
+  status        String    @default("PENDING")
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  updated_at    DateTime  @default(now()) @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id])
 
@@ -265,16 +271,16 @@ model reward_points_ledger {
 // GAMIFICATION: SCRATCH CARDS
 //////////////////////////////////////
 model scratch_cards {
-  id                    String   @id @default(uuid()) @db.Uuid
-  user_id               String   @db.Uuid
-  type                  String   @db.VarChar(50)
-  status                String   @default("LOCKED") @db.VarChar(20)
-  title                 String
-  description           String?
-  reward_value          Decimal  @default(0) @db.Decimal(15,2)
-  min_recharge_threshold Decimal? @default(0) @db.Decimal(15,2)
-  created_at            DateTime @default(now()) @db.Timestamptz
-  updated_at            DateTime @default(now()) @updatedAt @db.Timestamptz
+  id                     String   @id @default(uuid()) @db.Uuid
+  user_id                String   @db.Uuid
+  type                   String   @db.VarChar(50)
+  status                 String   @default("LOCKED") @db.VarChar(20)
+  title                  String
+  description            String?
+  reward_value           Decimal  @default(0) @db.Decimal(15, 2)
+  min_recharge_threshold Decimal? @default(0) @db.Decimal(15, 2)
+  created_at             DateTime @default(now()) @db.Timestamptz
+  updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
@@ -285,21 +291,21 @@ model scratch_cards {
 // GIFT CARD VOUCHERS (Hubble etc)
 //////////////////////////////////////
 model gift_card_vouchers {
-  id               String   @id @default(uuid()) @db.Uuid
-  user_id          String   @db.Uuid
-  brand_name       String
-  brand_logo_url   String?
-  amount           Decimal  @db.Decimal(15,2)
-  status           String   @default("ACTIVE") @db.VarChar(20) // ACTIVE, REDEEMED, EXPIRED
-  voucher_code     String?  // The actual gift card code
-  voucher_pin      String?  // The actual gift card PIN
-  reference_id     String?  // Provider reference ID
-  provider         String   @default("HUBBLE") @db.VarChar(50)
-  expiry_date      DateTime? @db.Timestamptz
-  purchase_type    String   @default("POINTS") @db.VarChar(20) // POINTS, WALLET
-  purchase_cost    Decimal  @db.Decimal(15,2) // The points or wallet amount deducted
-  created_at       DateTime @default(now()) @db.Timestamptz
-  updated_at       DateTime @default(now()) @updatedAt @db.Timestamptz
+  id             String    @id @default(uuid()) @db.Uuid
+  user_id        String    @db.Uuid
+  brand_name     String
+  brand_logo_url String?
+  amount         Decimal   @db.Decimal(15, 2)
+  status         String    @default("ACTIVE") @db.VarChar(20) // ACTIVE, REDEEMED, EXPIRED
+  voucher_code   String? // The actual gift card code
+  voucher_pin    String? // The actual gift card PIN
+  reference_id   String? // Provider reference ID
+  provider       String    @default("HUBBLE") @db.VarChar(50)
+  expiry_date    DateTime? @db.Timestamptz
+  purchase_type  String    @default("POINTS") @db.VarChar(20) // POINTS, WALLET
+  purchase_cost  Decimal   @db.Decimal(15, 2) // The points or wallet amount deducted
+  created_at     DateTime  @default(now()) @db.Timestamptz
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
