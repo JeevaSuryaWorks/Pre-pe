@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/utils/api-config';
 export interface PaymentStatusResponse {
   status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'NOT_FOUND';
   amount?: number;
+  failure_message?: string;
 }
 
 export interface UpiIntentResponse {
