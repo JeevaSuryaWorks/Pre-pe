@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LoanModule } from './loan/loan.module';
 import { HubbleModule } from './hubble/hubble.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AiModule } from './ai/ai.module';
 import * as path from 'path';
 
 @Module({
@@ -25,7 +26,8 @@ import * as path from 'path';
         RechargeModule, 
         LoanModule, 
         HubbleModule,
-        NotificationsModule
+        NotificationsModule,
+        AiModule
     ],
     controllers: [],
     providers: [],

@@ -21,6 +21,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   const [amount, setAmount] = useState(initialAmount);
   const [state, setState] = useState<PaymentState>('idle');
   const [referenceId, setReferenceId] = useState<string | null>(null);
+  const [failureMessage, setFailureMessage] = useState<string>('');
+  const [manualIntentUrl, setManualIntentUrl] = useState<string>('');
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -63,6 +65,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
           if (onSuccess) onSuccess();
         } else if (result.status === 'FAILED') {
           setState('failed');
+          setFailureMessage(result.failure_message || 'Payment failed. Money was not deducted if your bank says failed.');
           stopPolling();
         }
       } catch (error) {
@@ -82,26 +85,28 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       return;
     }
 
-    if (isMobile) {
-      setState('processing');
-      try {
-        const result = await paymentService.createUpiIntent(numAmount);
-        if (result.intent_url) {
-          // Start polling for status before redirecting
-          setReferenceId(result.reference_id);
+    setState('processing');
+    setFailureMessage('');
+
+    try {
+      const result = await paymentService.createUpiIntent(numAmount);
+      if (result.intent_url) {
+        setReferenceId(result.reference_id);
+        
+        if (isMobile) {
           startPolling(result.reference_id);
-          
-          // Open UPI Intent
           window.location.href = result.intent_url;
-          return;
+        } else {
+          setManualIntentUrl(result.intent_url);
+          setState('manual');
         }
-      } catch (error) {
-        console.error('UPI Intent failed, falling back to Razorpay', error);
+        return;
       }
+    } catch (error) {
+      console.error('UPI Intent failed', error);
+      toast({ title: 'Initiation Failed', description: 'Failed to create payment intent. Try Razorpay instead.', variant: 'destructive' });
+      setState('failed');
     }
-    
-    // Fallback to Razorpay
-    handleRazorpayPayment();
   };
 
   const handleRazorpayPayment = async () => {
@@ -313,11 +318,15 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
                 <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
                   <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=bmsmobiles@barodampay&pn=PrePe&am=${amount}&cu=INR&tn=${encodeURIComponent(`Wallet Topup - ${profile?.full_name || 'User'} (${profile?.user_id?.substring(0, 8) || ''})`)}`)}`}
-                      alt="Payment QR Code"
-                      className="w-full h-full"
-                    />
+                    {manualIntentUrl ? (
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(manualIntentUrl)}`}
+                        alt="Payment QR Code"
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -384,10 +393,20 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 p-4 rounded-2xl bg-red-50 text-red-700 border border-red-100"
+              className="flex items-start gap-3 p-4 rounded-2xl bg-red-50 text-red-700 border border-red-100"
             >
-              <XCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Verification failed. Please try again or check your bank app.</p>
+              <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wide">Verification Failed</p>
+                <p className="text-[10px] font-medium leading-relaxed opacity-90">{failureMessage || 'Payment failed. Please try again or check your bank app.'}</p>
+                <Button 
+                  onClick={() => setState('idle')} 
+                  variant="outline" 
+                  className="mt-2 h-8 text-[10px] font-black uppercase tracking-widest border-red-200 text-red-700 hover:bg-red-100"
+                >
+                  Try Again
+                </Button>
+              </div>
             </motion.div>
           )}
         </motion.div>

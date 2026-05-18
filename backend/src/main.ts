@@ -4,7 +4,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { rawBody: true });
     
     // Custom CORS middleware to avoid conflicts with Nginx adding headers in production
     app.use((req: any, res: any, next: any) => {
@@ -44,6 +44,20 @@ async function bootstrap() {
     app.setGlobalPrefix('api');
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
     app.useGlobalInterceptors(new TimeoutInterceptor());
+
+    // Root-level health checker middleware to intercept pings before they throw 404s
+    app.use((req: any, res: any, next: any) => {
+        const cleanPath = req.path.replace(/\/+$/, ''); // Remove trailing slashes
+        if (cleanPath === '' || cleanPath === '/api') {
+            return res.json({ 
+                status: 'ok', 
+                service: 'PrePe Backend API',
+                time: new Date().toISOString(),
+                pid: process.pid
+            });
+        }
+        next();
+    });
 
     // Global health check
     app.use('/api/health', (req: any, res: any) => {

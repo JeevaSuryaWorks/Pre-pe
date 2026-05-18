@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Query, Headers, BadRequestException } from '@nestjs/common'; // Triggering TS Refresh
+import { Controller, Get, Post, Body, UseGuards, Request, Req, Query, Headers, BadRequestException, RawBodyRequest } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { SupabaseAuthGuard } from '../auth/supabase.guard';
 
@@ -26,6 +26,12 @@ export class WalletController {
     }
 
     @UseGuards(SupabaseAuthGuard)
+    @Post('mark-failed')
+    async markUpiIntentFailed(@Request() req: any, @Body() body: { reference_id: string, reason: string }) {
+        return this.walletService.markUpiIntentFailed(req.user.sub, body.reference_id, body.reason);
+    }
+
+    @UseGuards(SupabaseAuthGuard)
     @Post('create-order')
     async createOrder(@Request() req: any, @Body() body: { amount: number }) {
         return this.walletService.createRazorpayOrder(req.user.sub, body.amount);
@@ -42,11 +48,11 @@ export class WalletController {
      */
     @Post('webhook/razorpay')
     async handleRazorpayWebhook(
+        @Req() req: RawBodyRequest<any>,
         @Body() body: any,
         @Headers('x-razorpay-signature') signature: string
     ) {
-        // @ts-ignore - Suppressing ghost IDE error (method exists in service)
-        return this.walletService.handleRazorpayWebhook(body, signature);
+        return this.walletService.handleRazorpayWebhook(req.rawBody, body, signature);
     }
 
     @Post('credit')
