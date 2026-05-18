@@ -268,7 +268,7 @@ export class WalletService {
                     payment_method: 'RAZORPAY',
                     created_at: new Date(),
                     updated_at: new Date(),
-                },
+                } as any,
             });
             console.log(`[TRACE] 7. ✅ Order ${order.id} saved to DB`);
 
@@ -357,7 +357,7 @@ export class WalletService {
                         return { status: 'error', message: 'Amount mismatch' };
                     }
 
-                    if (txn.gateway_status === 'SUCCESS') {
+                    if (txn.gateway_status === 'SUCCESS' || (txn as any).razorpay_payment_id === paymentId) {
                         this.logger.log(`ℹ️ [WEBHOOK] Order ${orderId} already marked as SUCCESS or processed`);
                         return { status: 'ok' };
                     }
@@ -370,7 +370,7 @@ export class WalletService {
                             razorpay_payment_id: paymentId,
                             raw_response: payment,
                             updated_at: new Date(),
-                        },
+                        } as any,
                     });
 
                     // 2. Credit wallet (Passing 'tx' and referenceId)
@@ -429,7 +429,7 @@ export class WalletService {
                     throw new BadRequestException('Transaction not found');
                 }
 
-                if (txn.gateway_status === 'SUCCESS') {
+                if (txn.gateway_status === 'SUCCESS' || (txn as any).razorpay_payment_id === razorpay_payment_id) {
                     this.logger.log(`ℹ️ [VERIFY] Order ${razorpay_order_id} already marked as SUCCESS`);
                     return { success: true, message: 'Already credited' };
                 }
@@ -438,11 +438,11 @@ export class WalletService {
 
                 await tx.upi_transactions.update({
                     where: { id: txn.id },
-                    data: { 
-                        gateway_status: 'SUCCESS', 
+                    data: {
+                        gateway_status: 'SUCCESS',
                         razorpay_payment_id: razorpay_payment_id,
-                        updated_at: new Date() 
-                    }
+                        updated_at: new Date()
+                    } as any,
                 });
 
                 await this.credit(userId, dbAmount, `Razorpay Top-up: ${razorpay_payment_id}`, tx, razorpay_payment_id);
@@ -491,7 +491,7 @@ export class WalletService {
                     payment_method: 'DIRECT_UPI_INTENT',
                     created_at: new Date(),
                     updated_at: new Date(),
-                },
+                } as any,
             });
 
             return {
@@ -531,11 +531,11 @@ export class WalletService {
             data: {
                 gateway_status: 'FAILED',
                 failure_reason: reason,
-                failure_message: reason === 'UPI_RISK_POLICY' 
-                    ? 'Payment failed as per UPI risk policy. Money was not deducted.' 
+                failure_message: reason === 'UPI_RISK_POLICY'
+                    ? 'Payment failed as per UPI risk policy. Money was not deducted.'
                     : 'Payment failed.',
                 updated_at: new Date(),
-            },
+            } as any,
         });
 
         return { success: true, message: 'Transaction marked as failed' };
@@ -565,6 +565,8 @@ export class WalletService {
                 status: txn.gateway_status || 'PENDING',
                 amount: Number(txn.amount),
                 reference_id: txn.upi_ref_id,
+                failure_reason: (txn as any).failure_reason,
+                failure_message: (txn as any).failure_message,
                 created_at: txn.created_at,
                 updated_at: txn.updated_at,
             };
