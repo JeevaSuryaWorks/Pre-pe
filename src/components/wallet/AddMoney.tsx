@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { creditWallet } from '@/services/wallet.service';
 
 type PaymentState = 'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'manual';
 
@@ -83,7 +82,40 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
 
   useEffect(() => {
     return () => stopPolling();
-  }, [stopPolling]);  const handleUpiPayment = async () => {
+  }, [stopPolling]);
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const scriptId = 'razorpay-checkout-js';
+      const existingScript = document.getElementById(scriptId);
+      if (existingScript) {
+        (existingScript as HTMLScriptElement).onload = () => resolve(true);
+        (existingScript as HTMLScriptElement).onerror = () => resolve(false);
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePrimaryPayment = async () => {
+    if (isMobile) {
+      await handleUpiPayment();
+    } else {
+      await handleRazorpayPayment();
+    }
+  };
+
+  const handleUpiPayment = async () => {
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount < 1) {
       toast({ title: 'Invalid amount', description: 'Enter at least ₹1', variant: 'destructive' });
@@ -106,11 +138,16 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
           setState('manual');
         }
         return;
+      } else {
+        throw new Error('UPI Intent URL not generated');
       }
     } catch (error) {
-      console.error('UPI Intent failed', error);
-      toast({ title: 'Initiation Failed', description: 'Failed to create payment intent. Try Razorpay instead.', variant: 'destructive' });
-      setState('failed');
+      console.warn('UPI Intent failed, falling back to Razorpay...', error);
+      toast({ 
+        title: 'UPI Failed', 
+        description: 'UPI intent failed. Opening secure Razorpay checkout instead...', 
+      });
+      await handleRazorpayPayment();
     }
   };
 
@@ -122,6 +159,18 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
     }
 
     setState('processing');
+    
+    const isScriptLoaded = await loadRazorpayScript();
+    if (!isScriptLoaded) {
+      toast({ 
+        title: 'SDK Load Error', 
+        description: 'Failed to load Razorpay Checkout SDK. Please check your internet connection.', 
+        variant: 'destructive' 
+      });
+      setState('failed');
+      return;
+    }
+
     try {
       const order = await paymentService.createRazorpayOrder(numAmount);
       
@@ -141,11 +190,9 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
           setState('verifying');
           setReferenceId(order.id);
           
-          // Start polling as a safety measure
           startPolling(order.id);
 
           try {
-            // Immediate sync verification
             const verifyResult = await paymentService.verifyRazorpay({
               ...response,
               amount: numAmount,
@@ -159,7 +206,6 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             }
           } catch (error: any) {
             console.warn('Initial verification failed, continuing to poll...', error);
-            // Don't set state to failed here, let polling continue
           }
         },
         modal: {
@@ -168,7 +214,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
           }
         },
         theme: {
-          color: '#059669', // Emerald 600
+          color: '#059669',
         },
         retry: {
           enabled: true,
@@ -193,7 +239,6 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       });
       
       if (isMaintenance) {
-        // Automatically switch to manual mode to help the user complete the transaction
         setTimeout(() => setState('manual'), 1000);
       } else {
         setState('failed');
@@ -207,38 +252,56 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       return;
     }
 
+    if (!referenceId) {
+      toast({ 
+        title: 'No Transaction Found', 
+        description: 'No active reference ID found to verify.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setState('verifying');
     toast({ 
-      title: 'Verification Started', 
-      description: 'Checking bank ledger for confirmation. This will take a moment...',
+      title: 'Verifying Payment', 
+      description: 'Checking bank ledger database in real-time. Please wait...',
     });
 
     try {
-      const numAmount = parseFloat(amount) || 0;
-      // Immediate sandbox approval for a smooth developer/demo experience
-      const success = await creditWallet(
-        user.id,
-        numAmount,
-        `Direct UPI Top-up (Sandbox Auto-Approve) - Ref ID: TXN${Date.now().toString().slice(-8)}`
-      );
+      const result = await paymentService.getPaymentStatus(referenceId);
 
-      if (success) {
-        setTimeout(() => {
-          setState('success');
-          refetchWallet();
-          toast({ 
-            title: 'Payment Confirmed', 
-            description: `₹${numAmount} successfully added to your wallet!`,
-          });
-          if (onSuccess) onSuccess();
-        }, 1500);
-      } else {
+      if (result.status === 'SUCCESS') {
+        setState('success');
+        refetchWallet();
+        toast({ 
+          title: 'Payment Confirmed', 
+          description: `₹${result.amount || amount} successfully added to your wallet!`,
+        });
+        if (onSuccess) onSuccess();
+      } else if (result.status === 'FAILED') {
         setState('failed');
-        setFailureMessage('Failed to credit wallet. Please try again.');
+        setFailureMessage(result.failure_message || 'Payment failed. Money was not deducted if your bank says failed.');
+        toast({ 
+          title: 'Verification Failed', 
+          description: 'The bank returned a failure status for this transaction.', 
+          variant: 'destructive' 
+        });
+      } else {
+        // PENDING or NOT_FOUND: Real payment not found yet in the DB
+        setState('manual');
+        toast({ 
+          title: 'Payment Pending', 
+          description: "We haven't received confirmation from your bank yet. Please ensure the payment was fully completed, wait a moment, and click I've Paid again.",
+          variant: 'default' 
+        });
       }
     } catch (err) {
-      setState('failed');
-      setFailureMessage('Verification failed. Server is temporarily busy.');
+      setState('manual');
+      toast({ 
+        title: 'Verification Error', 
+        description: 'Failed to verify transaction status. Please try again in a few seconds.', 
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -300,7 +363,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             <div className="space-y-4">
               <div className="relative">
                 <Button 
-                  onClick={handleUpiPayment} 
+                  onClick={handlePrimaryPayment} 
                   className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
