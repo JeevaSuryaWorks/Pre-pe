@@ -323,21 +323,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               <div className="grid grid-cols-1 gap-3">
                 <Button 
                   variant="outline" 
-                  onClick={() => {
-                    setState('manual');
-                    // Fetch dynamic UPI QR in the background to avoid loading delays
-                    const numAmount = parseFloat(amount);
-                    if (numAmount >= 1) {
-                      paymentService.createUpiIntent(numAmount).then(result => {
-                        if (result.intent_url) {
-                          setManualIntentUrl(result.intent_url);
-                          setReferenceId(result.reference_id);
-                        }
-                      }).catch(err => {
-                        console.warn("Background UPI creation failed, using static fallback", err);
-                      });
-                    }
-                  }} 
+                  onClick={() => setState('manual')} 
                   className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
@@ -354,62 +340,56 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               </div>
             </div>
           ) : state === 'manual' ? (
-            (() => {
-              const fallbackUpiUrl = `upi://pay?pa=bmsmobiles@barodampay&pn=PrePe&am=${amount}&cu=INR`;
-              const qrDataUrl = manualIntentUrl || fallbackUpiUrl;
-              return (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6 text-center"
-                >
-                  <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
-                      <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
-                        {qrDataUrl ? (
-                          <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrDataUrl)}`}
-                            alt="Payment QR Code"
-                            className="w-full h-full"
-                          />
-                        ) : (
-                          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
-                      <p className="text-lg font-black text-emerald-600 select-all">bmsmobiles@barodampay</p>
-                    </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6 text-center"
+            >
+              <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
+                <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
+                  <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
+                    {manualIntentUrl ? (
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(manualIntentUrl)}`}
+                        alt="Payment QR Code"
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                    )}
                   </div>
-                  
-                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-left">
-                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">Instructions:</p>
-                    <ul className="text-[10px] text-amber-600 font-medium space-y-1 list-disc pl-4">
-                      <li>Scan the QR code or pay to the UPI ID above.</li>
-                      <li>After payment, wait 1-2 minutes for automatic sync.</li>
-                      <li>If balance doesn't update, contact support with screenshot.</li>
-                    </ul>
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
+                  <p className="text-lg font-black text-emerald-600 select-all">bmsmobiles@barodampay</p>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-left">
+                <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">Instructions:</p>
+                <ul className="text-[10px] text-amber-600 font-medium space-y-1 list-disc pl-4">
+                  <li>Scan the QR code or pay to the UPI ID above.</li>
+                  <li>After payment, wait 1-2 minutes for automatic sync.</li>
+                  <li>If balance doesn't update, contact support with screenshot.</li>
+                </ul>
+              </div>
 
-                  <div className="flex gap-3">
-                    <Button 
-                      onClick={() => setState('idle')} 
-                      variant="outline"
-                      className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest"
-                    >
-                      Back
-                    </Button>
-                    <Button 
-                      onClick={handleManualPaymentCompleted}
-                      className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100"
-                    >
-                      I've Paid
-                    </Button>
-                  </div>
-                </motion.div>
-              );
-            })()
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setState('idle')} 
+                  variant="outline"
+                  className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest"
+                >
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleManualPaymentCompleted}
+                  className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100"
+                >
+                  I've Paid
+                </Button>
+              </div>
+            </motion.div>
           ) : (
             <div className="text-center py-12 space-y-6">
               <div className="relative h-20 w-20 mx-auto">
