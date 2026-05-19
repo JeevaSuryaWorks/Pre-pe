@@ -84,34 +84,56 @@ const getAISuggestedPlans = (operatorId: string): RechargePlan[] => {
     '1': [ // Airtel
       { id: 'ai-a1', operator_id: '1', amount: 239, validity: '28 Days', description: 'Unlimited Calls | 1.5GB/Day | 100 SMS/Day | Free HelloTunes', category: 'unlimited' },
       { id: 'ai-a2', operator_id: '1', amount: 299, validity: '28 Days', description: 'Unlimited Calls | 2GB/Day | 100 SMS/Day | Apollo 24|7 Circle', category: 'unlimited' },
-      { id: 'ai-a3', operator_id: '1', amount: 666, validity: '84 Days', description: 'Unlimited Calls | 1.5GB/Day | 100 SMS/Day | RewardMinis', category: 'unlimited' },
-      { id: 'ai-a4', operator_id: '1', amount: 839, validity: '84 Days', description: 'Unlimited Calls | 2GB/Day | Unlimited 5G Data | Wynk Music', category: 'unlimited' },
+      { id: 'ai-a-d1', operator_id: '1', amount: 19, validity: '1 Day', description: '1GB High Speed Data Booster Voucher', category: 'data' },
+      { id: 'ai-a-d2', operator_id: '1', amount: 58, validity: '1 Day', description: '3GB High Speed Extra Data Booster Pack', category: 'data' },
+      { id: 'ai-a-c1', operator_id: '1', amount: 155, validity: '24 Days', description: 'Unlimited Calls | 1GB Total Data | 300 SMS | Free Hellotunes', category: 'combo' },
+      { id: 'ai-a-o1', operator_id: '1', amount: 359, validity: '28 Days', description: 'Unlimited Calls | 2.5GB/Day | Disney+ Hotstar Mobile Subscription', category: 'ott' },
+      { id: 'ai-a-5g', operator_id: '1', amount: 699, validity: '56 Days', description: 'Unlimited Calls | 3GB/Day | True Unlimited 5G Data | Wynk Premium', category: '5g' },
+      { id: 'ai-a-r1', operator_id: '1', amount: 649, validity: '1 Day', description: 'International Roaming: 100 Mins Voice, 500MB Data Pack', category: 'roaming' },
+      { id: 'ai-a-t1', operator_id: '1', amount: 10, validity: 'Unlimited', description: 'Topup Voucher: ₹7.47 Talktime Balance', category: 'topup' },
+      { id: 'ai-a-t2', operator_id: '1', amount: 100, validity: 'Unlimited', description: 'Topup Voucher: ₹81.75 Talktime Balance', category: 'topup' },
     ],
     '3': [ // Jio
-      { id: 'ai-j1', operator_id: '3', amount: 239, validity: '28 Days', description: 'Unlimited Voice | 1.5GB/Day | 100 SMS/Day | JioTV, JioCinema', category: 'unlimited' },
+      { id: 'ai-j1', operator_id: '3', amount: 239, validity: '28 Days', description: 'Unlimited Voice | 1.5GB/Day | 100 SMS/Day | JioCinema', category: 'unlimited' },
       { id: 'ai-j2', operator_id: '3', amount: 299, validity: '28 Days', description: 'Unlimited Voice | 2GB/Day | Unlimited 5G Data | JioCloud', category: 'unlimited' },
-      { id: 'ai-j3', operator_id: '3', amount: 666, validity: '84 Days', description: 'Unlimited Voice | 1.5GB/Day | 100 SMS/Day | JioTV, JioCinema', category: 'unlimited' },
-      { id: 'ai-j4', operator_id: '3', amount: 749, validity: '90 Days', description: 'Unlimited Voice | 2GB/Day | Unlimited 5G Data | JioApps Suite', category: 'unlimited' },
+      { id: 'ai-j-d1', operator_id: '3', amount: 15, validity: 'Active Plan', description: '1GB High Speed Data Booster Voucher', category: 'data' },
+      { id: 'ai-j-d2', operator_id: '3', amount: 25, validity: 'Active Plan', description: '2GB High Speed Data Booster Pack', category: 'data' },
+      { id: 'ai-j-c1', operator_id: '3', amount: 155, validity: '28 Days', description: 'Unlimited Calls | 2GB Total Data | 300 SMS | Jio Apps', category: 'combo' },
+      { id: 'ai-j-o1', operator_id: '3', amount: 398, validity: '28 Days', description: 'Unlimited Voice | 2GB/Day | Disney+ Hotstar & Jio Cinema', category: 'ott' },
+      { id: 'ai-j-5g', operator_id: '3', amount: 666, validity: '84 Days', description: 'Unlimited Voice | 1.5GB/Day | True Unlimited 5G High Speed Data', category: '5g' },
+      { id: 'ai-j-r1', operator_id: '3', amount: 1102, validity: '28 Days', description: 'International Roaming: 100 Mins Voice, 2GB Data Roaming Pack', category: 'roaming' },
+      { id: 'ai-j-t1', operator_id: '3', amount: 10, validity: 'Unlimited', description: 'Topup Voucher: ₹7.47 Talktime Balance', category: 'topup' },
+      { id: 'ai-j-t2', operator_id: '3', amount: 100, validity: 'Unlimited', description: 'Topup Voucher: ₹81.75 Talktime Balance', category: 'topup' },
     ],
     '4': [ // Vi
       { id: 'ai-v1', operator_id: '4', amount: 239, validity: '28 Days', description: 'Unlimited Calls | 1.5GB/Day | Binge All Night (12AM-6AM)', category: 'unlimited' },
       { id: 'ai-v2', operator_id: '4', amount: 299, validity: '28 Days', description: 'Unlimited Calls | 2GB/Day | Weekend Data Rollover & Binge All Night', category: 'unlimited' },
-      { id: 'ai-v3', operator_id: '4', amount: 479, validity: '56 Days', description: 'Unlimited Calls | 1.5GB/Day | 100 SMS/Day | Vi Movies & TV', category: 'unlimited' },
-      { id: 'ai-v4', operator_id: '4', amount: 719, validity: '84 Days', description: 'Unlimited Calls | 1.5GB/Day | Weekend Data Rollover', category: 'unlimited' },
+      { id: 'ai-v-d1', operator_id: '4', amount: 19, validity: '1 Day', description: '1GB Extra High Speed Data Booster Pack', category: 'data' },
+      { id: 'ai-v-d2', operator_id: '4', amount: 58, validity: '28 Days', description: '3GB Data Pack with 28 Days Active Validity', category: 'data' },
+      { id: 'ai-v-c1', operator_id: '4', amount: 179, validity: '28 Days', description: 'Unlimited Calls | 2GB Total Data | 300 SMS | Vi Movies & TV', category: 'combo' },
+      { id: 'ai-v-o1', operator_id: '4', amount: 369, validity: '28 Days', description: 'Unlimited Calls | 2GB/Day | Disney+ Hotstar Mobile Subscription', category: 'ott' },
+      { id: 'ai-v-5g', operator_id: '4', amount: 479, validity: '56 Days', description: 'Unlimited Calls | 1.5GB/Day | True Unlimited 5G High Speed Data', category: '5g' },
+      { id: 'ai-v-r1', operator_id: '4', amount: 599, validity: '1 Day', description: 'Vi International Roaming: 50 Mins, 1GB Data Pack', category: 'roaming' },
+      { id: 'ai-v-t1', operator_id: '4', amount: 10, validity: 'Unlimited', description: 'Topup Voucher: ₹7.47 Talktime Balance', category: 'topup' },
+      { id: 'ai-v-t2', operator_id: '4', amount: 100, validity: 'Unlimited', description: 'Topup Voucher: ₹81.75 Talktime Balance', category: 'topup' },
     ],
     '2': [ // BSNL
       { id: 'ai-b1', operator_id: '2', amount: 107, validity: '35 Days', description: '3GB Data | 200 Mins Voice Calls | BSNL Tunes included', category: 'combo' },
       { id: 'ai-b2', operator_id: '2', amount: 197, validity: '70 Days', description: 'Unlimited Voice | 2GB/Day (Speed reduced to 40kbps after)', category: 'unlimited' },
-      { id: 'ai-b3', operator_id: '2', amount: 397, validity: '150 Days', description: 'Unlimited Voice & 2GB/Day for 30 days | Plan validity 150 days', category: 'unlimited' },
-      { id: 'ai-b4', operator_id: '2', amount: 797, validity: '300 Days', description: 'Unlimited Voice & 2GB/Day for 60 days | Plan validity 300 days', category: 'unlimited' },
+      { id: 'ai-b-d1', operator_id: '2', amount: 97, validity: '15 Days', description: 'Unlimited High Speed 3G/4G Data Voucher Pack', category: 'data' },
+      { id: 'ai-b-d2', operator_id: '2', amount: 151, validity: '28 Days', description: '40GB High Speed Data Booster Pack', category: 'data' },
+      { id: 'ai-b-c1', operator_id: '2', amount: 397, validity: '150 Days', description: 'Unlimited Voice & 2GB/Day for 30 days | Plan validity 150 days', category: 'combo' },
+      { id: 'ai-b-o1', operator_id: '2', amount: 269, validity: '28 Days', description: 'Unlimited Voice | 2GB/Day | BSNL Eros Now Entertainment Bundle', category: 'ott' },
+      { id: 'ai-b-5g', operator_id: '2', amount: 797, validity: '300 Days', description: 'Unlimited Voice & 2GB/Day for 60 days | 300 Days validity pack', category: '5g' },
+      { id: 'ai-b-r1', operator_id: '2', amount: 899, validity: '7 Days', description: 'BSNL International Roaming: 30 Mins, 1GB Data Roaming Pack', category: 'roaming' },
+      { id: 'ai-b-t1', operator_id: '2', amount: 10, validity: 'Unlimited', description: 'Topup Voucher: ₹7.47 Talktime Balance', category: 'topup' },
+      { id: 'ai-b-t2', operator_id: '2', amount: 100, validity: 'Unlimited', description: 'Topup Voucher: ₹81.75 Talktime Balance', category: 'topup' },
     ],
   };
 
   return defaults[operatorId] || [
     { id: 'ai-d1', operator_id: operatorId, amount: 239, validity: '28 Days', description: 'Unlimited Calls + 1.5GB/Day High Speed 4G Data', category: 'unlimited' },
     { id: 'ai-d2', operator_id: operatorId, amount: 299, validity: '28 Days', description: 'Unlimited Calls + 2GB/Day High Speed 4G Data', category: 'unlimited' },
-    { id: 'ai-d3', operator_id: operatorId, amount: 666, validity: '84 Days', description: 'Unlimited Calls + 1.5GB/Day High Speed 4G Data', category: 'unlimited' },
-    { id: 'ai-d4', operator_id: operatorId, amount: 749, validity: '90 Days', description: 'Unlimited Calls + 2GB/Day High Speed 4G Data', category: 'unlimited' },
   ];
 };
 
@@ -673,41 +695,50 @@ export function MobileRechargeForm() {
 
         <div className="flex flex-col w-full">
           {/* Suggested Plans */}
-          {!planSearchQuery && planCategory === 'all' && (
-            <div className="mb-6 shrink-0">
-               <div className="flex items-center justify-between mb-3 px-1">
-                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                   <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500/20" />
-                   Suggested For You
-                 </h3>
-                 <span className="text-[8px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded-full tracking-tighter">AI Optimized</span>
-               </div>
-               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-1">
-                 {getAISuggestedPlans(selectedOperator).map((plan, idx) => (
-                   <div 
-                     key={`suggested-${plan.id}`}
-                     onClick={() => handlePlanSelect(plan)}
-                     className={`min-w-[155px] p-4.5 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
-                       idx % 2 === 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'
-                     }`}
-                   >
-                     <div className="absolute top-[-20%] right-[-10%] w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700" />
-                     <div className="flex justify-between items-start mb-2 relative z-10">
-                       <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
-                       <Star className="w-3 h-3 text-white/50 fill-white/20" />
-                     </div>
-                     <p className="text-[9.5px] font-bold leading-snug opacity-95 line-clamp-2 mb-2.5 min-h-[28px] relative z-10">{plan.description}</p>
-                     <div className="flex justify-between items-center relative z-10">
-                       <span className="text-[8px] font-black uppercase tracking-widest opacity-70">{plan.validity}</span>
-                       <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-                         <ChevronRight className="w-3 h-3" />
+          {!planSearchQuery && (() => {
+            const allSuggested = getAISuggestedPlans(selectedOperator);
+            const suggested = planCategory === 'all'
+              ? allSuggested
+              : allSuggested.filter(plan => plan.category === planCategory);
+            
+            if (suggested.length === 0) return null;
+
+            return (
+              <div className="mb-6 shrink-0">
+                 <div className="flex items-center justify-between mb-3 px-1">
+                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                     Suggested For You
+                   </h3>
+                   <span className="text-[8px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded-full tracking-tighter">AI Optimized</span>
+                 </div>
+                 <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-1">
+                   {suggested.map((plan, idx) => (
+                     <div 
+                       key={`suggested-${plan.id}`}
+                       onClick={() => handlePlanSelect(plan)}
+                       className={`min-w-[155px] p-4.5 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
+                         idx % 2 === 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'
+                       }`}
+                     >
+                       <div className="absolute top-[-20%] right-[-10%] w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700" />
+                       <div className="flex justify-between items-start mb-2 relative z-10">
+                         <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
+                         <Star className="w-3 h-3 text-white/50 fill-white/20" />
+                       </div>
+                       <p className="text-[9.5px] font-bold leading-snug opacity-95 line-clamp-2 mb-2.5 min-h-[28px] relative z-10">{plan.description}</p>
+                       <div className="flex justify-between items-center relative z-10">
+                         <span className="text-[8px] font-black uppercase tracking-widest opacity-70">{plan.validity}</span>
+                         <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                           <ChevronRight className="w-3 h-3" />
+                         </div>
                        </div>
                      </div>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          )}
+                   ))}
+                 </div>
+              </div>
+            );
+          })()}
 
           {/* Quick Filter Chips */}
           <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1 shrink-0 px-1">
@@ -734,18 +765,21 @@ export function MobileRechargeForm() {
           </div>
 
           <Tabs value={planCategory} onValueChange={setPlanCategory} className="flex-1 flex flex-col">
-            <TabsList className="flex bg-slate-100/50 p-1 rounded-[18px] gap-1 mb-4 h-11 shrink-0 w-full">
+            <TabsList className="flex bg-slate-100/50 p-1 rounded-[18px] gap-1 mb-4 h-11 shrink-0 w-full overflow-x-auto no-scrollbar justify-start">
               {[
                 { id: 'all', label: 'All' },
                 { id: 'unlimited', label: 'Unlimited' },
                 { id: 'data', label: 'Data (GB)' },
                 { id: 'combo', label: 'Validity' },
+                { id: 'ott', label: 'OTT / Media' },
+                { id: '5g', label: 'True 5G' },
+                { id: 'roaming', label: 'Roaming' },
                 { id: 'topup', label: 'Talktime' }
               ].map((cat) => (
                 <TabsTrigger
                   key={cat.id}
                   value={cat.id}
-                  className="flex-1 rounded-[14px] text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full px-0"
+                  className="px-4 rounded-[14px] text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-md transition-all h-full shrink-0"
                 >
                   {cat.label}
                 </TabsTrigger>

@@ -31,7 +31,7 @@ export interface RechargePlan {
   description: string;
   data?: string;
   talktime?: string;
-  category: 'topup' | 'data' | 'combo' | 'unlimited' | 'special';
+  category: 'topup' | 'data' | 'combo' | 'unlimited' | 'special' | 'ott' | '5g' | 'roaming';
 }
 
 // Offer Types
