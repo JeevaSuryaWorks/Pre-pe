@@ -34,7 +34,7 @@ const services = [
       { icon: Smartphone, label: "Mobile Recharge", path: "/mobile-recharge", color: "bg-blue-50 text-blue-600" },
       { icon: Tv, label: "DTH", path: "/dth-recharge", color: "bg-purple-50 text-purple-600" },
       { icon: Play, label: "Google Play", path: "/services/redeem-code", color: "bg-green-50 text-green-600" },
-      { icon: SmartphoneCharging, label: "Postpaid", path: "/postpaid", color: "bg-indigo-50 text-indigo-600" },
+      { icon: SmartphoneCharging, label: "Postpaid", path: "/services/postpaid", color: "bg-indigo-50 text-indigo-600" },
       { icon: FilePlus2, label: "Bulk Recharge", path: "/business/bulk-recharge", color: "bg-amber-50 text-amber-600", businessOnly: true },
     ]
   },

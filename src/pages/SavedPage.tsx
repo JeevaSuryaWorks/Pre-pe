@@ -4,16 +4,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-    Heart, 
-    Users, 
-    Plus, 
-    Smartphone, 
-    Tv, 
-    Lightbulb, 
-    Flame, 
-    Droplet, 
-    Wifi, 
+import {
+    Heart,
+    Users,
+    Plus,
+    Smartphone,
+    Tv,
+    Lightbulb,
+    Flame,
+    Droplet,
+    Wifi,
     ChevronRight,
     Search,
     Loader2,
@@ -102,10 +102,10 @@ const SavedPage = () => {
             <div className="container max-w-2xl px-4 py-8 pb-24 space-y-6">
                 <header className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-black text-[#000080] tracking-tight">Executive Circle</h1>
+                        <h1 className="text-3xl font-black text-[#000080] tracking-tight">PrePe Circle</h1>
                         <p className="text-slate-500 font-medium">Your family & favorite accounts</p>
                     </div>
-                    <Button 
+                    <Button
                         onClick={() => setIsAddDialogOpen(true)}
                         className="rounded-2xl bg-[#FF671F] hover:bg-orange-600 text-white font-black h-12 px-6 shadow-lg shadow-orange-500/20 transition-all duration-300 uppercase tracking-widest text-[10px]"
                     >
@@ -116,10 +116,10 @@ const SavedPage = () => {
                 <Tabs defaultValue="circle" className="w-full">
                     <TabsList className="w-full grid grid-cols-2 p-1 bg-white border border-slate-100 shadow-sm rounded-2xl mb-8 h-12">
                         <TabsTrigger value="circle" className="rounded-xl font-bold data-[state=active]:bg-[#046A38] data-[state=active]:text-white data-[state=active]:shadow-sm uppercase tracking-widest text-[9px]">
-                           <Users className="w-4 h-4 mr-2" /> Circle
+                            <Users className="w-4 h-4 mr-2" /> Circle
                         </TabsTrigger>
                         <TabsTrigger value="favorites" className="rounded-xl font-bold data-[state=active]:bg-[#046A38] data-[state=active]:text-white data-[state=active]:shadow-sm uppercase tracking-widest text-[9px]">
-                           <Heart className="w-4 h-4 mr-2" /> Favorites
+                            <Heart className="w-4 h-4 mr-2" /> Favorites
                         </TabsTrigger>
                     </TabsList>
 
@@ -157,15 +157,15 @@ const SavedPage = () => {
                                                 <p className="text-sm font-mono font-bold text-slate-500 mt-1">{item.account_id}</p>
                                             </div>
                                             <div className="flex flex-col gap-2 shrink-0">
-                                                <Button 
+                                                <Button
                                                     onClick={() => handleAction(item)}
                                                     className="rounded-2xl bg-slate-900 text-white font-black text-xs hover:bg-blue-600 h-10 px-4 transition-all"
                                                 >
                                                     Pay Now
                                                 </Button>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
                                                     onClick={() => handleDelete(item.id)}
                                                     className="absolute top-4 right-4 h-8 w-8 rounded-xl text-slate-200 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
                                                 >
@@ -196,8 +196,8 @@ const SavedPage = () => {
                         ) : (
                             <div className="space-y-3">
                                 {favoriteItems.map((item) => (
-                                    <div 
-                                        key={item.id} 
+                                    <div
+                                        key={item.id}
                                         className="flex items-center justify-between p-5 rounded-[28px] border border-slate-100 bg-white hover:border-blue-200 hover:shadow-lg hover:shadow-blue-500/5 transition-all group"
                                     >
                                         <div className="flex items-center gap-4">
@@ -214,15 +214,15 @@ const SavedPage = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Button 
-                                                variant="outline" 
+                                            <Button
+                                                variant="outline"
                                                 onClick={() => handleAction(item)}
                                                 className="rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 h-9"
                                             >
                                                 Repeat
                                             </Button>
-                                            <Button 
-                                                variant="ghost" 
+                                            <Button
+                                                variant="ghost"
                                                 size="icon"
                                                 onClick={() => handleDelete(item.id)}
                                                 className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
@@ -238,9 +238,9 @@ const SavedPage = () => {
                 </Tabs>
             </div>
 
-            <AddCircleMemberDialog 
-                isOpen={isAddDialogOpen} 
-                onClose={() => setIsAddDialogOpen(false)} 
+            <AddCircleMemberDialog
+                isOpen={isAddDialogOpen}
+                onClose={() => setIsAddDialogOpen(false)}
                 onSuccess={loadData}
                 userId={user?.id || ''}
             />

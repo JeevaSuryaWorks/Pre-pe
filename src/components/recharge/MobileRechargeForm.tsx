@@ -717,7 +717,7 @@ export function MobileRechargeForm() {
                      <div 
                        key={`suggested-${plan.id}`}
                        onClick={() => handlePlanSelect(plan)}
-                       className={`min-w-[155px] p-4.5 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
+                       className={`min-w-[155px] p-4 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
                          idx % 2 === 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'
                        }`}
                      >
