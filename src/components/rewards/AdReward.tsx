@@ -22,7 +22,7 @@ interface AdRewardProps {
 export function AdReward({ userId, onComplete }: AdRewardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [rewarding, setRewarding] = useState(false);
   const [watchedToday, setWatchedToday] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(3);
