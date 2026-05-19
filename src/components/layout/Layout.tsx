@@ -26,9 +26,6 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
     <div className="min-h-screen bg-[#F1F5F9] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] flex justify-center w-full overflow-x-hidden app-native-container">
       <div className={`w-full ${isFullWidth ? 'max-w-none' : 'max-w-[448px]'} bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] ${noScroll ? 'h-screen overflow-hidden' : 'min-h-screen'} relative flex flex-col mx-auto safe-area-pt`}>
         
-        {/* Patriotic Accent Bar */}
-        <div className="h-1.5 w-full bg-india-tricolor shrink-0" />
-
         {/* KYC Warning Banner */}
         {!hideHeader && !isKYCPage && status && !isApproved && (
           <div className={`${status === 'REJECTED' ? 'bg-red-50 border-red-100' : 'bg-yellow-50 border-yellow-100'} border-b p-3 flex items-start gap-3 shrink-0`}>

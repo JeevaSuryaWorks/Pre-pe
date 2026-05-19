@@ -13,7 +13,8 @@ import {
   Wifi,
   Receipt,
   HandCoins,
-  ChevronRight
+  ChevronRight,
+  Gift
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -46,10 +47,9 @@ const ServiceItem = ({ icon: Icon, label, path, isBorrowService, index = 0 }: Se
   // Tricolor pattern logic
   const colors = [
     { bg: "bg-[#FF671F]/10", text: "text-[#FF671F]", border: "border-[#FF671F]/20" }, // Saffron
-    { bg: "bg-[#000080]/5", text: "text-[#000080]", border: "border-[#000080]/10" },  // Navy
     { bg: "bg-[#046A38]/10", text: "text-[#046A38]", border: "border-[#046A38]/20" }, // Green
   ];
-  const theme = colors[index % 3];
+  const theme = colors[index % 2];
   const [logoIndex, setLogoIndex] = useState(0);
 
   useEffect(() => {
@@ -166,13 +166,13 @@ export const ServiceGrid = () => {
   ];
 
   const secondaryServices = [
-    { icon: Car, label: "FasTag", path: "/services/fasttag" },
+    { icon: Wifi, label: "Broadband", path: "/services/broadband" },
     { icon: Flame, label: "LPG Booking", path: "/services/gas-bill" },
     { icon: Droplets, label: "Water", path: "/services/water-bill" },
     { icon: HandCoins, label: "Pay EMI", path: "/services/pay-bills" },
     { icon: ShieldCheck, label: "Insurance", path: "/services/insurance" },
-    { icon: Wifi, label: "Broadband", path: "/services/broadband" },
-    { icon: ChevronRight, label: "See All", path: "/services" },
+    { icon: Car, label: "FasTag", path: "/services/fasttag" },
+    { icon: Gift, label: "Gift Voucher", path: "/services/gift-cards" },
   ];
 
   const gridVariants = {

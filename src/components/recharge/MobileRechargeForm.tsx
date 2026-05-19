@@ -79,6 +79,42 @@ const OPERATOR_LOGOS: Record<string, string> = {
   '4': '/logos/vi_new.svg',
 };
 
+const getAISuggestedPlans = (operatorId: string): RechargePlan[] => {
+  const defaults: Record<string, RechargePlan[]> = {
+    '1': [ // Airtel
+      { id: 'ai-a1', operator_id: '1', amount: 239, validity: '28 Days', description: 'Unlimited Calls | 1.5GB/Day | 100 SMS/Day | Free HelloTunes', category: 'unlimited' },
+      { id: 'ai-a2', operator_id: '1', amount: 299, validity: '28 Days', description: 'Unlimited Calls | 2GB/Day | 100 SMS/Day | Apollo 24|7 Circle', category: 'unlimited' },
+      { id: 'ai-a3', operator_id: '1', amount: 666, validity: '84 Days', description: 'Unlimited Calls | 1.5GB/Day | 100 SMS/Day | RewardMinis', category: 'unlimited' },
+      { id: 'ai-a4', operator_id: '1', amount: 839, validity: '84 Days', description: 'Unlimited Calls | 2GB/Day | Unlimited 5G Data | Wynk Music', category: 'unlimited' },
+    ],
+    '3': [ // Jio
+      { id: 'ai-j1', operator_id: '3', amount: 239, validity: '28 Days', description: 'Unlimited Voice | 1.5GB/Day | 100 SMS/Day | JioTV, JioCinema', category: 'unlimited' },
+      { id: 'ai-j2', operator_id: '3', amount: 299, validity: '28 Days', description: 'Unlimited Voice | 2GB/Day | Unlimited 5G Data | JioCloud', category: 'unlimited' },
+      { id: 'ai-j3', operator_id: '3', amount: 666, validity: '84 Days', description: 'Unlimited Voice | 1.5GB/Day | 100 SMS/Day | JioTV, JioCinema', category: 'unlimited' },
+      { id: 'ai-j4', operator_id: '3', amount: 749, validity: '90 Days', description: 'Unlimited Voice | 2GB/Day | Unlimited 5G Data | JioApps Suite', category: 'unlimited' },
+    ],
+    '4': [ // Vi
+      { id: 'ai-v1', operator_id: '4', amount: 239, validity: '28 Days', description: 'Unlimited Calls | 1.5GB/Day | Binge All Night (12AM-6AM)', category: 'unlimited' },
+      { id: 'ai-v2', operator_id: '4', amount: 299, validity: '28 Days', description: 'Unlimited Calls | 2GB/Day | Weekend Data Rollover & Binge All Night', category: 'unlimited' },
+      { id: 'ai-v3', operator_id: '4', amount: 479, validity: '56 Days', description: 'Unlimited Calls | 1.5GB/Day | 100 SMS/Day | Vi Movies & TV', category: 'unlimited' },
+      { id: 'ai-v4', operator_id: '4', amount: 719, validity: '84 Days', description: 'Unlimited Calls | 1.5GB/Day | Weekend Data Rollover', category: 'unlimited' },
+    ],
+    '2': [ // BSNL
+      { id: 'ai-b1', operator_id: '2', amount: 107, validity: '35 Days', description: '3GB Data | 200 Mins Voice Calls | BSNL Tunes included', category: 'combo' },
+      { id: 'ai-b2', operator_id: '2', amount: 197, validity: '70 Days', description: 'Unlimited Voice | 2GB/Day (Speed reduced to 40kbps after)', category: 'unlimited' },
+      { id: 'ai-b3', operator_id: '2', amount: 397, validity: '150 Days', description: 'Unlimited Voice & 2GB/Day for 30 days | Plan validity 150 days', category: 'unlimited' },
+      { id: 'ai-b4', operator_id: '2', amount: 797, validity: '300 Days', description: 'Unlimited Voice & 2GB/Day for 60 days | Plan validity 300 days', category: 'unlimited' },
+    ],
+  };
+
+  return defaults[operatorId] || [
+    { id: 'ai-d1', operator_id: operatorId, amount: 239, validity: '28 Days', description: 'Unlimited Calls + 1.5GB/Day High Speed 4G Data', category: 'unlimited' },
+    { id: 'ai-d2', operator_id: operatorId, amount: 299, validity: '28 Days', description: 'Unlimited Calls + 2GB/Day High Speed 4G Data', category: 'unlimited' },
+    { id: 'ai-d3', operator_id: operatorId, amount: 666, validity: '84 Days', description: 'Unlimited Calls + 1.5GB/Day High Speed 4G Data', category: 'unlimited' },
+    { id: 'ai-d4', operator_id: operatorId, amount: 749, validity: '90 Days', description: 'Unlimited Calls + 2GB/Day High Speed 4G Data', category: 'unlimited' },
+  ];
+};
+
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
 
 export function MobileRechargeForm() {
@@ -153,6 +189,63 @@ export function MobileRechargeForm() {
       formatted = cleaned.slice(0, 5) + ' ' + cleaned.slice(5);
     }
     setMobileNumber(formatted);
+  };
+
+  useEffect(() => {
+    // Read prefilled phone number from location search or state
+    const params = new URLSearchParams(location.search);
+    const queryPhone = params.get('phone') || location.state?.mobileNumber;
+    if (queryPhone) {
+      const cleaned = queryPhone.replace(/\D/g, '').slice(-10);
+      if (cleaned.length === 10) {
+        handleMobileChange(cleaned);
+      }
+    }
+  }, [location]);
+
+  const handleOpenContacts = async () => {
+    // Try browser/webview built-in native Contact Picker API
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const props = ['name', 'tel'];
+        const opts = { multiple: false };
+        // @ts-ignore
+        const contacts = await navigator.contacts.select(props, opts);
+        if (contacts && contacts.length > 0) {
+          const contact = contacts[0];
+          const rawPhone = contact.tel?.[0] || '';
+          const cleaned = rawPhone.replace(/\D/g, '').slice(-10); // get last 10 digits
+          if (cleaned.length === 10) {
+            handleMobileChange(cleaned);
+            toast({
+              title: "Contact Selected",
+              description: `Loaded number for ${contact.name?.[0] || 'Selected Contact'}.`,
+            });
+            return;
+          } else {
+            toast({
+              title: "Invalid Mobile Number",
+              description: "Selected contact does not have a valid 10-digit mobile number.",
+              variant: "destructive",
+            });
+          }
+        }
+      } catch (err: any) {
+        console.warn('Native Contact Picker aborted/failed:', err);
+        if (err.name !== 'AbortError') {
+          toast({
+            title: "Contacts Permission",
+            description: "Unable to access phone contacts. Please grant Contacts permission in system settings.",
+            variant: "destructive",
+          });
+        }
+      }
+    } else {
+      toast({
+        title: "Native Contact Picker Only",
+        description: "Built-in system contact chooser is only available on native mobile devices.",
+      });
+    }
   };
 
   useEffect(() => {
@@ -442,7 +535,7 @@ export function MobileRechargeForm() {
 
   if (step === 'details') {
     return (
-      <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 overflow-hidden h-full w-full">
+      <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 w-full">
         <div className="flex items-center justify-between bg-slate-50/80 p-3 rounded-[24px] border border-slate-100 shrink-0 w-full">
           <div className="flex items-center gap-3 px-1">
             <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm">
@@ -485,9 +578,65 @@ export function MobileRechargeForm() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden w-full">
+        {/* Custom Amount Input Box */}
+        <div className="relative group shrink-0 w-full px-1">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[30px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
+          <div className="relative bg-white border-2 border-slate-100 rounded-[24px] p-4 focus-within:border-blue-500 transition-all shadow-md shadow-slate-100/5 w-full">
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Or Enter Amount to Pay</Label>
+            <div className="flex items-center gap-3 h-10 w-full">
+              <span className="text-xl font-bold text-slate-400 select-none shrink-0">₹</span>
+              <div className="w-px h-5 bg-slate-100 shrink-0" />
+              <input
+                type="number"
+                className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0"
+                placeholder="Enter amount (e.g. 239)"
+                value={amount}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAmount(val);
+                  if (val) {
+                    setSelectedPlan({
+                      id: 'custom',
+                      amount: parseFloat(val) || 0,
+                      validity: 'As per operator',
+                      description: 'Custom Recharge Amount',
+                      category: 'custom'
+                    } as any);
+                  } else {
+                    setSelectedPlan(null);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Proceed Button for custom amount */}
+        {amount && parseFloat(amount) > 0 && (
+          <div className="shrink-0 px-1 w-full animate-in slide-in-from-bottom-2 duration-300">
+            <Button
+              className="w-full h-14 rounded-2xl text-md font-black bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100 transition-all active:scale-[0.98]"
+              onClick={() => {
+                if (!selectedPlan || selectedPlan.id !== 'custom') {
+                  setSelectedPlan({
+                    id: 'custom',
+                    amount: parseFloat(amount),
+                    validity: 'As per operator',
+                    description: 'Custom Recharge Amount',
+                    category: 'custom'
+                  } as any);
+                }
+                setStep('confirm');
+              }}
+            >
+              PROCEED TO PAY ₹{amount}
+            </Button>
+          </div>
+        )}
+
+        <div className="flex flex-col w-full">
           {/* Suggested Plans */}
-          {plans.length > 0 && !planSearchQuery && planCategory === 'all' && (
+          {!planSearchQuery && planCategory === 'all' && (
             <div className="mb-6 shrink-0">
                <div className="flex items-center justify-between mb-3 px-1">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -497,11 +646,11 @@ export function MobileRechargeForm() {
                  <span className="text-[8px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded-full tracking-tighter">AI Optimized</span>
                </div>
                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-1">
-                 {plans.slice(0, 4).map((plan, idx) => (
+                 {getAISuggestedPlans(selectedOperator).map((plan, idx) => (
                    <div 
                      key={`suggested-${plan.id}`}
                      onClick={() => handlePlanSelect(plan)}
-                     className={`min-w-[140px] p-4 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
+                     className={`min-w-[155px] p-4.5 rounded-2xl text-white shadow-lg active:scale-95 transition-all relative overflow-hidden group ${
                        idx % 2 === 0 ? 'bg-gradient-to-br from-blue-600 to-indigo-700' : 'bg-gradient-to-br from-indigo-600 to-violet-700'
                      }`}
                    >
@@ -510,7 +659,7 @@ export function MobileRechargeForm() {
                        <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
                        <Star className="w-3 h-3 text-white/50 fill-white/20" />
                      </div>
-                     <p className="text-[9px] font-bold leading-tight opacity-90 line-clamp-2 mb-2 min-h-[24px] relative z-10">{plan.description}</p>
+                     <p className="text-[9.5px] font-bold leading-snug opacity-95 line-clamp-2 mb-2.5 min-h-[28px] relative z-10">{plan.description}</p>
                      <div className="flex justify-between items-center relative z-10">
                        <span className="text-[8px] font-black uppercase tracking-widest opacity-70">{plan.validity}</span>
                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
@@ -569,8 +718,8 @@ export function MobileRechargeForm() {
               ))}
             </TabsList>
 
-            <TabsContent value={planCategory} className="flex-1 overflow-hidden mt-0 w-full">
-              <div className="grid gap-3 h-full overflow-y-auto pr-1 custom-scrollbar pb-2 w-full">
+            <TabsContent value={planCategory} className="mt-0 w-full">
+              <div className="grid gap-3 pr-1 pb-2 w-full">
                 {plans.length === 0 ? (
                    <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 w-full">
                       <Search className="w-8 h-8 mb-2" />
@@ -636,23 +785,53 @@ export function MobileRechargeForm() {
                   <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
                 </div>
               ) : (
-                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                  <Phone className="h-5 w-5 text-slate-300" />
-                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenContacts}
+                  className="w-10 h-10 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center transition-all active:scale-95 focus:outline-none cursor-pointer border border-blue-100 shadow-sm shadow-blue-50/50"
+                  title="Select Contact"
+                >
+                  <Contact className="h-5 w-5 text-blue-600" />
+                </button>
               )}
             </div>
           </div>
         </div>
       </div>
 
+      {profile?.phone && (
+        <div className="shrink-0 w-full mb-2 animate-in fade-in slide-in-from-bottom duration-500">
+          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-3">My Number</h3>
+          <div
+            onClick={() => handleMobileChange(profile.phone)}
+            className="group flex items-center gap-5 p-5 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 border border-blue-100/70 rounded-[28px] hover:border-blue-300 hover:shadow-xl transition-all cursor-pointer w-full active:scale-98"
+          >
+            <div className="w-12 h-12 bg-blue-600 rounded-[18px] flex items-center justify-center text-white font-black shrink-0 shadow-md shadow-blue-100">
+              <Smartphone className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-lg font-black text-slate-800 tracking-tight leading-none truncate">
+                {profile.full_name || user?.user_metadata?.full_name || 'My Number'} (Self)
+              </p>
+              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1.5">{profile.phone}</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col space-y-4 overflow-hidden w-full">
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 shrink-0">Recent Transactions</h3>
         <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar pb-6 w-full">
-          {recentTransactions.map((txn) => (
+          {(recentTransactions.length > 0 ? recentTransactions : [
+            { id: 'm1', mobile_number: '8668075429', amount: 239 },
+            { id: 'm2', mobile_number: '9876543210', amount: 299 },
+            { id: 'm3', mobile_number: '9123456789', amount: 749 }
+          ]).map((txn) => (
             <div
               key={txn.id}
               onClick={() => handleMobileChange(txn.mobile_number)}
-              className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full"
+              className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full active:scale-[0.99]"
             >
               <div className="w-12 h-12 bg-slate-50 rounded-[18px] flex items-center justify-center text-xl font-black text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
                 {txn.mobile_number.slice(0, 2)}
