@@ -265,33 +265,25 @@ export function AdReward({ userId, onComplete }: AdRewardProps) {
               </button>
 
               {/* Video Player Box Mockup */}
-              <div className="relative aspect-video w-full bg-slate-900 rounded-[2rem] border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                {/* Visual Video Content simulation */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900"></div>
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                
-                {/* Moving design blobs to simulate activity */}
-                <motion.div 
-                  animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
-                  transition={{ duration: 5, repeat: Infinity }}
-                  className="absolute -top-12 -left-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl"
-                />
-                <motion.div 
-                  animate={{ scale: [1.2, 1, 1.2], rotate: [360, 180, 0] }}
-                  transition={{ duration: 5, repeat: Infinity }}
-                  className="absolute -bottom-12 -right-12 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl"
+              <div className="relative aspect-video w-full bg-slate-900 rounded-[2rem] border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-500">
+                {/* Real Video Commercial Stream */}
+                <video
+                  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+                  autoPlay
+                  playsInline
+                  muted={muted}
+                  controls={false}
+                  className="absolute inset-0 w-full h-full object-cover z-0"
                 />
 
-                <div className="relative z-10 flex flex-col items-center gap-4">
-                  <div className="p-4 bg-indigo-500/10 rounded-full ring-8 ring-indigo-500/5">
-                    <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-white font-black uppercase tracking-[0.2em] text-[10px]">PREMIUM SPONSOR CONTENT</p>
-                    <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 justify-center">
-                      <Sparkles className="w-3 h-3 text-amber-400" /> Pre-pe Monetization Loop
-                    </p>
-                  </div>
+                {/* Overlay layer for visual premium text branding */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30 z-10 pointer-events-none" />
+
+                <div className="absolute bottom-4 left-4 z-20 text-left pointer-events-none">
+                  <p className="text-white font-black uppercase tracking-[0.2em] text-[9px] drop-shadow-md">PREMIUM SPONSOR CONTENT</p>
+                  <p className="text-slate-200 text-[8px] font-bold uppercase tracking-widest flex items-center gap-1 drop-shadow-md">
+                    <Sparkles className="w-2.5 h-2.5 text-amber-400 fill-current" /> Pre-pe Monetization Loop
+                  </p>
                 </div>
 
                 {/* Progress bar overlay */}
