@@ -101,6 +101,7 @@ export default function RewardsDashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
   const [taskLoading, setTaskLoading] = useState(false);
+  const [planType, setPlanType] = useState<string>('BASIC');
 
   const loadData = async (silent = false) => {
     if (!user) return;
@@ -140,8 +141,12 @@ export default function RewardsDashboard() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .maybeSingle();
+
+      if (profile?.plan_type) {
+        setPlanType(profile.plan_type.toUpperCase());
+      }
     } catch (error) {
       console.error("Error loading rewards data:", error);
     } finally {
@@ -366,29 +371,68 @@ export default function RewardsDashboard() {
 
               </div>
 
-              <div className="grid grid-cols-2 gap-3 w-full relative z-10 mt-4">
-                    {/* Current Streak Card */}
-                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
-                        <div className="flex items-center gap-2 mb-1">
-                           <CalendarDays className="w-3.5 h-3.5 text-orange-300" />
-                           <p className="text-[8px] font-black uppercase tracking-widest text-orange-300/80">Streak</p>
-                        </div>
-                        <p className="text-2xl font-black tabular-nums tracking-tighter text-white">
-                          {streak} <span className="text-[8px] font-black text-orange-300/40 uppercase ml-1">{streak === 1 ? 'Day' : 'Days'}</span>
-                        </p>
-                    </div>
+              {/* Dynamic Rewards Cards based on plan_type */}
+              {(() => {
+                const showLeftCashback = planType === 'PRO';
+                const leftLabel = showLeftCashback ? 'Cashback' : 'Streak';
+                const leftIcon = showLeftCashback ? (
+                  <Banknote className="w-3.5 h-3.5 text-green-400" />
+                ) : (
+                  <CalendarDays className="w-3.5 h-3.5 text-orange-300" />
+                );
+                const leftValue = showLeftCashback ? (
+                  `₹${cashback.toFixed(2)}`
+                ) : (
+                  `${streak}`
+                );
+                const leftColorClass = showLeftCashback ? 'text-green-400/80' : 'text-orange-300/80';
+                const leftUnit = showLeftCashback ? '' : (streak === 1 ? 'Day' : 'Days');
 
-                    {/* Cashback Card */}
-                    <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
-                        <div className="flex items-center gap-2 mb-1">
-                           <Banknote className="w-3.5 h-3.5 text-[#046A38]" />
-                           <p className="text-[8px] font-black uppercase tracking-widest text-green-400/80">Earned</p>
+                const showRightStreak = planType === 'PRO';
+                const rightLabel = planType === 'BUSINESS' ? 'Commission' : (showRightStreak ? 'Streak' : 'Earned');
+                const rightIcon = planType === 'BUSINESS' ? (
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  showRightStreak ? (
+                    <CalendarDays className="w-3.5 h-3.5 text-orange-300" />
+                  ) : (
+                    <Banknote className="w-3.5 h-3.5 text-green-400" />
+                  )
+                );
+                const rightValue = showRightStreak ? (
+                  `${streak}`
+                ) : (
+                  `₹${kycLoading ? "..." : (isApproved ? cashback.toFixed(2) : "**.**")}`
+                );
+                const rightColorClass = planType === 'BUSINESS' ? 'text-emerald-400/80' : (showRightStreak ? 'text-orange-300/80' : 'text-green-400/80');
+                const rightUnit = showRightStreak ? (streak === 1 ? 'Day' : 'Days') : '';
+
+                return (
+                  <div className="grid grid-cols-2 gap-3 w-full relative z-10 mt-4">
+                        {/* Left Card */}
+                        <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
+                            <div className="flex items-center gap-2 mb-1">
+                               {leftIcon}
+                               <p className={`text-[8px] font-black uppercase tracking-widest ${leftColorClass}`}>{leftLabel}</p>
+                            </div>
+                            <p className="text-2xl font-black tabular-nums tracking-tighter text-white">
+                              {leftValue} {leftUnit && <span className="text-[8px] font-black text-orange-300/40 uppercase ml-1">{leftUnit}</span>}
+                            </p>
                         </div>
-                        <p className="text-2xl font-black tabular-nums tracking-tighter text-white font-mono leading-none pt-1">
-                          ₹{kycLoading ? "..." : (isApproved ? cashback.toFixed(2) : "**.**")}
-                        </p>
-                    </div>
-              </div>
+
+                        {/* Right Card */}
+                        <div className="bg-white/10 hover:bg-white/20 backdrop-blur-3xl rounded-3xl p-4 border border-white/10 transition-all flex flex-col items-center shadow-xl">
+                            <div className="flex items-center gap-2 mb-1">
+                               {rightIcon}
+                               <p className={`text-[8px] font-black uppercase tracking-widest ${rightColorClass}`}>{rightLabel}</p>
+                            </div>
+                            <p className="text-2xl font-black tabular-nums tracking-tighter text-white font-mono leading-none pt-1">
+                              {rightValue} {rightUnit && <span className="text-[8px] font-black text-orange-300/40 uppercase ml-1">{rightUnit}</span>}
+                            </p>
+                        </div>
+                  </div>
+                );
+              })()}
           </motion.div>
 
           {/* Content Sections */}

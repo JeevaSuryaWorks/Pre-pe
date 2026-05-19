@@ -51,6 +51,10 @@ const UserManagement = () => {
     const [spinLimitDialog, setSpinLimitDialog] = useState(false);
     const [customSpinLimit, setCustomSpinLimit] = useState("");
 
+    // Plan Modification Form
+    const [planDialog, setPlanDialog] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<string>("BASIC");
+
 
     useEffect(() => {
         fetchUsers();
@@ -96,6 +100,21 @@ const UserManagement = () => {
             fetchUsers();
         } catch (e: any) {
             toast.error(e.message || "Failed to update limit");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handlePlanUpdate = async () => {
+        if (!selectedUser) return;
+        setSubmitting(true);
+        try {
+            await adminService.updateProfile(selectedUser.user_id, { plan_type: selectedPlan });
+            toast.success("User plan updated successfully");
+            setPlanDialog(false);
+            fetchUsers();
+        } catch (e: any) {
+            toast.error(e.message || "Failed to update plan");
         } finally {
             setSubmitting(false);
         }
@@ -163,11 +182,20 @@ const UserManagement = () => {
                                                         <div className="font-bold text-slate-900">{user.full_name || 'Anonymous User'}</div>
                                                         <div className="text-sm text-slate-500 font-medium">{user.email}</div>
                                                         <div className="text-[11px] font-mono text-slate-400 mt-0.5">{user.phone || 'No phone'}</div>
-                                                        {user.custom_spin_limit !== null && (
-                                                            <Badge variant="outline" className="mt-1 bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] px-1.5 py-0 uppercase">
-                                                                Spins: {user.custom_spin_limit}/day
+                                                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 uppercase border-0 font-black tracking-widest ${
+                                                                user.plan_type === 'PRO' ? "bg-blue-100 text-blue-700" :
+                                                                user.plan_type === 'BUSINESS' ? "bg-emerald-100 text-emerald-700" :
+                                                                "bg-slate-100 text-slate-700"
+                                                            }`}>
+                                                                {user.plan_type || 'BASIC'} PLAN
                                                             </Badge>
-                                                        )}
+                                                            {user.custom_spin_limit !== null && (
+                                                                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[9px] px-1.5 py-0 uppercase">
+                                                                    Spins: {user.custom_spin_limit}/day
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -226,6 +254,16 @@ const UserManagement = () => {
                                                                 }}
                                                             >
                                                                 <Star className="h-4 w-4 mr-2" /> Spin Limits
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem 
+                                                                className="cursor-pointer font-medium py-2 text-blue-600"
+                                                                onClick={() => { 
+                                                                    setSelectedUser(user); 
+                                                                    setSelectedPlan(user.plan_type || "BASIC"); 
+                                                                    setPlanDialog(true); 
+                                                                }}
+                                                            >
+                                                                <CreditCard className="h-4 w-4 mr-2" /> Modify Plan
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -331,6 +369,46 @@ const UserManagement = () => {
                             className="rounded-xl font-bold h-11 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all"
                         >
                             {submitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Save Limit"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Plan Modification Dialog */}
+            <Dialog open={planDialog} onOpenChange={setPlanDialog}>
+                <DialogContent className="sm:max-w-md rounded-[24px] border-none shadow-2xl p-6">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">Modify User Plan</DialogTitle>
+                        <DialogDescription className="text-slate-500 mt-2 leading-relaxed">
+                            Manually change the plan membership level for <span className="font-bold text-slate-700">{selectedUser?.full_name || selectedUser?.email}</span>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Membership Plan</Label>
+                            <Select value={selectedPlan} onValueChange={(v: string) => setSelectedPlan(v)}>
+                                <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-blue-500 font-bold uppercase tracking-wider text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl overflow-hidden border-slate-200 shadow-xl">
+                                    <SelectItem value="BASIC" className="font-bold text-slate-700 focus:bg-slate-50 py-3 uppercase tracking-wider text-xs">Basic (Free) Plan</SelectItem>
+                                    <SelectItem value="PRO" className="font-bold text-blue-600 focus:bg-blue-50 focus:text-blue-700 py-3 uppercase tracking-wider text-xs">Pro Plan</SelectItem>
+                                    <SelectItem value="BUSINESS" className="font-bold text-emerald-600 focus:bg-emerald-50 focus:text-emerald-700 py-3 uppercase tracking-wider text-xs">Business Plan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-slate-400 font-medium italic mt-1.5">Note: Manual modification bypasses Razorpay payment gateway checks.</p>
+                        </div>
+                    </div>
+                    <DialogFooter className="mt-6 gap-3 sm:gap-0">
+                        <Button variant="ghost" onClick={() => setPlanDialog(false)} className="rounded-xl font-semibold text-slate-500 h-11 hover:bg-slate-100">
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handlePlanUpdate}
+                            disabled={submitting}
+                            className="rounded-xl font-bold h-11 px-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all"
+                        >
+                            {submitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Save Plan Level"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

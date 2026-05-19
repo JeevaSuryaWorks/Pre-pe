@@ -1,17 +1,20 @@
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { BottomNav } from "@/components/home/BottomNav";
-import { MessageCircle, Mail, ShieldCheck, ChevronRight, Contact, Search, Zap, Phone } from "lucide-react";
+import { MessageCircle, Mail, ShieldCheck, ChevronRight, Contact, Search, Zap, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const ContactPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState("");
+    const [typedNumber, setTypedNumber] = useState("");
     
     // Get user details for prefilled message
     const userName = user?.user_metadata?.full_name || 'User';
@@ -33,20 +36,43 @@ const ContactPage = () => {
         }
     ];
 
-    const rechargeContacts = [
-        { name: "Jeeva Support", role: "Developer Support", phone: "8668075429", avatarBg: "bg-orange-500" },
-        { name: "Amit Sharma", role: "Family", phone: "9876543210", avatarBg: "bg-emerald-500" },
-        { name: "Priya Patel", role: "Colleague", phone: "9123456789", avatarBg: "bg-violet-500" },
-        { name: "Rahul Verma", role: "Friend", phone: "9988776655", avatarBg: "bg-amber-500" },
-        { name: "Sneha Reddy", role: "Sister", phone: "9876123450", avatarBg: "bg-blue-500" },
-        { name: "Vikram Singh", role: "Brother", phone: "8123456789", avatarBg: "bg-rose-500" }
-    ];
+    const handleOpenSystemContacts = async () => {
+        if ('contacts' in navigator && 'ContactsManager' in window) {
+            try {
+                const props = ['name', 'tel'];
+                const opts = { multiple: false };
+                // @ts-ignore
+                const contacts = await navigator.contacts.select(props, opts);
+                if (contacts && contacts.length > 0) {
+                    const contact = contacts[0];
+                    const rawPhone = contact.tel?.[0] || '';
+                    const cleaned = rawPhone.replace(/\D/g, '').slice(-10); // get last 10 digits
+                    if (cleaned.length === 10) {
+                        toast.success(`Loaded contact: ${contact.name?.[0] || 'Selected'}`);
+                        navigate(`/services/mobile?phone=${cleaned}`);
+                    } else {
+                        toast.error("Selected contact does not have a valid 10-digit mobile number.");
+                    }
+                }
+            } catch (err: any) {
+                console.warn('Native Contact Picker aborted/failed:', err);
+                if (err.name !== 'AbortError') {
+                    toast.error("Unable to open device contacts. Please ensure permission is granted.");
+                }
+            }
+        } else {
+            toast.error("System contact app picker is only available on native mobile devices. Please input manually below.");
+        }
+    };
 
-    const filteredContacts = rechargeContacts.filter(contact =>
-        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        contact.phone.includes(searchQuery) ||
-        contact.role.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleManualProceed = () => {
+        const cleaned = typedNumber.replace(/\D/g, '').slice(-10);
+        if (cleaned.length === 10) {
+            navigate(`/services/mobile?phone=${cleaned}`);
+        } else {
+            toast.error("Please enter a valid 10-digit mobile number.");
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 flex justify-center w-full">
@@ -63,69 +89,61 @@ const ContactPage = () => {
                             Contacts App
                         </h1>
                         <p className="text-slate-500 font-medium text-sm">
-                            Manage contacts, make quick payments, and contact support in one place.
+                            Open your phone's built-in contact app or dial instantly to initiate mobile recharges.
                         </p>
                     </div>
 
                     <Tabs defaultValue="recharge" className="w-full">
                         <TabsList className="grid grid-cols-2 bg-slate-100/80 p-1 rounded-2xl gap-1 mb-5 h-11 w-full shrink-0">
                             <TabsTrigger value="recharge" className="rounded-xl text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm h-full">
-                                Phone Book
+                                Native Phone Book
                             </TabsTrigger>
                             <TabsTrigger value="support" className="rounded-xl text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm h-full">
                                 Help & Support
                             </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="recharge" className="space-y-4 outline-none">
-                            {/* Search bar */}
-                            <div className="relative w-full">
-                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <Input
-                                    placeholder="Search contacts by name or number..."
-                                    className="pl-10 h-12 bg-white border-slate-100 rounded-2xl font-bold placeholder:text-slate-300 shadow-sm"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
+                        <TabsContent value="recharge" className="space-y-5 outline-none">
+                            {/* System contacts launcher button */}
+                            <div className="p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm text-center space-y-4">
+                                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                                    <Contact className="w-8 h-8" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-md font-black text-slate-800">Phone's Default Contacts</h3>
+                                    <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                                        Tap below to launch your system contact app, select any contact to load their number automatically.
+                                    </p>
+                                </div>
+                                <Button 
+                                    onClick={handleOpenSystemContacts}
+                                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <UserPlus className="w-4 h-4" /> Open Contacts App
+                                </Button>
                             </div>
 
-                            {/* Contacts directory */}
-                            <div className="space-y-3">
-                                {filteredContacts.length === 0 ? (
-                                    <div className="py-12 text-center bg-white rounded-3xl border border-slate-100 shadow-sm opacity-55">
-                                        <Search className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">No Contacts Found</p>
+                            {/* Manual entry fallback */}
+                            <div className="p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual Dial Pad</h4>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            type="tel"
+                                            placeholder="Enter 10-digit number..."
+                                            className="pl-10 h-12 bg-slate-50 border-slate-100 rounded-xl font-bold placeholder:text-slate-300"
+                                            value={typedNumber}
+                                            onChange={(e) => setTypedNumber(e.target.value)}
+                                        />
                                     </div>
-                                ) : (
-                                    filteredContacts.map((contact, idx) => (
-                                        <motion.div
-                                            key={idx}
-                                            initial={{ opacity: 0, y: 15 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                            className="group bg-white p-4.5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all active:scale-[0.99]"
-                                        >
-                                            <div className="flex items-center gap-3.5 text-left min-w-0">
-                                                <div className={`h-11 w-11 rounded-2xl ${contact.avatarBg} flex items-center justify-center text-white font-black text-sm shrink-0`}>
-                                                    {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h4 className="font-bold text-slate-800 leading-none mb-1 truncate">{contact.name}</h4>
-                                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest truncate">{contact.role}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{contact.phone}</p>
-                                                </div>
-                                            </div>
-                                            
-                                            <button
-                                                onClick={() => navigate(`/services/mobile?phone=${contact.phone}`)}
-                                                className="h-9 px-3.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition-all duration-300 font-black text-[9px] uppercase tracking-wider flex items-center gap-1.5 shrink-0"
-                                            >
-                                                <Zap className="w-3.5 h-3.5 fill-current" />
-                                                Recharge
-                                            </button>
-                                        </motion.div>
-                                    ))
-                                )}
+                                    <Button 
+                                        onClick={handleManualProceed}
+                                        className="h-12 w-12 bg-slate-900 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center shrink-0"
+                                    >
+                                        <Zap className="w-5 h-5 fill-current text-white" />
+                                    </Button>
+                                </div>
                             </div>
                         </TabsContent>
 

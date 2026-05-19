@@ -17,6 +17,7 @@ export const AdminLayout = () => {
         { path: '/admin/kyc', icon: Shield, label: 'KYC Requests' },
         { path: '/admin/fund-requests', icon: Banknote, label: 'Fund Requests' },
         { path: '/admin/banners', icon: Megaphone, label: 'Banner Manager' },
+        { path: '/admin/gift-vouchers', icon: Gift, label: 'Gift Vouchers' },
         { path: '/admin/users', icon: Users, label: 'User Management' },
         { path: '/admin/paid-users', icon: CreditCard, label: 'Paid Users' },
         { path: '/admin/plan-manager', icon: Settings, label: 'Plan Manager' },

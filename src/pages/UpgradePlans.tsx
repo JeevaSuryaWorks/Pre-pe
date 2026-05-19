@@ -120,6 +120,13 @@ export default function UpgradePlans() {
                             if (!verifyData || !verifyData.success) {
                                 toast({ title: "Payment Error", description: "Verification failed.", variant: "destructive" });
                             } else {
+                                // Save plan upgrade to profile
+                                const { error } = await supabase.from('profiles')
+                                    .update({ plan_type: planId })
+                                    .eq('user_id', profile?.user_id);
+                                
+                                if (error) throw error;
+
                                 toast({ title: "Upgrade Successful!", description: `You are now on the ${plan.name} plan.` });
                                 await refreshProfile();
                                 navigate('/home');

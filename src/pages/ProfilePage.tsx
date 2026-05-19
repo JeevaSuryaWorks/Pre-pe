@@ -10,6 +10,7 @@ import {
     Settings, Bell, CreditCard, Wallet, Crown, ArrowRight
 } from "lucide-react";
 import { useKYC } from "@/hooks/useKYC";
+import { useProfile } from "@/hooks/useProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -85,8 +86,17 @@ SocialMediaFooter.displayName = 'SocialMediaFooter';
 
 const ProfilePage = () => {
     const { user, signOut } = useAuth();
+    const { profile } = useProfile();
     const { status: kycStatus, isInitialLoading: kycLoading } = useKYC();
     const navigate = useNavigate();
+
+    const getPlanBadgeLabel = () => {
+        if (isAdmin) return 'Elite Admin';
+        const plan = profile?.plan_type?.toLowerCase() || 'free';
+        if (plan === 'pro') return 'Pro Member';
+        if (plan === 'business') return 'Business Partner';
+        return 'Basic Member';
+    };
 
     const AUTHORIZED_ADMINS = [
         'connect.prepe@gmail.com',
@@ -171,9 +181,11 @@ const ProfilePage = () => {
                                     <h2 className="text-xl font-black text-slate-900 tracking-tight truncate">
                                         {user?.user_metadata?.full_name || 'User Name'}
                                     </h2>
-                                    {isAdmin && (
-                                        <div className="px-2 py-0.5 bg-indigo-600 text-[8px] font-black text-white rounded-md tracking-widest">
-                                            PRO
+                                    {profile?.plan_type && (
+                                        <div className={`px-2 py-0.5 text-[8px] font-black text-white rounded-md tracking-widest ${
+                                            profile.plan_type.toLowerCase() === 'business' ? 'bg-emerald-500 text-emerald-700 border border-emerald-200' : 'bg-indigo-500 text-white'
+                                        }`}>
+                                            {profile.plan_type.toUpperCase()}
                                         </div>
                                     )}
                                 </div>
@@ -183,7 +195,7 @@ const ProfilePage = () => {
                                     <div className="px-3 py-1 bg-slate-50 rounded-full border border-slate-100 flex items-center gap-1.5">
                                         <Crown className="w-3 h-3 text-amber-500" />
                                         <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                                            {isAdmin ? 'Elite Admin' : 'Basic Member'}
+                                            {getPlanBadgeLabel()}
                                         </span>
                                     </div>
                                 </div>

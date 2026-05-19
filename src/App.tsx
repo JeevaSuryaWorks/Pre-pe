@@ -43,6 +43,8 @@ import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
 import NetworkDiagnostics from "./pages/admin/NetworkDiagnostics";
+import GiftVoucherManager from "./pages/admin/GiftVoucherManager";
+import GiftCardsPage from "./pages/GiftCardsPage";
 
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
@@ -150,6 +152,7 @@ const App = () => (
               <Route path="/services/electricity/details" element={<ElectricityEnterDetails />} />
               <Route path="/services/broadband" element={<SelectProviderPage type="broadband" title="Select Broadband" />} />
               <Route path="/services/redeem-code" element={<RedeemCodePage />} />
+              <Route path="/services/gift-cards" element={<GiftCardsPage />} />
 
 
               <Route path="/services" element={<ServicesPage />} />
@@ -195,6 +198,7 @@ const App = () => (
                 <Route path="banners" element={<AdminBanners />} />
                 <Route path="banners/new" element={<AdminBannerEditor />} />
                 <Route path="banners/:id" element={<AdminBannerEditor />} />
+                <Route path="gift-vouchers" element={<GiftVoucherManager />} />
                 <Route path="network" element={<NetworkDiagnostics />} />
               </Route>
             </Route>

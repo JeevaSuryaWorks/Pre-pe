@@ -182,7 +182,7 @@ export function MobileRechargeForm() {
   }, [user?.id]);
 
   const handleMobileChange = (val: string) => {
-    const cleaned = val.replace(/\D/g, '').slice(0, 10);
+    const cleaned = val.replace(/\D/g, '').slice(-10);
     // Format: 00000 00000
     let formatted = cleaned;
     if (cleaned.length > 5) {
@@ -538,8 +538,21 @@ export function MobileRechargeForm() {
       <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 w-full">
         <div className="flex items-center justify-between bg-slate-50/80 p-3 rounded-[24px] border border-slate-100 shrink-0 w-full">
           <div className="flex items-center gap-3 px-1">
-            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm">
-              <Phone className="w-4 h-4 text-blue-600" />
+            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm p-1.5 overflow-hidden">
+              {selectedOperator && OPERATOR_LOGOS[selectedOperator] ? (
+                <img 
+                  src={OPERATOR_LOGOS[selectedOperator]} 
+                  alt="Operator Logo" 
+                  className="w-full h-full object-contain animate-in zoom-in-50 duration-300"
+                  onError={(e) => { 
+                    (e.target as any).style.display = 'none'; 
+                    if ((e.target as any).nextSibling) {
+                      (e.target as any).nextSibling.style.display = 'block';
+                    }
+                  }} 
+                />
+              ) : null}
+              <Phone className={`w-4 h-4 text-blue-600 ${selectedOperator && OPERATOR_LOGOS[selectedOperator] ? 'hidden' : 'block'}`} />
             </div>
             <div>
               <p className="text-lg font-black text-slate-900 tracking-tighter leading-none">{mobileNumber}</p>
@@ -578,23 +591,30 @@ export function MobileRechargeForm() {
           </div>
         </div>
 
-        {/* Custom Amount Input Box */}
+        {/* Unified Search & Custom Amount Input Box */}
         <div className="relative group shrink-0 w-full px-1">
           <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[30px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
           <div className="relative bg-white border-2 border-slate-100 rounded-[24px] p-4 focus-within:border-blue-500 transition-all shadow-md shadow-slate-100/5 w-full">
-            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Or Enter Amount to Pay</Label>
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Search Plans or Enter Amount</Label>
             <div className="flex items-center gap-3 h-10 w-full">
-              <span className="text-xl font-bold text-slate-400 select-none shrink-0">₹</span>
+              {/^\d+$/.test(planSearchQuery) ? (
+                <span className="text-xl font-black text-blue-600 select-none shrink-0 animate-in zoom-in-50 duration-200">₹</span>
+              ) : (
+                <Search className="h-5 w-5 text-slate-400 shrink-0" />
+              )}
               <div className="w-px h-5 bg-slate-100 shrink-0" />
               <input
-                type="number"
-                className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0"
-                placeholder="Enter amount (e.g. 239)"
-                value={amount}
+                type="text"
+                className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0 font-sans"
+                placeholder="Search plan or enter amount (e.g. 2GB, 239)"
+                value={planSearchQuery}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setAmount(val);
-                  if (val) {
+                  setPlanSearchQuery(val);
+                  
+                  const isNumber = /^\d+$/.test(val);
+                  if (isNumber && parseFloat(val) > 0) {
+                    setAmount(val);
                     setSelectedPlan({
                       id: 'custom',
                       amount: parseFloat(val) || 0,
@@ -603,10 +623,27 @@ export function MobileRechargeForm() {
                       category: 'custom'
                     } as any);
                   } else {
-                    setSelectedPlan(null);
+                    setAmount("");
+                    if (selectedPlan?.id === 'custom') {
+                      setSelectedPlan(null);
+                    }
                   }
                 }}
               />
+              {planSearchQuery && (
+                <button
+                  onClick={() => {
+                    setPlanSearchQuery("");
+                    setAmount("");
+                    if (selectedPlan?.id === 'custom') {
+                      setSelectedPlan(null);
+                    }
+                  }}
+                  className="w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -672,22 +709,19 @@ export function MobileRechargeForm() {
             </div>
           )}
 
-          <div className="relative mb-3 shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="Search plans (e.g. 1.5GB, Unlimited...)"
-              className="pl-10 h-11 bg-slate-50/50 border-slate-100 rounded-xl font-bold placeholder:text-slate-300"
-              value={planSearchQuery}
-              onChange={(e) => setPlanSearchQuery(e.target.value)}
-            />
-          </div>
-
           {/* Quick Filter Chips */}
-          <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1 shrink-0">
+          <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1 shrink-0 px-1">
              {['1.5GB', '2GB', '28 Days', '84 Days', 'Unlimited'].map(chip => (
                <button 
                  key={chip}
-                 onClick={() => setPlanSearchQuery(prev => prev === chip ? "" : chip)}
+                 onClick={() => {
+                   const nextVal = planSearchQuery === chip ? "" : chip;
+                   setPlanSearchQuery(nextVal);
+                   setAmount("");
+                   if (selectedPlan?.id === 'custom') {
+                     setSelectedPlan(null);
+                   }
+                 }}
                  className={`whitespace-nowrap px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
                    planSearchQuery === chip 
                     ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' 
