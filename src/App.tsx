@@ -150,7 +150,6 @@ const App = () => (
               <Route path="/dth-recharge/enter-details" element={<DTHEnterDetails />} />
               <Route path="/services/electricity" element={<SelectProviderPage type="electricity" title="Select Provider" />} />
               <Route path="/services/electricity/details" element={<ElectricityEnterDetails />} />
-              <Route path="/services/broadband" element={<SelectProviderPage type="broadband" title="Select Broadband" />} />
               <Route path="/services/redeem-code" element={<RedeemCodePage />} />
               <Route path="/services/gift-cards" element={<GiftCardsPage />} />
 
