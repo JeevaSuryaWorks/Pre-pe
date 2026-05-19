@@ -278,7 +278,7 @@ export default function RewardsDashboard() {
 
   if (loading && !totalPoints) {
     return (
-      <Layout>
+      <Layout showBottomNav>
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
         </div>
@@ -287,7 +287,7 @@ export default function RewardsDashboard() {
   }
 
   return (
-    <Layout title="Executive Rewards">
+    <Layout title="Executive Rewards" showBottomNav>
       <div className="min-h-screen bg-[#F8FAFC]">
         <div className="max-w-lg mx-auto py-8">
           

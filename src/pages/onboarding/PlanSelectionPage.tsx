@@ -4,6 +4,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { CheckCircle2, Loader2, Zap, Landmark, Building2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -30,10 +31,10 @@ const getPlanIcon = (id: string) => {
 
 const getPlanColors = (id: string) => {
     switch (id.toUpperCase()) {
-        case 'BASIC': return { color: 'text-slate-600', bgColor: 'bg-slate-100' };
-        case 'PRO': return { color: 'text-blue-600', bgColor: 'bg-blue-50' };
-        case 'BUSINESS': return { color: 'text-purple-600', bgColor: 'bg-purple-50' };
-        default: return { color: 'text-slate-600', bgColor: 'bg-slate-100' };
+        case 'BASIC': return { color: 'text-[#046A38]', bgColor: 'bg-[#046A38]/5' };
+        case 'PRO': return { color: 'text-[#000080]', bgColor: 'bg-[#000080]/5' };
+        case 'BUSINESS': return { color: 'text-[#FF671F]', bgColor: 'bg-[#FF671F]/5' };
+        default: return { color: 'text-[#000080]', bgColor: 'bg-[#000080]/5' };
     }
 };
 
@@ -272,9 +273,10 @@ export default function PlanSelectionPage() {
                         {filteredPlans.map((plan, index) => {
                             const Icon = getPlanIcon(plan.id);
                             const { color, bgColor } = getPlanColors(plan.id);
-                            const isPopular = plan.is_popular;
-                            const isBusiness = plan.id === 'BUSINESS';
-                            const isBasic = plan.id === 'BASIC';
+                            const isBasic = plan.id.toUpperCase() === 'BASIC';
+                            const isPro = plan.id.toUpperCase() === 'PRO';
+                            const isBusiness = plan.id.toUpperCase() === 'BUSINESS';
+                            const isPopular = plan.is_popular || isPro;
 
                             return (
                                 <motion.div
@@ -284,24 +286,44 @@ export default function PlanSelectionPage() {
                                     transition={{ delay: index * 0.1 }}
                                     className="flex"
                                 >
-                                    <Card className={`relative w-full flex flex-col transition-all duration-500 bg-white/90 backdrop-blur-xl rounded-[32px] overflow-hidden ${isPopular ? 'border-2 border-[#FF671F] shadow-2xl scale-105 z-10' : 'border border-slate-100 shadow-xl shadow-slate-200/50'}`}>
-                                        <div className={`absolute top-0 left-0 w-full h-1.5 ${isBasic ? 'bg-slate-400' : isBusiness ? 'bg-[#046A38]' : 'bg-[#FF671F]'}`} />
+                                    <Card className={cn(
+                                        "relative w-full flex flex-col transition-all duration-500 bg-white/95 backdrop-blur-xl rounded-[32px] overflow-hidden",
+                                        isPro 
+                                            ? "border-2 border-[#000080]/30 shadow-[0_25px_60px_-15px_rgba(0,0,128,0.15)] scale-105 z-10" 
+                                            : isBusiness 
+                                                ? "border border-[#FF671F]/20 hover:border-[#FF671F]/40 shadow-xl shadow-slate-200/50 hover:shadow-[0_20px_40px_rgba(255,103,31,0.08)]"
+                                                : "border border-[#046A38]/20 hover:border-[#046A38]/40 shadow-xl shadow-slate-200/50 hover:shadow-[0_20px_40px_rgba(4,106,56,0.08)]"
+                                    )}>
+                                        {/* Dynamic Flag Border Strip */}
+                                        {isPro ? (
+                                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#FF671F] via-white to-[#046A38]" />
+                                        ) : isBusiness ? (
+                                            <div className="absolute top-0 left-0 w-full h-2 bg-[#FF671F]" />
+                                        ) : (
+                                            <div className="absolute top-0 left-0 w-full h-2 bg-[#046A38]" />
+                                        )}
                                         
                                         {isPopular && (
-                                            <div className="absolute top-4 right-4 bg-[#FF671F] text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase shadow-lg shadow-orange-600/20">
+                                            <div className={cn(
+                                                "absolute top-4 right-4 text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase shadow-md",
+                                                isPro ? "bg-[#000080] shadow-blue-900/10" : isBusiness ? "bg-[#FF671F] shadow-orange-600/10" : "bg-[#046A38]"
+                                            )}>
                                                 Best Value
                                             </div>
                                         )}
                                         
                                         <CardHeader className="text-center pb-2 relative pt-8">
-                                            <div className={`mx-auto p-4 rounded-2xl mb-4 ${bgColor} ${color} shadow-inner`}>
+                                            <div className={cn("mx-auto p-4 rounded-2xl mb-4 shadow-inner", bgColor, color)}>
                                                 <Icon className="w-8 h-8" />
                                             </div>
                                             <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">{plan.name}</CardTitle>
                                             {plan.subtitle && (
                                                 <div className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">{plan.subtitle}</div>
                                             )}
-                                            <div className={`text-4xl font-black tracking-tight mt-6 ${isBasic ? 'text-slate-600' : isBusiness ? 'text-[#046A38]' : 'text-[#FF671F]'}`}>
+                                            <div className={cn(
+                                                "text-4xl font-black tracking-tight mt-6",
+                                                isBasic ? "text-[#046A38]" : isBusiness ? "text-[#FF671F]" : "text-[#000080]"
+                                            )}>
                                                 {plan.price === 'Free' ? 'FREE' : plan.price?.split('/')[0]}
                                                 {plan.price !== 'Free' && <span className="text-sm text-slate-400 font-bold ml-1">/mo</span>}
                                             </div>
@@ -315,8 +337,11 @@ export default function PlanSelectionPage() {
                                             <ul className="space-y-4">
                                                 {plan.features.map((feature: string, i: number) => (
                                                     <li key={i} className="flex items-start">
-                                                        <div className={`mt-1 mr-3 p-0.5 rounded-full ${isPopular ? 'bg-[#FF671F]/10' : 'bg-slate-100'}`}>
-                                                            <CheckCircle2 className={`w-4 h-4 ${isPopular ? 'text-[#FF671F]' : 'text-slate-400'}`} />
+                                                        <div className={cn(
+                                                            "mt-1 mr-3 p-0.5 rounded-full",
+                                                            isBasic ? "bg-[#046A38]/10 text-[#046A38]" : isBusiness ? "bg-[#FF671F]/10 text-[#FF671F]" : "bg-[#000080]/10 text-[#000080]"
+                                                        )}>
+                                                            <CheckCircle2 className="w-4 h-4" />
                                                         </div>
                                                         <span className="text-slate-600 text-sm font-bold leading-tight">{feature}</span>
                                                     </li>
@@ -331,10 +356,17 @@ export default function PlanSelectionPage() {
                                                 </li>
                                             </ul>
                                         </CardContent>
-
+ 
                                         <CardFooter className="p-8">
                                             <Button 
-                                                className={`w-full h-14 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${isPopular ? 'bg-[#FF671F] hover:bg-orange-600 text-white shadow-orange-600/20' : isBusiness ? 'bg-[#046A38] hover:bg-green-700 text-white shadow-green-700/20' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'}`}
+                                                className={cn(
+                                                    "w-full h-14 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95",
+                                                    isBasic 
+                                                        ? "bg-[#046A38] hover:bg-green-700 text-white shadow-green-700/20"
+                                                        : isBusiness
+                                                            ? "bg-[#FF671F] hover:bg-orange-600 text-white shadow-orange-600/20"
+                                                            : "bg-[#000080] hover:bg-[#000060] text-white shadow-blue-900/20"
+                                                )}
                                                 onClick={() => handleSelectPlan(plan)}
                                                 disabled={submitting !== null}
                                             >

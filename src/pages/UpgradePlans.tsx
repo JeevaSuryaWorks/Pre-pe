@@ -257,7 +257,10 @@ export default function UpgradePlans() {
                             const Icon = getPlanIcon(plan.id);
                             const theme = getPlanTheme(plan.id);
                             const isActive = plan.id.toLowerCase() === currentPlanId;
-                            const isPopular = plan.is_popular;
+                            const isBasic = plan.id.toUpperCase() === 'BASIC';
+                            const isPro = plan.id.toUpperCase() === 'PRO';
+                            const isBusiness = plan.id.toUpperCase() === 'BUSINESS';
+                            const isPopular = plan.is_popular || isPro;
 
                             return (
                                 <motion.div
@@ -268,19 +271,36 @@ export default function UpgradePlans() {
                                 >
                                     <div className={cn(
                                         "relative group rounded-[32px] overflow-hidden transition-all duration-500",
-                                        isActive ? "ring-2 ring-blue-600 ring-offset-2" : "border border-slate-100"
+                                        isActive 
+                                            ? cn("ring-2 ring-offset-2", isBasic ? "ring-[#046A38]" : isPro ? "ring-[#000080]" : "ring-[#FF671F]") 
+                                            : "border border-slate-100"
                                     )}>
                                         {/* Background Gradient */}
                                         <div className={cn("absolute inset-0 bg-gradient-to-br", theme.grad)} />
+
+                                        {/* Dynamic Flag Border Strip */}
+                                        {isPro ? (
+                                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#FF671F] via-white to-[#046A38]" />
+                                        ) : isBusiness ? (
+                                            <div className="absolute top-0 left-0 w-full h-2 bg-[#FF671F]" />
+                                        ) : (
+                                            <div className="absolute top-0 left-0 w-full h-2 bg-[#046A38]" />
+                                        )}
                                         
-                                        <div className="relative bg-white/70 backdrop-blur-xl p-6 shadow-sm">
+                                        <div className="relative bg-white/70 backdrop-blur-xl p-6 shadow-sm pt-8">
                                             {isPopular && !isActive && (
-                                                <div className="absolute top-4 right-4 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-blue-200">
+                                                <div className={cn(
+                                                    "absolute top-4 right-4 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-md",
+                                                    isPro ? "bg-[#000080] shadow-blue-900/10" : isBusiness ? "bg-[#FF671F] shadow-orange-600/10" : "bg-[#046A38]"
+                                                )}>
                                                     Recommended
                                                 </div>
                                             )}
                                             {isActive && (
-                                                <div className="absolute top-4 right-4 bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-emerald-200">
+                                                <div className={cn(
+                                                    "absolute top-4 right-4 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-md",
+                                                    isBasic ? "bg-[#046A38]" : isPro ? "bg-[#000080]" : "bg-[#FF671F]"
+                                                )}>
                                                     Current Plan
                                                 </div>
                                             )}
@@ -297,7 +317,10 @@ export default function UpgradePlans() {
 
                                             <div className="mb-6">
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-3xl font-black text-slate-900">
+                                                    <span className={cn(
+                                                        "text-3xl font-black",
+                                                        isBasic ? "text-[#046A38]" : isPro ? "text-[#000080]" : "text-[#FF671F]"
+                                                    )}>
                                                         {plan.price?.replace(/\/ Lifetime/gi, '').trim()}
                                                     </span>
                                                 </div>
@@ -307,8 +330,11 @@ export default function UpgradePlans() {
                                             <div className="space-y-3 mb-8">
                                                 {plan.features.map((f: string, i: number) => (
                                                     <div key={i} className="flex items-center gap-3">
-                                                        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center shrink-0", isActive ? "bg-emerald-100" : "bg-slate-100")}>
-                                                            <CheckCircle2 className={cn("h-3 w-3", isActive ? "text-emerald-600" : "text-slate-400")} />
+                                                        <div className={cn(
+                                                            "h-5 w-5 rounded-full flex items-center justify-center shrink-0",
+                                                            isBasic ? "bg-[#046A38]/10 text-[#046A38]" : isPro ? "bg-[#000080]/10 text-[#000080]" : "bg-[#FF671F]/10 text-[#FF671F]"
+                                                        )}>
+                                                            <CheckCircle2 className="h-3 w-3" />
                                                         </div>
                                                         <span className="text-xs font-semibold text-slate-600">{f}</span>
                                                     </div>
@@ -321,7 +347,10 @@ export default function UpgradePlans() {
                                                     <Button
                                                         onClick={() => handleUpiUpgrade(plan)}
                                                         disabled={submitting !== null}
-                                                        className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-emerald-600 text-white font-black text-sm shadow-xl transition-all gap-2"
+                                                        className={cn(
+                                                            "w-full h-14 rounded-2xl text-white font-black text-sm shadow-xl transition-all gap-2",
+                                                            isPro ? "bg-[#000080] hover:bg-[#000060] shadow-blue-900/20" : isBusiness ? "bg-[#FF671F] hover:bg-orange-600 shadow-orange-600/20" : "bg-[#046A38] hover:bg-green-700 shadow-green-700/20"
+                                                        )}
                                                     >
                                                         {submitting === plan.id && paymentMode === 'UPI' ? (
                                                             <><Loader2 className="w-4 h-4 animate-spin" /> Verifying UPI...</>
@@ -336,8 +365,16 @@ export default function UpgradePlans() {
                                                         className={cn(
                                                             "w-full h-14 rounded-2xl font-black text-sm transition-all duration-300 gap-2",
                                                             isActive 
-                                                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-none hover:bg-emerald-50"
-                                                                : "bg-slate-900 hover:bg-blue-600 text-white shadow-xl hover:shadow-blue-200"
+                                                                ? isBasic
+                                                                    ? "bg-[#046A38]/10 text-[#046A38] border border-[#046A38]/20 shadow-none hover:bg-[#046A38]/10"
+                                                                    : isPro
+                                                                        ? "bg-[#000080]/10 text-[#000080] border border-[#000080]/20 shadow-none hover:bg-[#000080]/10"
+                                                                        : "bg-[#FF671F]/10 text-[#FF671F] border border-[#FF671F]/20 shadow-none hover:bg-[#FF671F]/10"
+                                                                : isBasic
+                                                                    ? "bg-[#046A38] hover:bg-green-700 text-white shadow-xl shadow-green-700/20"
+                                                                    : isBusiness
+                                                                        ? "bg-[#FF671F] hover:bg-orange-600 text-white shadow-xl shadow-orange-600/20"
+                                                                        : "bg-[#000080] hover:bg-[#000060] text-white shadow-xl shadow-blue-900/20"
                                                         )}
                                                     >
                                                         {submitting === plan.id && paymentMode === 'RZP' ? (
@@ -357,7 +394,14 @@ export default function UpgradePlans() {
                                                             variant="outline"
                                                             onClick={() => handleUpgrade(plan)}
                                                             disabled={submitting !== null}
-                                                            className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                            className={cn(
+                                                                "w-full h-14 rounded-2xl border-2 font-black text-sm transition-all gap-2",
+                                                                isBasic 
+                                                                    ? "border-[#046A38]/20 text-[#046A38] hover:bg-[#046A38]/5"
+                                                                    : isPro
+                                                                        ? "border-[#000080]/20 text-[#000080] hover:bg-[#000080]/5"
+                                                                        : "border-[#FF671F]/20 text-[#FF671F] hover:bg-[#FF671F]/5"
+                                                            )}
                                                         >
                                                             {submitting === plan.id && paymentMode === 'RZP' ? (
                                                                 <><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</>
@@ -370,7 +414,14 @@ export default function UpgradePlans() {
                                                             variant="outline"
                                                             onClick={() => handleUpiUpgrade(plan)}
                                                             disabled={submitting !== null}
-                                                            className="w-full h-14 rounded-2xl border-2 border-slate-100 font-black text-sm hover:bg-blue-50 hover:border-blue-200 transition-all gap-2"
+                                                            className={cn(
+                                                                "w-full h-14 rounded-2xl border-2 font-black text-sm transition-all gap-2",
+                                                                isBasic 
+                                                                    ? "border-[#046A38]/20 text-[#046A38] hover:bg-[#046A38]/5"
+                                                                    : isPro
+                                                                        ? "border-[#000080]/20 text-[#000080] hover:bg-[#000080]/5"
+                                                                        : "border-[#FF671F]/20 text-[#FF671F] hover:bg-[#FF671F]/5"
+                                                            )}
                                                         >
                                                             {submitting === plan.id && paymentMode === 'UPI' ? (
                                                                 <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
@@ -380,7 +431,7 @@ export default function UpgradePlans() {
                                                         </Button>
                                                     )
                                                 )}
-                                            </div>
+                                             </div>
                                         </div>
                                     </div>
                                 </motion.div>
