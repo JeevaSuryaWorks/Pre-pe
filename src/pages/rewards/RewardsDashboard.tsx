@@ -482,10 +482,10 @@ export default function RewardsDashboard() {
                      className="flex flex-col gap-10 px-4 sm:px-0"
                    >
                      {/* Featured Earn: Watch Ad */}
-                     <AdReward 
-                       userId={user?.id || ''} 
-                       onComplete={(p) => loadData(true)} 
-                     />
+                     {(planType === 'BASIC' || planType === 'FREE') && <AdReward userId={user?.id || ''} onComplete={(p) => loadData(true)} />} 
+                        
+                        
+                     
 
                      {/* Task Earning List */}
                      <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-8 space-y-6 border border-white">

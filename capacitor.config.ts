@@ -22,6 +22,9 @@ const config: CapacitorConfig = {
     Keyboard: {
       resize: 'body',
       style: 'DARK'
+    },
+    AdMob: {
+      appId: 'ca-app-pub-7292371080834868~2169732879'
     }
   }
 };

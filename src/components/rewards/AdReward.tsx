@@ -1,145 +1,350 @@
-import { useState } from "react";
-import { watchAdAndEarnPoints } from "@/services/rewards.service";
+import { useState, useEffect } from "react";
+import { 
+  getAdWatchStatus, 
+  claimAdVideoReward, 
+  logAdTelemetry,
+  getAdRewardConfig,
+  PlatformAdManager
+} from "@/services/ad_rewards";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-    Play, X, Loader2, Sparkles, 
-    Gift, Timer, Zap, Coins,
-    Award, Shield
+  Play, X, Loader2, Sparkles, 
+  Timer, Zap, Coins, Volume2, VolumeX, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdRewardProps {
-    userId: string;
-    onComplete: (points: number) => void;
+  userId: string;
+  onComplete: (points: number) => void;
 }
 
 export function AdReward({ userId, onComplete }: AdRewardProps) {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [rewarding, setRewarding] = useState(false);
-    const { toast } = useToast();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [rewarding, setRewarding] = useState(false);
+  const [watchedToday, setWatchedToday] = useState(0);
+  const [dailyLimit, setDailyLimit] = useState(3);
+  const [cooldown, setCooldown] = useState(0);
+  const [rewardAmount, setRewardAmount] = useState(5);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const { toast } = useToast();
 
-    const startAd = () => {
+  // 1. Fetch current status & cooldowns
+  const loadStatus = async () => {
+    try {
+      const status = await getAdWatchStatus(userId);
+      const config = await getAdRewardConfig();
+      setWatchedToday(status.watchedToday);
+      setDailyLimit(status.dailyLimit);
+      setCooldown(status.cooldownRemaining);
+      setRewardAmount(config.rewardAmount);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, [userId, isPlaying]);
+
+  // 2. Active countdown timer logic for cooldowns
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
+  // 3. Launch Ad Handler
+  const startAd = async () => {
+    if (cooldown > 0) {
+      toast({
+        title: "Cooldown Active",
+        description: `Please wait ${cooldown}s before watching another ad.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (watchedToday >= dailyLimit) {
+      toast({
+        title: "Limit Reached",
+        description: "You have watched all available reward videos for today.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Call platform router
+    await PlatformAdManager.showRewardedVideo(
+      userId,
+      () => {
+        // ad_started event callback
         setIsPlaying(true);
         setProgress(0);
+        triggerWebAdSimulation();
+      },
+      (earnedPoints) => {
+        // ad_completed and rewarded natively
+        completeAd(earnedPoints);
+      },
+      (errorMsg) => {
+        // ad_failed
+        toast({
+          title: "Ad Attempt Failed",
+          description: errorMsg,
+          variant: "destructive"
+        });
+        setIsPlaying(false);
+      }
+    );
+  };
+
+  // 4. Web ad playback simulation
+  const triggerWebAdSimulation = () => {
+    const duration = 6000; // 6 seconds rewarded ad simulation
+    const interval = 50;
+    const steps = duration / interval;
+    let currentStep = 0;
+
+    const timer = setInterval(() => {
+      currentStep++;
+      setProgress((currentStep / steps) * 100);
+
+      if (currentStep >= steps) {
+        clearInterval(timer);
+        setTimeout(() => {
+          triggerWebAdClaim();
+        }, 300);
+      }
+    }, interval);
+  };
+
+  // 5. Trigger reward claim securely
+  const triggerWebAdClaim = async () => {
+    setRewarding(true);
+    try {
+      const result = await claimAdVideoReward(userId);
+      if (result.success) {
+        completeAd(result.points || 5);
+      } else {
+        toast({
+          title: "Claim Failed",
+          description: result.error || "Failed to secure reward.",
+          variant: "destructive"
+        });
+        await logAdTelemetry(userId, 'ad_failed');
+        setIsPlaying(false);
+        setRewarding(false);
+      }
+    } catch (e) {
+      console.error(e);
+      await logAdTelemetry(userId, 'ad_failed');
+      setIsPlaying(false);
+      setRewarding(false);
+    }
+  };
+
+  const completeAd = (earnedPoints: number) => {
+    toast({
+      title: "Reward Earned!",
+      description: `Successfully credited +${earnedPoints} points to your ledger!`,
+    });
+    onComplete(earnedPoints);
+    setTimeout(() => {
+      setIsPlaying(false);
+      setRewarding(false);
+      loadStatus();
+    }, 1200);
+  };
+
+  const cancelAdEarly = async () => {
+    await logAdTelemetry(userId, 'ad_failed');
+    setIsPlaying(false);
+    toast({
+      title: "Ad Closed Early",
+      description: "You must watch the entire video to claim reward points.",
+      variant: "destructive"
+    });
+  };
+
+  const isLimitReached = watchedToday >= dailyLimit;
+
+  return (
+    <>
+      <motion.div 
+        whileHover={!isLimitReached && cooldown === 0 ? { scale: 1.02, y: -2 } : {}}
+        whileTap={!isLimitReached && cooldown === 0 ? { scale: 0.98 } : {}}
+        onClick={!isLimitReached && cooldown === 0 ? startAd : undefined}
+        className={`relative rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 text-white shadow-2xl overflow-hidden group w-full ${
+          isLimitReached 
+            ? 'bg-slate-900 border border-slate-800 opacity-60 cursor-not-allowed'
+            : cooldown > 0
+              ? 'bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 cursor-not-allowed'
+              : 'bg-gradient-to-br from-indigo-600 to-indigo-800 border border-indigo-500/20 cursor-pointer'
+        }`}
+      >
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-15"></div>
         
-        const duration = 5000; // 5 seconds
-        const interval = 50;
-        const steps = duration / interval;
-        let currentStep = 0;
+        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:text-left gap-4 sm:gap-6 text-center sm:text-left">
+          <div className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-xl transition-transform shrink-0 ${
+            isLimitReached 
+              ? 'bg-slate-850 border-slate-700 text-slate-500'
+              : cooldown > 0
+                ? 'bg-slate-750 border-slate-600 text-slate-400'
+                : 'bg-white/20 border-white/20 text-white group-hover:rotate-12'
+          }`}>
+            {cooldown > 0 ? (
+              <Timer className="w-6 h-6 sm:w-8 sm:h-8 animate-spin" />
+            ) : (
+              <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <h4 className="text-lg sm:text-xl font-black tracking-tight mb-0.5 sm:mb-2 uppercase tracking-[0.1em] truncate">
+              {isLimitReached ? 'Ad Limit Reached' : cooldown > 0 ? 'Video Cooldown' : 'Watch & Earn'}
+            </h4>
+            <div className="flex flex-col sm:items-start gap-2">
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 justify-center sm:justify-start">
+                <Zap className="w-3 h-3 fill-current animate-pulse text-yellow-400" />
+                {cooldown > 0 
+                  ? `Wait ${cooldown}s before next video` 
+                  : isLimitReached 
+                    ? `Watched ${watchedToday}/${dailyLimit} today` 
+                    : `Earn ${rewardAmount} Points Instantly`
+                }
+              </p>
+              {!isLimitReached && cooldown === 0 && (
+                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1 max-w-[150px] mx-auto sm:mx-0">
+                  <motion.div 
+                    className="h-full bg-emerald-400"
+                    initial={{ width: 0 }}
+                    whileHover={{ width: '100%' }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
 
-        const timer = setInterval(() => {
-            currentStep++;
-            setProgress((currentStep / steps) * 100);
+          <div className="shrink-0 bg-slate-950/40 px-4 py-2 rounded-2xl border border-white/5 flex flex-col items-center">
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">TODAY</span>
+            <span className="text-sm font-black mt-0.5">{watchedToday} / {dailyLimit}</span>
+          </div>
+        </div>
+      </motion.div>
 
-            if (currentStep >= steps) {
-                clearInterval(timer);
-                completeAd();
-            }
-        }, interval);
-    };
+      {/* Full-screen Simulated Interactive Player Overlay */}
+      <AnimatePresence>
+        {isPlaying && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-3xl flex flex-col items-center justify-center p-4 text-center"
+          >
+            <div className="w-full max-w-md space-y-8 relative">
+              {/* Early Close Button */}
+              <button 
+                onClick={cancelAdEarly}
+                className="absolute -top-12 right-0 h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-    const completeAd = async () => {
-        setRewarding(true);
-        try {
-            const result = await watchAdAndEarnPoints(userId);
-            if (result.success) {
-                toast({
-                    title: "Reward Earned!",
-                    description: `You've earned ${result.points} points for watching the ad.`,
-                });
-                onComplete(result.points || 5);
-                setTimeout(() => {
-                    setIsPlaying(false);
-                    setRewarding(false);
-                }, 1500);
-            }
-        } catch (err) {
-            console.error(err);
-            setIsPlaying(false);
-            setRewarding(false);
-        }
-    };
-
-    return (
-        <>
-            <motion.div 
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={startAd}
-                className="relative bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 text-white shadow-2xl overflow-hidden cursor-pointer group w-full"
-            >
+              {/* Video Player Box Mockup */}
+              <div className="relative aspect-video w-full bg-slate-900 rounded-[2rem] border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                {/* Visual Video Content simulation */}
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900"></div>
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 
-                <div className="relative z-10 flex flex-col sm:flex-row items-center sm:text-left gap-4 sm:gap-6 text-center sm:text-left">
-                    <div className="bg-white/20 backdrop-blur-md p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-white/20 shadow-xl group-hover:rotate-12 transition-transform shrink-0">
-                        <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h4 className="text-lg sm:text-xl font-black tracking-tight mb-0.5 sm:mb-2 uppercase tracking-[0.1em] truncate">Watch & Earn</h4>
-                        <div className="flex flex-col sm:items-center gap-2">
-                            <p className="text-indigo-200 text-[9px] sm:text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1.5">
-                                <Zap className="w-3 h-3 fill-current animate-pulse text-yellow-400" />
-                                Earn 5 Points instantly
-                            </p>
-                            <div className="hidden sm:block w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                                <motion.div 
-                                    className="h-full bg-emerald-400"
-                                    initial={{ width: 0 }}
-                                    whileHover={{ width: '40%' }}
-                                    transition={{ duration: 0.5 }}
-                                />
-                            </div>
-                        </div>
-                    </div>
+                {/* Moving design blobs to simulate activity */}
+                <motion.div 
+                  animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="absolute -top-12 -left-12 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl"
+                />
+                <motion.div 
+                  animate={{ scale: [1.2, 1, 1.2], rotate: [360, 180, 0] }}
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="absolute -bottom-12 -right-12 w-48 h-48 bg-purple-500/10 rounded-full blur-2xl"
+                />
+
+                <div className="relative z-10 flex flex-col items-center gap-4">
+                  <div className="p-4 bg-indigo-500/10 rounded-full ring-8 ring-indigo-500/5">
+                    <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-white font-black uppercase tracking-[0.2em] text-[10px]">PREMIUM SPONSOR CONTENT</p>
+                    <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 justify-center">
+                      <Sparkles className="w-3 h-3 text-amber-400" /> Pre-pe Monetization Loop
+                    </p>
+                  </div>
                 </div>
-            </motion.div>
 
-            <AnimatePresence>
-                {isPlaying && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6 text-center"
-                    >
-                        <div className="w-full max-w-lg space-y-12">
-                            <div className="relative h-64 w-full bg-slate-900 rounded-[3rem] border border-white/10 flex items-center justify-center overflow-hidden shadow-2xl">
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent"></div>
-                                <div className="relative z-10 flex flex-col items-center gap-6">
-                                    <div className="relative">
-                                        <Loader2 className="w-20 h-20 animate-spin text-indigo-500" />
-                                        <Sparkles className="absolute -top-2 -right-2 w-8 h-8 text-yellow-400 animate-pulse" />
-                                    </div>
-                                    <p className="text-white font-black uppercase tracking-[0.3em] text-xs">Premium Content Playing</p>
-                                </div>
-                                <div className="absolute bottom-0 left-0 h-1.5 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-75" style={{ width: `${progress}%` }}></div>
-                            </div>
+                {/* Progress bar overlay */}
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-950/40">
+                  <div 
+                    className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-75" 
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
 
-                            <div className="space-y-6">
-                                <h2 className="text-3xl font-black text-white tracking-tighter">Your Reward is Loading</h2>
-                                <p className="text-slate-400 font-medium max-w-xs mx-auto text-sm leading-relaxed">
-                                    Do not close this window. Your points will be credited automatically in <span className="text-white font-black">{Math.ceil((5000 - (progress * 50)) / 1000)}s</span>.
-                                </p>
-                            </div>
+                {/* Video controls */}
+                <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
+                  <span className="px-2 py-0.5 bg-slate-950/60 rounded-md text-[8px] font-black tracking-widest border border-white/5">
+                    AD
+                  </span>
+                  <button 
+                    onClick={() => setMuted(!muted)}
+                    className="p-1.5 bg-slate-950/60 rounded-full border border-white/5"
+                  >
+                    {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
 
-                            {rewarding && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="flex flex-col items-center gap-3 text-emerald-400"
-                                >
-                                    <div className="p-3 bg-emerald-500/20 rounded-full ring-8 ring-emerald-500/5 animate-bounce">
-                                        <Coins className="w-8 h-8" />
-                                    </div>
-                                    <p className="font-black uppercase tracking-widest text-[10px]">Crediting points...</p>
-                                </motion.div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </>
-    );
+              {/* Status Header */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black text-white tracking-tight flex items-center justify-center gap-2">
+                  {rewarding ? (
+                    <>Securing Reward <Sparkles className="w-5 h-5 text-amber-400 animate-bounce" /></>
+                  ) : (
+                    <>Watching Video Ad</>
+                  )}
+                </h3>
+                <p className="text-slate-400 font-medium max-w-xs mx-auto text-xs leading-relaxed">
+                  {rewarding ? (
+                    <span className="text-emerald-400 font-bold uppercase tracking-widest">Adding reward points to wallet ledger...</span>
+                  ) : (
+                    <>Do not close this panel to ensure reward completion. Crediting in <span className="text-white font-black">{Math.ceil((6000 - (progress * 60)) / 1000)}s</span>.</>
+                  )}
+                </p>
+              </div>
+
+              {/* Warning label */}
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-3 text-left">
+                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-400/90 font-semibold leading-relaxed">
+                  Closing early cancels the transaction, which resets point distribution. Let the video finish completely.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 }
