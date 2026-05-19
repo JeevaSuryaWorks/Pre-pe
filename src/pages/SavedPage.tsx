@@ -146,9 +146,11 @@ const SavedPage = () => {
                                                 {getServiceIcon(item.service_type)}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="text-lg font-black text-slate-900 truncate">{item.title}</h4>
-                                                    <Badge variant="outline" className="text-[10px] uppercase tracking-widest bg-slate-50 text-slate-400 border-none font-black">
+                                                <div className="flex items-center gap-2 w-full">
+                                                    <h4 className="text-lg font-black text-slate-900 truncate flex-1 min-w-0" title={item.title}>
+                                                        {item.title}
+                                                    </h4>
+                                                    <Badge variant="outline" className="text-[10px] uppercase tracking-widest bg-slate-50 text-slate-400 border-none font-black shrink-0">
                                                         {item.service_type.replace('_', ' ')}
                                                     </Badge>
                                                 </div>
