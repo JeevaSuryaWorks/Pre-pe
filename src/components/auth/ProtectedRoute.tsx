@@ -57,10 +57,9 @@ export const ProtectedRoute = () => {
         return <Outlet />;
     }
 
-    // Force plan Selection FIRST - But allow /home to be a safe landing zone
+    // Force plan Selection FIRST
     if (!profileLoading && !profile?.plan_type && 
         location.pathname !== '/onboarding/plans' && 
-        location.pathname !== '/home' && 
         location.pathname !== '/onboarding/consent'
     ) {
         console.log('[ProtectedRoute] Redirecting to /onboarding/plans (No plan selected)');

@@ -185,11 +185,13 @@ export const KYCPage = () => {
                     selfie: selfiePath,
                     shop_photo: shopPath
                 }
-            });
+            }, isBasic ? 'APPROVED' : 'PENDING');
 
             toast({
-                title: "KYC Submitted",
-                description: "Your documents are under review. You can now access the dashboard.",
+                title: isBasic ? "KYC Approved! 🎉" : "KYC Submitted",
+                description: isBasic 
+                    ? "Your simple KYC is approved instantly. Welcome to PrePe!" 
+                    : "Your documents are under review. You can now access the dashboard.",
             });
             localStorage.removeItem('kyc_draft');
             // Invalidate cache so ProtectedRoute sees the new status
@@ -635,38 +637,42 @@ export const KYCPage = () => {
                                 </div>
 
                                 <div className="bg-slate-50 p-4 rounded-2xl space-y-3 text-sm border border-slate-100 shadow-inner">
-                                    <div className="flex justify-between border-b border-slate-200/50 pb-2">
-                                        <span className="text-slate-500 font-bold">PAN Number</span>
-                                        <span className="font-mono font-black text-[#FF671F]">{panNumber}</span>
-                                    </div>
+                                    {!isBasic && (
+                                        <div className="flex justify-between border-b border-slate-200/50 pb-2">
+                                            <span className="text-slate-500 font-bold">PAN Number</span>
+                                            <span className="font-mono font-black text-[#FF671F]">{panNumber}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between border-b border-slate-200/50 pb-2">
                                         <span className="text-slate-500 font-bold">Aadhaar</span>
                                         <span className="font-mono font-black text-[#046A38]">XXXX-XXXX-{aadharNumber.slice(-4)}</span>
                                     </div>
-                                    <div className="grid grid-cols-5 gap-2 pt-1">
-                                        {[
-                                            { file: aadharFront, label: 'AAD' }, 
-                                            { file: aadharBack, label: 'AAD' }, 
-                                            { file: panCard, label: 'PAN' }, 
-                                            { file: selfie, label: 'SELF' }, 
-                                            ...(isBusiness ? [{ file: shopPhoto, label: 'SHOP' }] : [])
-                                        ].map((item, i) => (
-                                            <div key={i} className={`aspect-square rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-200 relative ${item.file ? 'bg-white shadow-sm' : 'bg-red-50'}`}>
-                                                {item.file ? (
-                                                    <img
-                                                        src={URL.createObjectURL(item.file)}
-                                                        alt="Preview"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <X className="w-5 h-5 text-red-400" />
-                                                )}
-                                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[7px] text-white text-center py-0.5 font-black tracking-tighter uppercase">
-                                                    {item.label}
+                                    {!isBasic && (
+                                        <div className="grid grid-cols-5 gap-2 pt-1">
+                                            {[
+                                                { file: aadharFront, label: 'AAD' }, 
+                                                { file: aadharBack, label: 'AAD' }, 
+                                                { file: panCard, label: 'PAN' }, 
+                                                { file: selfie, label: 'SELF' }, 
+                                                ...(isBusiness ? [{ file: shopPhoto, label: 'SHOP' }] : [])
+                                            ].map((item, i) => (
+                                                <div key={i} className={`aspect-square rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-200 relative ${item.file ? 'bg-white shadow-sm' : 'bg-red-50'}`}>
+                                                    {item.file ? (
+                                                        <img
+                                                            src={URL.createObjectURL(item.file)}
+                                                            alt="Preview"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <X className="w-5 h-5 text-red-400" />
+                                                    )}
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[7px] text-white text-center py-0.5 font-black tracking-tighter uppercase">
+                                                        {item.label}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex items-start gap-3 text-left p-4 bg-[#FF671F]/5 rounded-2xl border border-[#FF671F]/10">

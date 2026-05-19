@@ -14,7 +14,7 @@ export interface KYCData {
     };
 }
 
-export const submitKYC = async (userId: string, data: KYCData) => {
+export const submitKYC = async (userId: string, data: KYCData, customStatus?: string) => {
     const { error } = await supabase
         .from('kyc_verifications' as any)
         .insert({
@@ -24,7 +24,7 @@ export const submitKYC = async (userId: string, data: KYCData) => {
             dob: data.dob,
             gender: data.gender,
             document_urls: data.document_urls,
-            status: 'PENDING'
+            status: customStatus || 'PENDING'
         });
 
     if (error) throw error;

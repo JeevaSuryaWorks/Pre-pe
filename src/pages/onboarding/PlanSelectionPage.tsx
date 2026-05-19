@@ -116,6 +116,7 @@ export default function PlanSelectionPage() {
                             }
 
                             // Success!
+                            await updateProfile({ plan_type: planId });
                             toast({
                                 title: "Plan Activated!",
                                 description: `Welcome to the ${plan.name} plan.`,
