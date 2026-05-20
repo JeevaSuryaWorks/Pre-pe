@@ -10,8 +10,9 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://64.227.151.233:3000',
+        target: 'https://api.pre-pe.com',
         changeOrigin: true,
+        secure: false,
       },
       '/kwik-api': {
         target: 'https://www.kwikapi.com/api/v2',
