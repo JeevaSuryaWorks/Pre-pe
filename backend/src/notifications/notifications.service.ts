@@ -14,6 +14,9 @@ export class NotificationService implements OnModuleInit {
     if (serviceAccount) {
       try {
         const cert = JSON.parse(serviceAccount);
+        if (cert && cert.private_key) {
+          cert.private_key = cert.private_key.replace(/\\n/g, '\n');
+        }
         admin.initializeApp({
           credential: admin.credential.cert(cert),
         });
