@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
+import { Capacitor } from '@capacitor/core';
 
 type PaymentState = 'idle' | 'processing' | 'verifying' | 'success' | 'failed' | 'manual';
 
@@ -132,7 +133,11 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         
         if (isMobile) {
           startPolling(result.reference_id);
-          window.location.href = result.intent_url;
+          if (Capacitor.isNativePlatform()) {
+            window.open(result.intent_url, '_system');
+          } else {
+            window.location.href = result.intent_url;
+          }
         } else {
           setManualIntentUrl(result.intent_url);
           setState('manual');

@@ -63,6 +63,7 @@ import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 import { paymentService } from '@/services/payment.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
+import { Capacitor } from '@capacitor/core';
 
 import type {
   Operator,
@@ -320,7 +321,11 @@ export function MobileRechargeForm() {
         
         // Open UPI Intent on mobile, or show QR on desktop
         if (isMobile) {
-          window.location.href = result.intent_url;
+          if (Capacitor.isNativePlatform()) {
+            window.open(result.intent_url, '_system');
+          } else {
+            window.location.href = result.intent_url;
+          }
         } else {
           setShowTopupQr(true);
         }

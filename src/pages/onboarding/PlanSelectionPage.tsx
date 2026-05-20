@@ -13,12 +13,64 @@ import { supabase } from '@/integrations/supabase/client';
 import { Smartphone, ShieldCheck, ArrowRight, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { paymentService } from '@/services/payment.service';
+import { Capacitor } from '@capacitor/core';
 
 declare global {
   interface Window {
     Razorpay: any;
   }
 }
+
+const DEFAULT_PLANS = [
+    {
+        id: 'BASIC',
+        name: 'Basic Free',
+        subtitle: 'Digital India Entry 🇮🇳',
+        price: 'Free',
+        price_amount: 0,
+        description: 'Perfect for light users getting started with basic digital utility payments.',
+        features: [
+            'Standard mobile recharges',
+            'Basic DTH & utility payments',
+            'Wallet top-up limit up to ₹6,000',
+            'Simple Mini-KYC verification',
+            'Standard transaction support'
+        ]
+    },
+    {
+        id: 'PRO',
+        name: 'Pro Premium',
+        subtitle: 'Patriotic Power User ⚡',
+        price: '₹199/month',
+        price_amount: 199,
+        is_popular: true,
+        description: 'Unlock maximum capabilities with high limits, priority processing, and cashback rewards.',
+        features: [
+            'Instant 2-step recharges',
+            'All Bharat BillPay (BBPS) bills',
+            'Wallet top-up limit up to ₹1,00,000',
+            'Premium full KYC verification',
+            'Exclusive AI-suggested offers',
+            'Priority 24/7 support & zero transaction fees'
+        ]
+    },
+    {
+        id: 'BUSINESS',
+        name: 'Business Elite',
+        subtitle: 'Atmanirbhar Vyapaar 🏢',
+        price: '₹499/month',
+        price_amount: 499,
+        description: 'Tailored for retail shops and merchants managing high-volume customer collections.',
+        features: [
+            'High-volume transaction processing',
+            'Unlimited wallet cap',
+            'Merchant business KYC verification',
+            'Custom invoicing & retail settlement',
+            'Premium 2.5% daily cashback points',
+            'Dedicated Relationship Manager'
+        ]
+    }
+];
 
 const getPlanIcon = (id: string) => {
     switch (id.toUpperCase()) {
@@ -60,9 +112,13 @@ export default function PlanSelectionPage() {
                 const data = await adminService.getPlans();
                 if (data && data.length > 0) {
                     setPlans(data);
+                } else {
+                    console.log("Empty plan array returned, falling back to default plans.");
+                    setPlans(DEFAULT_PLANS);
                 }
             } catch (err) {
-                console.error("Failed to fetch dynamic plans:", err);
+                console.error("Failed to fetch dynamic plans, falling back:", err);
+                setPlans(DEFAULT_PLANS);
                 toast({
                     title: "Fetch Warning",
                     description: "Using default plan data.",
@@ -180,7 +236,11 @@ export default function PlanSelectionPage() {
             const { intent_url, reference_id } = await paymentService.createUpiIntent(plan.price_amount);
             
             // Open UPI App
-            window.location.href = intent_url;
+            if (Capacitor.isNativePlatform()) {
+                window.open(intent_url, '_system');
+            } else {
+                window.location.href = intent_url;
+            }
 
             // Start Polling
             const interval = setInterval(async () => {
@@ -249,28 +309,28 @@ export default function PlanSelectionPage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
 
-                <div className="max-w-6xl mx-auto space-y-12 relative z-10">
-                    <div className="text-center space-y-4">
-                        <div className="mx-auto w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-6 ring-8 ring-slate-50">
+                <div className="max-w-md mx-auto space-y-8 relative z-10">
+                    <div className="text-center space-y-3">
+                        <div className="mx-auto w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-4 ring-8 ring-slate-50">
                             <Smartphone className="w-8 h-8 text-[#FF671F]" />
                         </div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">Choose Your Plan</h1>
-                        <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">Choose Your Plan</h1>
+                        <p className="text-sm text-slate-500 max-w-sm mx-auto font-medium">
                             Pick the right plan that fits your needs. Each plan unlocks different features and requires specific verification. 🇮🇳
                         </p>
 
-                        <div className="max-w-md mx-auto mt-8 relative">
+                        <div className="max-w-md mx-auto mt-6 relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                             <Input
                                 placeholder="Search plans..."
-                                className="pl-12 h-14 bg-white border-slate-200 rounded-2xl shadow-sm focus:ring-[#FF671F]/20 focus:border-[#FF671F]"
+                                className="pl-12 h-12 bg-white border-slate-200 rounded-2xl shadow-sm focus:ring-[#FF671F]/20 focus:border-[#FF671F]"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto w-full">
+                    <div className="grid grid-cols-1 gap-6 max-w-md mx-auto w-full px-2">
                         {filteredPlans.map((plan, index) => {
                             const Icon = getPlanIcon(plan.id);
                             const { color, bgColor } = getPlanColors(plan.id);
@@ -285,12 +345,12 @@ export default function PlanSelectionPage() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="flex"
+                                    className="flex flex-col w-full h-full"
                                 >
                                     <Card className={cn(
-                                        "relative w-full flex flex-col transition-all duration-500 bg-white/95 backdrop-blur-xl rounded-[32px] overflow-hidden",
+                                        "relative w-full flex-1 flex flex-col transition-all duration-500 bg-white/95 backdrop-blur-xl rounded-[32px] overflow-hidden",
                                         isPro 
-                                            ? "border-2 border-[#000080]/30 shadow-[0_25px_60px_-15px_rgba(0,0,128,0.15)] scale-105 z-10" 
+                                            ? "border-2 border-[#000080]/30 shadow-[0_25px_60px_-15px_rgba(0,0,128,0.15)] md:scale-105 z-10" 
                                             : isBusiness 
                                                 ? "border border-[#FF671F]/20 hover:border-[#FF671F]/40 shadow-xl shadow-slate-200/50 hover:shadow-[0_20px_40px_rgba(255,103,31,0.08)]"
                                                 : "border border-[#046A38]/20 hover:border-[#046A38]/40 shadow-xl shadow-slate-200/50 hover:shadow-[0_20px_40px_rgba(4,106,56,0.08)]"

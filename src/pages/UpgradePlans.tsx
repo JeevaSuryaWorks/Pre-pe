@@ -14,6 +14,7 @@ import { adminService } from '@/services/admin';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { paymentService } from '@/services/payment.service';
+import { Capacitor } from '@capacitor/core';
 
 const getPlanIcon = (id: string) => {
     switch (id.toUpperCase()) {
@@ -169,7 +170,11 @@ export default function UpgradePlans() {
             setReferenceId(reference_id);
             
             // Open UPI App
-            window.location.href = intent_url;
+            if (Capacitor.isNativePlatform()) {
+                window.open(intent_url, '_system');
+            } else {
+                window.location.href = intent_url;
+            }
 
             // Start Polling
             const interval = setInterval(async () => {

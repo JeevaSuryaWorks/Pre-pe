@@ -10,16 +10,17 @@ const getApiBaseUrl = (): string => {
   }
 
   // Try different env variables used across the app
-  let url = import.meta.env.VITE_API_BASE_URL || 
-            import.meta.env.VITE_API_URL || 
-            'http://localhost:3000';
-            
-  // Ensure the URL ends with /api
-  if (!url.endsWith('/api')) {
-    url = url.endsWith('/') ? `${url}api` : `${url}/api`;
+  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    let url = envUrl;
+    if (!url.endsWith('/api')) {
+      url = url.endsWith('/') ? `${url}api` : `${url}/api`;
+    }
+    return url;
   }
-  
-  return url;
+
+  // Fallback to relative path so Vite proxy works on localhost
+  return '/api';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

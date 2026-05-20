@@ -472,7 +472,8 @@ export class WalletService {
         const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
         const userName = profile?.full_name || 'User';
         const note = `Wallet Topup - ${userName} (${userId.substring(0, 8)})`;
-        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent(note)}`;
+        // Omit mc=${merchantCode} to prevent PhonePe/GPay from throwing unverified merchant risk errors.
+        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&cu=INR&tn=${encodeURIComponent(note)}`;
 
         if (process.env.NODE_ENV === 'development') {
             this.logger.log(`📱 [INIT] Intent URL: ${intentUrl}`);
