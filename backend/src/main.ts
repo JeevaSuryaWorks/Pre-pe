@@ -88,8 +88,10 @@ async function bootstrap() {
 
             const origin = request.headers.origin;
             if (origin && (origin.includes('pre-pe.com') || origin.includes('localhost'))) {
-                response.header('Access-Control-Allow-Origin', origin);
-                response.header('Access-Control-Allow-Credentials', 'true');
+                if (!origin.includes('pre-pe.com')) {
+                    response.header('Access-Control-Allow-Origin', origin);
+                    response.header('Access-Control-Allow-Credentials', 'true');
+                }
             }
 
             response.status(status).json({
