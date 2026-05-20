@@ -209,11 +209,16 @@ export class WalletService {
             throw new BadRequestException('Razorpay not configured');
         }
 
+        const surchargeAmount = Math.round(amount * 1.02 * 100) / 100;
         const options = {
-            amount: Math.round(amount * 100),
+            amount: Math.round(surchargeAmount * 100),
             currency: 'INR',
             receipt: `receipt_${userId.substring(0, 5)}_${Date.now()}`,
-            notes: { userId }
+            notes: { 
+                userId,
+                baseAmount: amount.toString(),
+                surchargeAmount: surchargeAmount.toString()
+            }
         };
 
         const razorpayKey = this.configService.get<string>('RAZORPAY_KEY_ID');
@@ -352,8 +357,11 @@ export class WalletService {
                         return { status: 'error', message: 'User mismatch' };
                     }
 
-                    if (Number(txn.amount) !== amount) {
-                        this.logger.error(`❌ Webhook error: Amount mismatch for order ${orderId}. DB: ${txn.amount}, Webhook: ${amount}`);
+                    const dbAmountNum = Number(txn.amount);
+                    const expectedSurcharge = Math.round(dbAmountNum * 1.02 * 100) / 100;
+
+                    if (dbAmountNum !== amount && expectedSurcharge !== amount) {
+                        this.logger.error(`❌ Webhook error: Amount mismatch for order ${orderId}. DB base: ${dbAmountNum}, Expected Surcharge: ${expectedSurcharge}, Webhook: ${amount}`);
                         return { status: 'error', message: 'Amount mismatch' };
                     }
 
@@ -374,7 +382,7 @@ export class WalletService {
                     });
 
                     // 2. Credit wallet (Passing 'tx' and referenceId)
-                    await this.credit(userId, amount, `Razorpay Top-up: ${paymentId}`, tx, paymentId);
+                    await this.credit(userId, dbAmountNum, `Razorpay Top-up: ${paymentId}`, tx, paymentId);
 
                     this.logger.log(`✅ [WEBHOOK] Wallet credited for user ${userId}, payment: ${paymentId}`);
                     return { status: 'ok' };

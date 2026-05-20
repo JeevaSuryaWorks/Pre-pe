@@ -364,37 +364,42 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
 
           {state === 'idle' || state === 'failed' ? (
             <div className="space-y-4">
+              {/* 1. Direct UPI / QR Code Button (First, Free) */}
               <div className="relative">
                 <Button 
-                  onClick={handlePrimaryPayment} 
+                  onClick={handleUpiPayment} 
                   className="w-full h-20 text-xl bg-emerald-600 hover:bg-emerald-700 font-black rounded-[30px] shadow-2xl shadow-emerald-200 transition-all flex items-center justify-center gap-3 active:scale-95 py-8 relative group"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
-                  <CreditCard className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform text-white" />
                   <div className="flex flex-col items-start leading-none text-left">
-                    <span>Pay via UPI / Cards</span>
-                    <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">Instant Activation</span>
+                    <span>Direct UPI / QR Code</span>
+                    <span className="text-[10px] opacity-80 font-bold uppercase tracking-widest mt-1 text-emerald-100">0% Extra Fees • Free & Fast</span>
                   </div>
                 </Button>
                 <div className="absolute -top-3 right-6 bg-amber-400 text-amber-950 text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white uppercase tracking-tighter animate-bounce z-20">
-                  Recommended
+                  Popular / Free
                 </div>
               </div>
               
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100"></span></div>
-                <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Trouble with Gateway?</span></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-300"><span className="bg-white px-3">Trouble with Direct UPI?</span></div>
               </div>
 
+              {/* 2. Razorpay Gateway Button (Second, 2% Surcharge) */}
               <div className="grid grid-cols-1 gap-3">
                 <Button 
                   variant="outline" 
-                  onClick={() => setState('manual')} 
-                  className="w-full h-16 border-2 border-slate-100 rounded-2xl font-black text-slate-600 hover:bg-slate-50 hover:border-emerald-100 transition-all active:scale-95"
+                  onClick={handleRazorpayPayment} 
+                  className="w-full h-20 border-2 border-slate-100 rounded-[30px] font-black text-slate-700 hover:bg-amber-50/20 hover:border-amber-200 transition-all active:scale-95 flex items-center justify-center gap-3 relative group"
                   disabled={!amount || parseFloat(amount) < 1}
                 >
-                  <Smartphone className="mr-2 h-5 w-5 text-emerald-500" />
-                  Direct UPI / QR Code
+                  <CreditCard className="w-6 h-6 group-hover:scale-110 transition-transform text-amber-500" />
+                  <div className="flex flex-col items-start leading-none text-left">
+                    <span>Pay ₹{amount ? (parseFloat(amount) * 1.02).toFixed(2) : '0'} via Razorpay</span>
+                    <span className="text-[10px] opacity-75 font-bold uppercase tracking-widest mt-1 text-amber-600">Includes 2% gateway surcharge</span>
+                  </div>
                 </Button>
 
                 <div className="flex flex-col items-center gap-2 text-center pt-2">
