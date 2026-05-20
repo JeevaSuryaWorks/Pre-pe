@@ -467,13 +467,13 @@ export class WalletService {
         const referenceId = `UPI_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
         const vpa = this.configService.get<string>('UPI_VPA') || 'bmsmobiles@barodampay';
-        const businessName = 'PrePe Technologies Pvt Ltd';
-        const merchantCode = '0000'; // General Merchant / Personal
+        const merchantCode = '5732'; // Electronics/Telecommunication (standard for mobile shops)
         const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
         const userName = profile?.full_name || 'User';
+        const businessName = 'PrePe Technologies';
         const note = `Wallet Topup - ${userName} (${userId.substring(0, 8)})`;
-        // Omit mc=${merchantCode} to prevent PhonePe/GPay from throwing unverified merchant risk errors.
-        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&cu=INR&tn=${encodeURIComponent(note)}`;
+        // Include mc=${merchantCode} and mode=02 to format as a proper P2M (Peer-to-Merchant) transaction.
+        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent(note)}&mode=02`;
 
         if (process.env.NODE_ENV === 'development') {
             this.logger.log(`📱 [INIT] Intent URL: ${intentUrl}`);

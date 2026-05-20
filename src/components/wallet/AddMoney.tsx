@@ -109,11 +109,9 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   };
 
   const handlePrimaryPayment = async () => {
-    if (isMobile) {
-      await handleUpiPayment();
-    } else {
-      await handleRazorpayPayment();
-    }
+    // Force Razorpay checkout for the primary button on both mobile and desktop.
+    // Razorpay securely signs the UPI intents internally, bypassing bank limit & Paytm Protect blocks.
+    await handleRazorpayPayment();
   };
 
   const handleUpiPayment = async () => {
