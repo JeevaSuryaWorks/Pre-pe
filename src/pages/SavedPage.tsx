@@ -22,9 +22,12 @@ import {
     Send,
     UserCheck,
     CreditCard,
-    ArrowRight
+    ArrowRight,
+    Calendar,
+    AlertCircle,
+    MessageSquare
 } from 'lucide-react';
-import { getSavedItems, removeSavedItem, type SavedItem } from '@/services/saved.service';
+import { getSavedItems, removeSavedItem, updateSavedItem, type SavedItem } from '@/services/saved.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -64,6 +67,86 @@ const SavedPage = () => {
         if (success) {
             setSavedItems(prev => prev.filter(item => item.id !== id));
             toast({ title: "Removed successfully", description: "The item has been deleted from your circle." });
+        }
+    };
+
+    const handleUpdateDueDate = async (item: SavedItem, dateStr: string) => {
+        const updatedMetadata = {
+            ...(item.metadata || {}),
+            due_date: dateStr || null
+        };
+        
+        // Optimistic UI Update
+        setSavedItems(prev => prev.map(i => i.id === item.id ? { ...i, metadata: updatedMetadata } : i));
+        
+        const updatedItem = await updateSavedItem(item.id, { metadata: updatedMetadata });
+        if (updatedItem) {
+            toast({
+                title: "Due Date Updated",
+                description: dateStr ? `Due date set to ${format(new Date(dateStr), 'MMM d, yyyy')}` : "Due date removed"
+            });
+        } else {
+            // Rollback
+            loadData();
+            toast({
+                title: "Update Failed",
+                description: "Could not save changes to database.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleToggleAutopay = async (item: SavedItem) => {
+        const active = !item.metadata?.autopay_active;
+        const updatedMetadata = {
+            ...(item.metadata || {}),
+            autopay_active: active
+        };
+        
+        // Optimistic UI Update
+        setSavedItems(prev => prev.map(i => i.id === item.id ? { ...i, metadata: updatedMetadata } : i));
+        
+        const updatedItem = await updateSavedItem(item.id, { metadata: updatedMetadata });
+        if (updatedItem) {
+            toast({
+                title: active ? "Autopay Activated" : "Autopay Deactivated",
+                description: active ? "Automatic wallet debits are now active for this favorite." : "Automatic wallet debits are now disabled."
+            });
+        } else {
+            // Rollback
+            loadData();
+            toast({
+                title: "Update Failed",
+                description: "Could not save changes to database.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleToggleWhatsApp = async (item: SavedItem) => {
+        const active = !item.metadata?.whatsapp_reminder_active;
+        const updatedMetadata = {
+            ...(item.metadata || {}),
+            whatsapp_reminder_active: active
+        };
+        
+        // Optimistic UI Update
+        setSavedItems(prev => prev.map(i => i.id === item.id ? { ...i, metadata: updatedMetadata } : i));
+        
+        const updatedItem = await updateSavedItem(item.id, { metadata: updatedMetadata });
+        if (updatedItem) {
+            toast({
+                title: active ? "WhatsApp Reminders Enabled" : "WhatsApp Reminders Disabled",
+                description: active ? "Pre-due alert reminders will be sent to your WhatsApp." : "WhatsApp reminder alerts are now disabled."
+            });
+        } else {
+            // Rollback
+            loadData();
+            toast({
+                title: "Update Failed",
+                description: "Could not save changes to database.",
+                variant: "destructive"
+            });
         }
     };
 
@@ -320,59 +403,163 @@ const SavedPage = () => {
                             ) : (
                                 <div className="grid grid-cols-1 gap-4">
                                     <AnimatePresence mode="popLayout">
-                                        {favoriteItems.map((item, idx) => (
-                                            <motion.div
-                                                key={item.id}
-                                                initial={{ opacity: 0, y: 15 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                                            >
-                                                <Card className="rounded-[28px] border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#FF671F]/10 transition-all bg-white relative">
-                                                    <div className="p-5 flex items-center justify-between gap-4">
-                                                        {/* High contrast Heart Icon Avatar */}
-                                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 shadow-md shadow-rose-200 text-white flex items-center justify-center shrink-0">
-                                                            <Heart className="w-6 h-6 fill-current text-white animate-pulse" />
-                                                        </div>
+                                        {favoriteItems.map((item, idx) => {
+                                            const styling = getServiceIconAndColor(item.service_type);
+                                            const isOverdue = item.metadata?.due_date && new Date(item.metadata.due_date) < new Date(new Date().setHours(0,0,0,0));
+                                            return (
+                                                <motion.div
+                                                    key={item.id}
+                                                    initial={{ opacity: 0, y: 15 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.95 }}
+                                                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                                >
+                                                    <Card className="rounded-[28px] border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#FF671F]/10 transition-all bg-white relative overflow-hidden">
+                                                        <div className="p-5">
+                                                            <div className="flex items-center justify-between gap-4">
+                                                                {/* Dynamic Service Icon with Heart Badge */}
+                                                                <div className="relative shrink-0">
+                                                                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg text-white bg-gradient-to-br", styling.gradient)}>
+                                                                        {styling.icon}
+                                                                    </div>
+                                                                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-sm">
+                                                                        <Heart className="w-3 h-3 fill-current text-white animate-pulse" />
+                                                                    </div>
+                                                                </div>
 
-                                                        {/* Favorite Title & Amount Info */}
-                                                        <div className="flex-1 min-w-0 pr-1">
-                                                            <h4 className="text-base font-black text-slate-900 truncate leading-snug" title={item.title}>
-                                                                {item.title}
-                                                            </h4>
-                                                            
-                                                            <div className="flex items-center gap-2 mt-2">
-                                                                <span className="text-sm font-black text-[#046A38] bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100/50">
-                                                                    ₹{item.metadata?.amount || 'N/A'}
-                                                                </span>
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                                                    {format(new Date(item.created_at), 'MMM d, yyyy')}
-                                                                </span>
+                                                                {/* Favorite Title & Amount Info */}
+                                                                <div className="flex-1 min-w-0 pr-1">
+                                                                    <h4 className="text-base font-black text-slate-900 truncate leading-snug" title={item.title}>
+                                                                        {item.title}
+                                                                    </h4>
+                                                                    
+                                                                    <div className="flex items-center gap-2 mt-2">
+                                                                        <span className="text-xs font-black text-[#046A38] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100/50">
+                                                                            ₹{item.metadata?.amount || 'N/A'}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                                            {format(new Date(item.created_at), 'MMM d, yyyy')}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Mobile Actions */}
+                                                                <div className="flex flex-col gap-2 shrink-0 items-end">
+                                                                    <Button
+                                                                        onClick={() => handleAction(item)}
+                                                                        className="rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 shadow-md shadow-orange-700/10 h-10 px-4 transition-all flex items-center gap-1 active:scale-95"
+                                                                    >
+                                                                        Repeat <ArrowRight className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => handleDelete(item.id)}
+                                                                        className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Sleek inline divider */}
+                                                            <div className="border-t border-slate-100 my-4" />
+
+                                                            {/* Dynamic Controls Grid */}
+                                                            <div className="flex flex-col gap-3">
+                                                                {/* Due Date picker */}
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                                        <Calendar className="w-4.5 h-4.5 text-[#000080]" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Due Date</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {isOverdue && (
+                                                                            <span className="text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex items-center gap-1">
+                                                                                <AlertCircle className="w-3.5 h-3.5" /> Overdue
+                                                                            </span>
+                                                                        )}
+                                                                        <input
+                                                                            type="date"
+                                                                            value={item.metadata?.due_date || ""}
+                                                                            onChange={(e) => handleUpdateDueDate(item, e.target.value)}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#000080]/10 transition-all font-mono cursor-pointer"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* AutoPay and WhatsApp toggles */}
+                                                                <div className="grid grid-cols-2 gap-3 mt-1">
+                                                                    {/* Autopay Toggle */}
+                                                                    <div 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleToggleAutopay(item);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none",
+                                                                            item.metadata?.autopay_active 
+                                                                                ? "bg-indigo-50/50 border-indigo-200 text-[#000080]" 
+                                                                                : "bg-slate-50/50 border-slate-100 text-slate-600 hover:bg-slate-50"
+                                                                        )}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            <CreditCard className={cn("w-4 h-4 shrink-0", item.metadata?.autopay_active ? "text-indigo-600" : "text-slate-400")} />
+                                                                            <div className="flex flex-col">
+                                                                                <span className="text-[10px] font-black uppercase tracking-wider">Autopay</span>
+                                                                                <span className="text-[8px] text-slate-400 font-semibold leading-none mt-0.5">Auto-debit</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className={cn(
+                                                                            "w-8 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0",
+                                                                            item.metadata?.autopay_active ? "bg-indigo-600" : "bg-slate-200"
+                                                                        )}>
+                                                                            <div className={cn(
+                                                                                "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                                                                                item.metadata?.autopay_active ? "translate-x-3" : "translate-x-0"
+                                                                            )} />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* WhatsApp Toggle */}
+                                                                    <div 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleToggleWhatsApp(item);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none",
+                                                                            item.metadata?.whatsapp_reminder_active 
+                                                                                ? "bg-emerald-50/50 border-emerald-200 text-emerald-800" 
+                                                                                : "bg-slate-50/50 border-slate-100 text-slate-600 hover:bg-slate-50"
+                                                                        )}
+                                                                    >
+                                                                        <div className="flex items-center gap-2">
+                                                                            <MessageSquare className={cn("w-4 h-4 shrink-0", item.metadata?.whatsapp_reminder_active ? "text-emerald-600 fill-emerald-50" : "text-slate-400")} />
+                                                                            <div className="flex flex-col">
+                                                                                <span className="text-[10px] font-black uppercase tracking-wider">WhatsApp</span>
+                                                                                <span className="text-[8px] text-slate-400 font-semibold leading-none mt-0.5">Reminders</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className={cn(
+                                                                            "w-8 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0",
+                                                                            item.metadata?.whatsapp_reminder_active ? "bg-emerald-500" : "bg-slate-200"
+                                                                        )}>
+                                                                            <div className={cn(
+                                                                                "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
+                                                                                item.metadata?.whatsapp_reminder_active ? "translate-x-3" : "translate-x-0"
+                                                                            )} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-
-                                                        {/* Mobile Actions */}
-                                                        <div className="flex flex-col gap-2 shrink-0 items-end">
-                                                            <Button
-                                                                onClick={() => handleAction(item)}
-                                                                className="rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 shadow-md shadow-orange-700/10 h-10 px-4 transition-all flex items-center gap-1 active:scale-95"
-                                                            >
-                                                                Repeat <ArrowRight className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => handleDelete(item.id)}
-                                                                className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
-                                                                title="Delete"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                </Card>
-                                            </motion.div>
-                                        ))}
+                                                    </Card>
+                                                </motion.div>
+                                            );
+                                        })}
                                     </AnimatePresence>
                                 </div>
                             )}

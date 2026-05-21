@@ -70,3 +70,20 @@ export const checkIsFavorite = async (userId: string, transactionId: string): Pr
     if (error) return null;
     return (data as any)?.id || null;
 };
+
+export const updateSavedItem = async (id: string, updates: Partial<SavedItem>): Promise<SavedItem | null> => {
+  const { data, error } = await supabase
+    .from('saved_items' as any)
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating saved item:', error);
+    return null;
+  }
+
+  return data as unknown as SavedItem;
+};
+
