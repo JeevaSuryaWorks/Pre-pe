@@ -24,9 +24,27 @@ export class RechargeCallbackController {
         const txnStatus = isSuccess ? RechargeStatus.SUCCESS : (status === 'FAILED' ? RechargeStatus.FAILED : RechargeStatus.PENDING);
 
         try {
+            // Find transaction by either UUID (id) or reference_id
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            const isUuid = uuidRegex.test(client_id);
+
+            const txn = await this.prisma.transactions.findFirst({
+                where: {
+                    OR: [
+                        isUuid ? { id: client_id } : undefined,
+                        { reference_id: client_id }
+                    ].filter(Boolean) as any
+                }
+            });
+
+            if (!txn) {
+                this.logger.warn(`[Kwik-Callback] Transaction not found for client_id: ${client_id}`);
+                return { status: 'ERROR', message: 'Transaction not found' };
+            }
+
             // Update transaction status
             const updated = await this.prisma.transactions.update({
-                where: { id: client_id }, // Assuming client_id is our transaction.id
+                where: { id: txn.id },
                 data: {
                     status: txnStatus,
                     api_transaction_id: operator_ref || payid,
@@ -34,7 +52,7 @@ export class RechargeCallbackController {
                 },
             });
 
-            this.logger.log(`Transaction ${client_id} updated to ${txnStatus}`);
+            this.logger.log(`Transaction ${txn.id} (Ref: ${txn.reference_id}) updated to ${txnStatus}`);
             
             return {
                 success: true,

@@ -219,7 +219,7 @@ export class RechargeService {
     return uuidRegex.test(uuid);
   }
 
-  private async callKwikApiDirectly(
+  async callKwikApiDirectly(
     amount: number,
     mobileNumber: string,
     operator: string,

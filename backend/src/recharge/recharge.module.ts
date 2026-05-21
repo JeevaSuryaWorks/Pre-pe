@@ -13,5 +13,6 @@ import { NetworkController } from './network.controller';
     imports: [WalletModule],
     controllers: [RechargeController, KwikProxyController, RechargeCallbackController, NetworkController],
     providers: [RechargeService],
+    exports: [RechargeService],
 })
 export class RechargeModule { }

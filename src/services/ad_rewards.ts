@@ -22,20 +22,20 @@ export interface AdRewardConfig {
 // 1. Fetch live settings (Admin customizable)
 export async function getAdRewardConfig(): Promise<AdRewardConfig> {
   try {
-    const { data } = await supabase
-      .from('reward_settings' as any)
+    const { data, error } = await supabase
+      .from('reward_settings' as never)
       .select('value')
       .eq('key', 'ad_reward_config')
-      .maybeSingle() as any;
+      .maybeSingle();
 
-    if (data && data.value) {
-      return data.value as AdRewardConfig;
+    if (!error && data && (data as any).value) {
+      return (data as any).value as AdRewardConfig;
     }
   } catch (e) {
-    console.warn('[AdRewards] Failed to load config from database. Using default fallback.');
+    console.warn('[AdRewards] Failed to load config from Supabase:', e);
   }
 
-  // LocalStorage sync / Admin overrides fallback
+  // Backup fallback
   const cached = localStorage.getItem('prepe_ad_reward_config');
   if (cached) {
     try {
@@ -54,19 +54,20 @@ export async function getAdRewardConfig(): Promise<AdRewardConfig> {
 // 2. Update Ad Reward Configuration (Admin Panel)
 export async function updateAdRewardConfig(config: AdRewardConfig): Promise<boolean> {
   try {
-    localStorage.setItem('prepe_ad_reward_config', JSON.stringify(config));
-    
     const { error } = await supabase
-      .from('reward_settings' as any)
+      .from('reward_settings' as never)
       .upsert({
         key: 'ad_reward_config',
         value: config,
         updated_at: new Date().toISOString()
-      } as any, { onConflict: 'key' });
+      } as never);
 
-    return !error;
+    if (error) throw error;
+
+    localStorage.setItem('prepe_ad_reward_config', JSON.stringify(config));
+    return true;
   } catch (e) {
-    console.error('[AdRewards] Failed to persist config:', e);
+    console.error('[AdRewards] Failed to persist config to Supabase:', e);
     return false;
   }
 }

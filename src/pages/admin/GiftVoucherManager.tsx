@@ -58,54 +58,73 @@ export default function GiftVoucherManager() {
     }, []);
 
     const loadVouchers = async () => {
+        setLoading(true);
         try {
-            // Attempt to load from Supabase database table
             const { data, error } = await supabase
-                .from('gift_vouchers' as any)
+                .from('gift_vouchers' as never)
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (!error && data) {
-                setVouchers(data as any);
-            } else {
-                // Fallback to localStorage if table doesn't exist
-                const local = localStorage.getItem('prepe_gift_vouchers');
-                if (local) {
-                    setVouchers(JSON.parse(local));
-                } else {
-                    // Populate default high-fidelity fallbacks
-                    const defaults: GiftVoucher[] = [
-                        {
-                            id: 'v1',
-                            name: 'Amazon Prime Shopping Voucher',
-                            provider: 'Amazon Pay',
-                            amount: 500,
-                            price: 475,
-                            discount: 5,
-                            code: 'AMZPRIME500',
-                            bannerUrl: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&q=80&w=600',
-                            description: 'Get flat 5% instant cashback on Amazon Pay shopping voucher. Safe, instant, redeemable worldwide.',
-                            created_at: new Date().toISOString()
-                        },
-                        {
-                            id: 'v2',
-                            name: 'Google Play Gift Card',
-                            provider: 'Google Play',
-                            amount: 250,
-                            price: 240,
-                            discount: 4,
-                            code: 'GPLAY250',
-                            bannerUrl: 'https://images.unsplash.com/photo-1510519138101-570d1dca3d66?auto=format&fit=crop&q=80&w=600',
-                            description: 'Google Play instant prepaid code. Claim game items, books, movies and custom skins instantly.',
-                            created_at: new Date().toISOString()
-                        }
-                    ];
-                    localStorage.setItem('prepe_gift_vouchers', JSON.stringify(defaults));
-                    setVouchers(defaults);
-                }
+            if (error) throw error;
+            if (data && data.length > 0) {
+                const mapped = (data as any[]).map(v => ({
+                    id: v.id,
+                    name: v.name,
+                    provider: v.provider || '',
+                    amount: Number(v.amount),
+                    price: Number(v.price || v.amount),
+                    discount: Number(v.discount || 0),
+                    code: v.code || '',
+                    bannerUrl: v.banner_url || v.bannerUrl || 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&q=80&w=600',
+                    description: v.description || '',
+                    destinationUrl: v.destinationUrl || '',
+                    created_at: v.created_at
+                }));
+                setVouchers(mapped);
+                setLoading(false);
+                return;
             }
         } catch (e) {
-            console.warn("Database gift_vouchers read skipped, using localStorage store.");
+            console.error("Failed to load gift vouchers from Supabase, loading fallback:", e);
+        }
+
+        try {
+            const local = localStorage.getItem('prepe_gift_vouchers');
+            if (local) {
+                setVouchers(JSON.parse(local));
+            } else {
+                // Populate default high-fidelity fallbacks
+                const defaults: GiftVoucher[] = [
+                    {
+                        id: 'v1',
+                        name: 'Amazon Prime Shopping Voucher',
+                        provider: 'Amazon Pay',
+                        amount: 500,
+                        price: 475,
+                        discount: 5,
+                        code: 'AMZPRIME500',
+                        bannerUrl: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&q=80&w=600',
+                        description: 'Get flat 5% instant cashback on Amazon Pay shopping voucher. Safe, instant, redeemable worldwide.',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'v2',
+                        name: 'Google Play Gift Card',
+                        provider: 'Google Play',
+                        amount: 250,
+                        price: 240,
+                        discount: 4,
+                        code: 'GPLAY250',
+                        bannerUrl: 'https://images.unsplash.com/photo-1510519138101-570d1dca3d66?auto=format&fit=crop&q=80&w=600',
+                        description: 'Google Play instant prepaid code. Claim game items, books, movies and custom skins instantly.',
+                        created_at: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('prepe_gift_vouchers', JSON.stringify(defaults));
+                setVouchers(defaults);
+            }
+        } catch (e) {
+            console.error("Using localStorage voucher registry error:", e);
         } finally {
             setLoading(false);
         }
@@ -125,7 +144,7 @@ export default function GiftVoucherManager() {
         const price = amt - (amt * disc) / 100;
         const defaultBanner = bannerUrl || "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=600";
 
-        const newVoucher: GiftVoucher = {
+        const newVoucher = {
             id: 'voucher_' + Math.random().toString(36).substr(2, 9),
             name,
             provider,
@@ -133,6 +152,7 @@ export default function GiftVoucherManager() {
             price,
             discount: disc,
             code: code.toUpperCase(),
+            banner_url: defaultBanner,
             bannerUrl: defaultBanner,
             description: description || `Flat ${disc}% discount on ${name}`,
             destinationUrl: destinationUrl || '',
@@ -140,19 +160,28 @@ export default function GiftVoucherManager() {
         };
 
         try {
-            // Attempt DB Insert
+            // Write directly to Supabase
             const { error } = await supabase
-                .from('gift_vouchers' as any)
-                .insert([newVoucher]);
+                .from('gift_vouchers' as never)
+                .insert({
+                    id: newVoucher.id,
+                    name: newVoucher.name,
+                    provider: newVoucher.provider,
+                    amount: newVoucher.amount,
+                    price: newVoucher.price,
+                    discount: newVoucher.discount,
+                    code: newVoucher.code,
+                    banner_url: newVoucher.banner_url,
+                    bannerUrl: newVoucher.bannerUrl,
+                    description: newVoucher.description,
+                    destinationUrl: newVoucher.destinationUrl
+                } as never);
 
-            if (error) {
-                // If table is missing, use LocalStorage fallback
-                const updated = [newVoucher, ...vouchers];
-                localStorage.setItem('prepe_gift_vouchers', JSON.stringify(updated));
-                setVouchers(updated);
-            } else {
-                setVouchers(prev => [newVoucher, ...prev]);
-            }
+            if (error) throw error;
+
+            const updated = [newVoucher, ...vouchers];
+            localStorage.setItem('prepe_gift_vouchers', JSON.stringify(updated));
+            setVouchers(updated);
 
             toast.success("Gift Voucher created successfully!");
             // Reset form
@@ -163,12 +192,12 @@ export default function GiftVoucherManager() {
             setBannerUrl('');
             setDescription('');
             setDestinationUrl('');
-        } catch (err) {
-            // Failover
+        } catch (err: any) {
+            console.error("Voucher creation failed on Supabase, trying local fallback:", err);
             const updated = [newVoucher, ...vouchers];
             localStorage.setItem('prepe_gift_vouchers', JSON.stringify(updated));
             setVouchers(updated);
-            toast.success("Gift Voucher created (saved to local registry)!");
+            toast.success("Gift Voucher created successfully (local sync)!");
         } finally {
             setSubmitting(false);
         }
@@ -179,23 +208,22 @@ export default function GiftVoucherManager() {
 
         try {
             const { error } = await supabase
-                .from('gift_vouchers' as any)
+                .from('gift_vouchers' as never)
                 .delete()
                 .eq('id', id);
 
-            if (error) {
-                const updated = vouchers.filter(v => v.id !== id);
-                localStorage.setItem('prepe_gift_vouchers', JSON.stringify(updated));
-                setVouchers(updated);
-            } else {
-                setVouchers(prev => prev.filter(v => v.id !== id));
-            }
-            toast.success("Gift Voucher deleted successfully");
-        } catch (err) {
+            if (error) throw error;
+
             const updated = vouchers.filter(v => v.id !== id);
             localStorage.setItem('prepe_gift_vouchers', JSON.stringify(updated));
             setVouchers(updated);
             toast.success("Gift Voucher deleted successfully");
+        } catch (err) {
+            console.error("Failed to delete voucher from Supabase:", err);
+            const updated = vouchers.filter(v => v.id !== id);
+            localStorage.setItem('prepe_gift_vouchers', JSON.stringify(updated));
+            setVouchers(updated);
+            toast.success("Gift Voucher deleted (local sync)");
         }
     };
 

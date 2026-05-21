@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { getOperators } from '@/services/operator.service';
-import type { Operator, RechargePlan } from '@/types/recharge.types';
+import type { Operator } from '@/types/recharge.types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchDTHCustomerDetails, DTHCustomerInfoResponse } from '@/services/kwikApiService';
-import { Loader2 } from "lucide-react";
-import { getPlans } from '@/services/plans.service';
+import { Loader2, ArrowRight, ShieldCheck, Wallet, AlertCircle, Info, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { processRecharge } from '@/services/recharge.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
@@ -17,9 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
 } from "@/components/ui/dialog";
 import { upiService } from "@/services/upi";
 import { QRCodeSVG } from "qrcode.react";
@@ -38,7 +34,7 @@ export const DTHEnterDetails = () => {
     const [operator, setOperator] = useState<Operator | null>(null);
     const [dthId, setDthId] = useState("");
     const [amount, setAmount] = useState("");
-    const [registeredMobile, setRegisteredMobile] = useState(""); // Optional if not strict, but good to have
+    const [registeredMobile, setRegisteredMobile] = useState("");
 
     const [loading, setLoading] = useState(true);
     const [fetchingInfo, setFetchingInfo] = useState(false);
@@ -70,14 +66,16 @@ export const DTHEnterDetails = () => {
     const fetchInfo = async () => {
         if (!operator || dthId.length < 6) return;
         setFetchingInfo(true);
-        const result = await fetchDTHCustomerDetails(operator.id, dthId);
-        if (result.status === 'SUCCESS' && result.response?.info?.length) {
-            setCustomerInfo(result.response.info[0]);
-            // Auto-fill amount if monthly recharge available
-            if (result.response.info[0].monthlyRecharge) {
-                // Clean up amount string if needed
-                setAmount(result.response.info[0].monthlyRecharge.replace(/[^0-9.]/g, ''));
+        try {
+            const result = await fetchDTHCustomerDetails(operator.id, dthId);
+            if (result.status === 'SUCCESS' && result.response?.info?.length) {
+                setCustomerInfo(result.response.info[0]);
+                if (result.response.info[0].monthlyRecharge) {
+                    setAmount(result.response.info[0].monthlyRecharge.replace(/[^0-9.]/g, ''));
+                }
             }
+        } catch (error) {
+            console.error("Error fetching DTH customer details:", error);
         }
         setFetchingInfo(false);
     };
@@ -87,7 +85,6 @@ export const DTHEnterDetails = () => {
             toast({ title: "Required", description: "Please enter Subscriber ID", variant: "destructive" });
             return;
         }
-        // Basic validation logic here...
         setShowConfirm(true);
     };
 
@@ -103,7 +100,6 @@ export const DTHEnterDetails = () => {
 
         // Split Payment Logic Check
         if (rechargeAmount > availableBalance) {
-            // Initiate Split Payment Flow (UPI first)
             initiateSplitPayment(rechargeAmount);
             return;
         }
@@ -114,7 +110,7 @@ export const DTHEnterDetails = () => {
             dth_id: dthId,
             operator_id: operator.id,
             amount: rechargeAmount,
-            mobile_number: registeredMobile // Pass if collected
+            mobile_number: registeredMobile
         });
 
         setProcessing(false);
@@ -170,9 +166,7 @@ export const DTHEnterDetails = () => {
                 if (status.status === 'SUCCESS') {
                     setPolling(false);
                     setUpiState(null);
-                    // Refresh wallet to get new balance
                     await refetchWallet();
-                    // Proceed with recharge automatically
                     proceedWithRechargeAfterTopup();
                 } else if (status.status === 'FAILED') {
                     setPolling(false);
@@ -193,8 +187,6 @@ export const DTHEnterDetails = () => {
     };
 
     const proceedWithRechargeAfterTopup = async () => {
-        // Re-calculate or assume balance is now sufficient
-        // Add a small delay to ensure wallet update propagation
         setTimeout(async () => {
             const result = await processRecharge(user!.id, {
                 dth_id: dthId,
@@ -223,7 +215,7 @@ export const DTHEnterDetails = () => {
         }, 1500);
     };
 
-    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>;
+    if (loading) return <div className="p-8 flex justify-center items-center h-64"><Loader2 className="animate-spin text-indigo-600 h-8 w-8" /></div>;
 
     const needsSplitPayment = parseFloat(amount || "0") > availableBalance;
     const payFromWallet = needsSplitPayment ? availableBalance : parseFloat(amount || "0");
@@ -231,87 +223,175 @@ export const DTHEnterDetails = () => {
 
     return (
         <Layout title="Enter Details" showBack>
-            <div className="bg-slate-50 min-h-screen p-4 space-y-6 relative">
+            <div className="relative bg-[#f8fbfe] min-h-screen pb-24 overflow-hidden text-slate-850 font-sans select-none">
+                {/* Decorative Premium Glow Background Blobs */}
+                <div className="absolute top-[-10%] left-[-20%] w-[300px] h-[300px] bg-gradient-to-br from-indigo-200/30 via-purple-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-[20%] right-[-10%] w-[250px] h-[250px] bg-gradient-to-br from-emerald-100/20 via-teal-50/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
                 {/* Bharat Connect Logo */}
-                <div className="absolute top-2 right-4 opacity-70">
+                <div className="absolute top-4 right-4 opacity-90 transition-all duration-300 hover:opacity-100 z-50">
                     <img 
                         src="/bharat-connect.svg" 
                         alt="Bharat Connect"
-                        className="h-6 w-auto grayscale contrast-125" 
+                        className="h-7 w-auto object-contain drop-shadow-sm" 
                     />
                 </div>
 
-                {/* Operator Header Card */}
-                {operator && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 p-1 bg-white border rounded-full">
-                                <AvatarImage src={operator.logo || ''} />
-                                <AvatarFallback>{operator.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-semibold text-slate-800">{operator.name}</span>
-                        </div>
-                        <Button variant="ghost" className="text-blue-600 hover:text-blue-700 h-auto p-0 font-medium" onClick={() => navigate(-1)}>Change</Button>
+                <div className="p-4 space-y-6 max-w-md mx-auto relative z-10 pt-6">
+                    {/* Visual Intro Badge */}
+                    <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100/80 px-3.5 py-1.5 rounded-full text-xs font-black w-fit animate-pulse shadow-sm">
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-500 animate-spin" style={{ animationDuration: '3s' }} />
+                        <span>BBPS SECURE DIRECT TRANSACTION ENTRY</span>
                     </div>
-                )}
 
-                {/* Input Fields */}
-                <div className="space-y-4">
-                    <Input
-                        placeholder="Customer ID / Subscriber ID"
-                        className="h-14 text-lg bg-white border-slate-200"
-                        value={dthId}
-                        onChange={(e) => setDthId(e.target.value)}
-                        onBlur={fetchInfo}
-                    />
-                    {fetchingInfo && <span className="text-xs text-blue-500 animate-pulse">Fetching details...</span>}
-                </div>
-
-                {/* Customer Info Card if fetched */}
-                {customerInfo && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-3">
-                        <h4 className="text-sm font-semibold text-slate-500">DTH Info:</h4>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                            <span className="text-slate-500">Name:</span>
-                            <span className="font-medium text-right">{customerInfo.customerName}</span>
-                            <span className="text-slate-500">Balance:</span>
-                            <span className="font-medium text-right text-green-600">₹{customerInfo.balance}</span>
-                            <span className="text-slate-500">Plan:</span>
-                            <span className="font-medium text-right">{customerInfo.planname}</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Amount Input */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 group focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                    <span className="text-xs text-slate-400 font-medium ml-1">Enter Amount</span>
-                    <div className="flex items-center mt-1">
-                        <span className="text-2xl font-bold text-slate-700 mr-1">₹</span>
-                        <Input
-                            className="border-0 shadow-none text-2xl font-bold p-0 h-auto focus-visible:ring-0 placeholder:text-slate-300"
-                            placeholder="0"
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                        />
-                    </div>
-                </div>
-
-                <Button className="w-full h-12 text-lg font-medium bg-slate-400 hover:bg-slate-500 text-white mt-4" onClick={handleConfirm} disabled={!amount || !dthId}>
-                    Confirm
-                </Button>
-
-                {/* Recent Transactions Mock */}
-                <div className="mt-8 space-y-3">
-                    <h3 className="font-semibold text-slate-700">Recent Transactions</h3>
-                    {/* Add Map logic later */}
-                    <div className="bg-white p-3 rounded-lg border border-slate-100 flex justify-between items-center opacity-70">
-                        <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-600">D2H</div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-medium">Videocon D2H</span>
-                                <span className="text-xs text-slate-400">217057485</span>
+                    {/* Operator Header Card */}
+                    {operator && (
+                        <div className="bg-white/90 backdrop-blur-md p-4 rounded-2.5xl border border-slate-100 flex items-center justify-between transition-all hover:border-indigo-200 hover:bg-white shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                                    <Avatar className="h-full w-full rounded-none">
+                                        <AvatarImage src={operator.logo || ''} className="object-contain" />
+                                        <AvatarFallback className="bg-indigo-50 text-indigo-600 text-xs font-black rounded-lg">{operator.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-extrabold text-slate-800 leading-tight">{operator.name}</span>
+                                    <span className="text-[10px] text-slate-500 font-bold tracking-wider uppercase mt-1">DTH Operator</span>
+                                </div>
                             </div>
+                            <Button 
+                                variant="ghost" 
+                                className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 h-8 px-3 rounded-xl text-xs font-black transition-all active:scale-95 border border-indigo-100/50" 
+                                onClick={() => navigate(-1)}
+                            >
+                                Change
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Subscriber ID input */}
+                    <div className="space-y-2">
+                        <div className="relative group transition-all duration-300">
+                            <Input
+                                placeholder="Customer ID / Subscriber ID"
+                                className="h-14 text-base bg-white/90 border-slate-200 rounded-2xl shadow-sm text-slate-900 group-focus-within:border-indigo-500 group-focus-within:ring-4 group-focus-within:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-semibold pl-4"
+                                value={dthId}
+                                onChange={(e) => setDthId(e.target.value)}
+                                onBlur={fetchInfo}
+                            />
+                            {fetchingInfo && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-between items-center px-1">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <Info className="h-3.5 w-3.5 text-slate-400" /> Min 6 digits subscriber ID
+                            </span>
+                            {!fetchingInfo && dthId.length >= 6 && (
+                                <button 
+                                    onClick={fetchInfo} 
+                                    className="text-[10px] text-indigo-600 hover:text-indigo-750 font-black uppercase transition-colors"
+                                >
+                                    Verify Account
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Customer Info Card if fetched */}
+                    {customerInfo && (
+                        <div className="bg-gradient-to-br from-white/95 via-indigo-50/40 to-white/95 border border-indigo-100 shadow-xl rounded-2.5xl p-5 relative overflow-hidden animate-fade-in shadow-indigo-500/5 group text-slate-800">
+                            {/* Ticket Cut-Out Circles on left and right borders */}
+                            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-r border-indigo-100 z-10" />
+                            <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-l border-indigo-100 z-10" />
+                            <div className="absolute top-[-20%] right-[-10%] w-[120px] h-[120px] bg-indigo-100/20 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-100/40 transition-all duration-500" />
+                            
+                            <div className="flex justify-between items-center border-b border-indigo-100 border-dashed pb-3 mb-3">
+                                <div className="flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4 text-emerald-500 animate-pulse" />
+                                    <span className="text-xs font-extrabold tracking-widest uppercase text-indigo-705">VERIFIED CUSTOMER TICKET</span>
+                                </div>
+                                <span className="text-[9px] bg-emerald-50 text-emerald-700 font-black px-2 py-0.5 rounded-full border border-emerald-200 tracking-widest">LIVE</span>
+                            </div>
+                            
+                            <div className="space-y-3 text-xs font-semibold">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 uppercase tracking-wider text-[10px]">Subscriber Name</span>
+                                    <span className="font-extrabold text-slate-800 text-sm">{customerInfo.customerName || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 uppercase tracking-wider text-[10px]">Available Balance</span>
+                                    <span className="font-extrabold text-emerald-600 text-sm">₹{customerInfo.balance || '0.00'}</span>
+                                </div>
+                                {customerInfo.planname && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-500 uppercase tracking-wider text-[10px]">Active Package</span>
+                                        <span className="font-extrabold text-indigo-600 truncate max-w-[60%] text-right">{customerInfo.planname}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Amount Input */}
+                    <div className="bg-white/85 backdrop-blur-md p-5 rounded-2.5xl border border-slate-100 group focus-within:border-indigo-200 transition-all shadow-sm">
+                        <div className="flex justify-between items-center mb-2 px-1">
+                            <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Recharge Amount</span>
+                            <span className="text-[10px] bg-indigo-50 text-indigo-650 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5">
+                                <Wallet className="h-3 w-3" /> BAL: ₹{availableBalance.toFixed(2)}
+                            </span>
+                        </div>
+                        <div className="flex items-center">
+                            <span className="text-3xl font-black text-indigo-500 mr-2 select-none">₹</span>
+                            <Input
+                                className="border-0 shadow-none text-3xl font-black p-0 h-auto focus-visible:ring-0 placeholder:text-slate-300 bg-transparent text-slate-800 w-full"
+                                placeholder="0"
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                            />
+                        </div>
+                        
+                        {/* Amount Suggestion Pills */}
+                        <div className="flex gap-2 mt-4 pt-1 overflow-x-auto no-scrollbar">
+                            {['150', '250', '500', '1000'].map((val) => (
+                                <button
+                                    key={`suggest-${val}`}
+                                    type="button"
+                                    onClick={() => setAmount(val)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider border transition-all active:scale-95 flex-shrink-0 ${
+                                        amount === val 
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:text-slate-700 hover:border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    ₹{val}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Proceed Button */}
+                    <Button 
+                        className={`w-full h-14 text-base font-extrabold shadow-md rounded-2xl transition-all duration-300 active:scale-[0.98] ${
+                            amount && dthId 
+                                ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white shadow-indigo-500/20' 
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
+                        }`}
+                        onClick={handleConfirm} 
+                        disabled={!amount || !dthId}
+                    >
+                        Confirm & Proceed
+                    </Button>
+
+                    {/* Security BBPS Info */}
+                    <div className="bg-white/90 backdrop-blur-md rounded-2.5xl p-4 border border-slate-100 flex gap-3 text-xs leading-relaxed text-slate-500">
+                        <AlertCircle className="h-5 w-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <span className="font-extrabold text-slate-800 block mb-0.5">BBPS Secure Pay Protection</span>
+                            Please verify the Customer ID and plan amount before proceeding. Recharges cannot be rolled back after completion under KwikApi guidelines.
                         </div>
                     </div>
                 </div>
@@ -319,117 +399,129 @@ export const DTHEnterDetails = () => {
 
             {/* Confirmation Dialog / Bottom Sheet Style */}
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-                <DialogContent className="max-w-md rounded-2xl gap-0 p-0 overflow-hidden bg-slate-50">
+                <DialogContent className="max-w-md rounded-3xl p-0 overflow-hidden bg-white border border-slate-150 shadow-2xl text-slate-800">
                     <div className="p-0">
-                        {/* Header Info - Blue/Theme Background similar to screenshot top bar if possible, or clean white */}
-                        <div className="bg-white p-4 flex items-center gap-3 border-b border-slate-100">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2" onClick={() => setShowConfirm(false)}>
-                                {/* Back Icon simulated by Dialog Close usually, but visuals aid */}
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6" /></svg>
-                            </Button>
-                            <Avatar className="h-10 w-10 border p-1 bg-white">
-                                <AvatarImage src={operator?.logo || ''} />
-                                <AvatarFallback>{operator?.name[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-slate-800 leading-tight">{dthId}</span>
-                                <span className="text-xs text-slate-500 font-medium">{operator?.name}</span>
+                        {/* Header Info */}
+                        <div className="bg-slate-50 p-4 flex items-center justify-between border-b border-slate-150">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 p-1.5 bg-white border border-slate-200 rounded-xl flex items-center justify-center">
+                                    <img src={operator?.logo || ''} alt={operator?.name} className="h-full w-full object-contain" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-extrabold text-slate-850 leading-tight truncate max-w-[180px]">{dthId}</span>
+                                    <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">{operator?.name}</span>
+                                </div>
                             </div>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 px-2.5 rounded-lg text-xs font-black text-indigo-600 hover:text-indigo-700 hover:bg-slate-100 transition-colors" 
+                                onClick={() => setShowConfirm(false)}
+                            >
+                                Edit Details
+                            </Button>
                         </div>
 
-                        {/* Scrollable Content Area */}
-                        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
-
+                        {/* Content Area */}
+                        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                             {/* Plan Details Card */}
-                            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 text-center space-y-4">
+                            <div className="bg-slate-50 rounded-2.5xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
                                 <div>
                                     <div className="text-3xl font-black text-slate-900">₹{amount}</div>
-                                    <button className="text-xs font-bold text-blue-600 mt-1" onClick={() => setShowConfirm(false)}>Change Amount</button>
+                                    <button 
+                                        type="button"
+                                        className="text-xs font-black text-indigo-600 hover:text-indigo-700 mt-1.5 cursor-pointer" 
+                                        onClick={() => setShowConfirm(false)}
+                                    >
+                                        Change Amount
+                                    </button>
                                 </div>
 
-                                {/* DTH Specific Details or Generic */}
-                                <div className="space-y-3 pt-2 text-left">
-                                    <div className="flex justify-between border-b border-slate-50 pb-2">
-                                        <span className="text-sm text-slate-400 font-medium">Customer Name</span>
-                                        <span className="text-sm font-bold text-slate-700">{customerInfo?.customerName || 'N/A'}</span>
+                                <div className="space-y-2.5 pt-2 text-left text-xs font-semibold">
+                                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                                        <span className="text-slate-500">Customer Name</span>
+                                        <span className="font-bold text-slate-800">{customerInfo?.customerName || 'N/A'}</span>
                                     </div>
 
                                     {customerInfo?.planname && (
-                                        <div className="flex justify-between border-b border-slate-50 pb-2">
-                                            <span className="text-sm text-slate-400 font-medium">Current Plan</span>
-                                            <span className="text-sm font-bold text-slate-700 text-right max-w-[60%] truncate">{customerInfo.planname}</span>
+                                        <div className="flex justify-between border-b border-slate-100 pb-2">
+                                            <span className="text-slate-500">Current Plan</span>
+                                            <span className="font-bold text-slate-800 text-right max-w-[60%] truncate">{customerInfo.planname}</span>
                                         </div>
                                     )}
 
-                                    <div className="bg-blue-50/50 rounded-lg p-3 text-xs text-slate-500 leading-relaxed">
-                                        <span className="font-semibold text-blue-700 block mb-1">Benefits:</span>
-                                        {customerInfo?.planname
-                                            ? `Renews your existing ${customerInfo.planname}. Enjoy uninterrupted DTH services.`
-                                            : "Top-up your DTH account balance. Valid for existing plan extension or new pack activation."}
+                                    <div className="bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-indigo-50/30 rounded-xl p-3 text-[11px] text-slate-650 leading-normal flex items-start gap-2 border border-indigo-100/50">
+                                        <Sparkles className="h-4 w-4 text-indigo-600 flex-shrink-0 mt-0.5 animate-pulse" />
+                                        <div>
+                                            <span className="font-extrabold text-indigo-700 block mb-0.5">Payment Benefits</span>
+                                            {customerInfo?.planname
+                                                ? `Extends your active DTH subscription: ${customerInfo.planname}.`
+                                                : "Top-up balance credit. Immediate validation for plan activation."}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Payment Breakdown Card */}
                             {upiState ? (
-                                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center space-y-4">
-                                    <h3 className="font-bold text-slate-800">Complete Payment</h3>
-                                    <div className="bg-white p-2 rounded-xl border inline-block">
-                                        <QRCodeSVG value={upiState.qrData} size={160} />
+                                <div className="bg-slate-50 rounded-2.5xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
+                                    <div className="flex items-center justify-center gap-2 text-indigo-600">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <h3 className="font-extrabold text-sm tracking-wide uppercase">Split Pay UPI Active</h3>
                                     </div>
-                                    <p className="text-xs text-slate-500">Scan QR to pay remaining ₹{payFromUpi.toFixed(2)}</p>
-                                    <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 h-10 text-sm">
-                                        <a href={upiState.intentUrl}>Pay via UPI App</a>
+                                    <div className="bg-white p-3.5 rounded-2.5xl border border-slate-200 inline-block shadow-sm">
+                                        <QRCodeSVG value={upiState.qrData} size={150} />
+                                    </div>
+                                    <p className="text-xs text-slate-500 leading-normal max-w-xs mx-auto">
+                                        Scan this secure dynamic QR using BHIM, GPay, PhonePe, or Paytm to complete balance shortfall of <span className="font-extrabold text-slate-800">₹{payFromUpi.toFixed(2)}</span>
+                                    </p>
+                                    <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-11 text-xs font-black rounded-xl shadow-md shadow-indigo-650/15">
+                                        <a href={upiState.intentUrl}>Launch UPI Payment App</a>
                                     </Button>
-                                    <div className="flex items-center justify-center text-xs text-blue-600 animate-pulse">
-                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Waiting...
-                                    </div>
                                 </div>
                             ) : (
-                                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+                                <div className="bg-slate-50 rounded-2.5xl p-5 shadow-inner border border-slate-100 space-y-3 text-xs font-semibold">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500 font-medium text-sm">Transaction Amount</span>
-                                        <span className="font-bold text-slate-900">₹{parseFloat(amount || '0').toFixed(2)}</span>
+                                        <span className="text-slate-550">Total Recharge</span>
+                                        <span className="font-bold text-slate-805">₹{parseFloat(amount || '0').toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-500 font-medium text-sm">Your Balance</span>
-                                        <span className="font-bold text-slate-900">₹{availableBalance.toFixed(2)}</span>
+                                        <span className="text-slate-550">PrePe Wallet balance</span>
+                                        <span className="font-bold text-slate-805">₹{availableBalance.toFixed(2)}</span>
                                     </div>
-                                    <div className="h-px bg-slate-100 my-1"></div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-800 font-bold">Payable Amount</span>
-                                        <span className="font-bold text-slate-900 text-lg">
+                                    <div className="h-px bg-slate-200 my-1"></div>
+                                    <div className="flex justify-between items-center text-sm font-bold">
+                                        <span className="text-slate-600">UPI Shortfall payable</span>
+                                        <span className="text-indigo-650 text-base font-black">
                                             ₹{(needsSplitPayment ? payFromUpi : 0).toFixed(2)}
                                         </span>
                                     </div>
-                                    {!needsSplitPayment && (
-                                        <div className="text-xs text-green-600 text-right font-medium flex justify-end items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><polyline points="20 6 9 17 4 12" /></svg>
-                                            Fully covered by Wallet
+                                    {!needsSplitPayment ? (
+                                        <div className="text-[10px] text-emerald-600 font-bold flex items-center justify-end gap-1.5 mt-1">
+                                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Fully covered by Wallet Balance
+                                        </div>
+                                    ) : (
+                                        <div className="text-[10px] text-amber-600 font-bold flex items-center justify-end gap-1.5 mt-1">
+                                            <Wallet className="h-3.5 w-3.5 text-amber-500 animate-bounce" /> Wallet pays ₹{payFromWallet.toFixed(2)}
                                         </div>
                                     )}
                                 </div>
                             )}
-
-                            {/* Warning */}
-                            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 text-orange-800 text-xs leading-relaxed">
-                                <span className="font-bold block mb-1 flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
-                                    Important Alert!
-                                </span>
-                                Please check your number and amount carefully before proceeding. Once the transaction is successful, it cannot be reversed.
-                            </div>
                         </div>
 
                         {/* Fixed Footer Button */}
-                        <div className="p-4 bg-white border-t border-slate-100">
+                        <div className="p-4 bg-slate-50 border-t border-slate-150">
                             <Button
-                                className="w-full h-12 text-lg font-bold bg-[#3b5998] hover:bg-[#2d4373] shadow-lg shadow-blue-900/10 rounded-xl"
+                                className={`w-full h-13 text-sm font-extrabold text-white rounded-2xl shadow-lg transition-all active:scale-[0.98] ${
+                                    processing || !!upiState
+                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
+                                        : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 shadow-indigo-500/10'
+                                }`}
                                 onClick={handleProceedToPay}
                                 disabled={processing || !!upiState}
                             >
-                                {processing ? <Loader2 className="animate-spin mr-2" /> : null}
-                                {upiState ? 'Complete UPI Payment' : 'Proceed to Pay'}
+                                {processing ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                                {upiState ? 'Awaiting payment confirmation...' : 'Confirm & Proceed to Pay'}
                             </Button>
                         </div>
                     </div>

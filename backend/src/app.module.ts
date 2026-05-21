@@ -8,6 +8,7 @@ import { LoanModule } from './loan/loan.module';
 import { HubbleModule } from './hubble/hubble.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
+import { SupportModule } from './support/support.module';
 import * as path from 'path';
 
 @Module({
@@ -27,7 +28,8 @@ import * as path from 'path';
         LoanModule, 
         HubbleModule,
         NotificationsModule,
-        AiModule
+        AiModule,
+        SupportModule
     ],
     controllers: [],
     providers: [],

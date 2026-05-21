@@ -7,6 +7,8 @@ import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 
+import { supportService } from "@/services/support.service";
+
 interface ComplaintDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -26,18 +28,24 @@ export function ComplaintDialog({ open, onOpenChange, transactionId }: Complaint
         }
 
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        toast({
-            title: "Complaint Raised Successfully",
-            description: `Ticket #TC-${Math.floor(Math.random() * 10000)} created for transaction ${transactionId.substring(0, 8)}...`,
-        });
-
-        setLoading(false);
-        onOpenChange(false);
-        setReason("");
-        setDetails("");
+        try {
+            await supportService.createTicket(transactionId, reason, details);
+            toast({
+                title: "Complaint Raised Successfully",
+                description: "Your complaint has been submitted. Our team will review it shortly.",
+            });
+            onOpenChange(false);
+            setReason("");
+            setDetails("");
+        } catch (error: any) {
+            toast({
+                title: "Submission Failed",
+                description: error.message || "Something went wrong. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

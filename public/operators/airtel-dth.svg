@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" width="100%" height="100%">
+  <!-- Airtel DTH crisp vector SVG logo -->
+  <g transform="translate(10, 5)">
+    <!-- Airtel Swish/D loop -->
+    <path d="M 12 35 C 8 28, 8 18, 16 12 C 24 6, 36 8, 40 16 C 44 24, 40 34, 30 38" fill="none" stroke="#E40000" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="28" cy="22" r="6" fill="#E40000" />
+  </g>
+  <!-- Airtel Text -->
+  <text x="72" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="32" fill="#E40000" letter-spacing="-1">airtel</text>
+  <!-- digital tv label next to it -->
+  <rect x="162" y="18" width="68" height="22" rx="6" fill="#0F172A" />
+  <text x="168" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="10" fill="#22C55E" letter-spacing="0.5">DIGITAL TV</text>
+</svg>

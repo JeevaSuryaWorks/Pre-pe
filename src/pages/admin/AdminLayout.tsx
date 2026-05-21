@@ -1,20 +1,41 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { supportService } from "@/services/support.service";
+import { Badge } from "@/components/ui/badge";
 
 const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [pendingComplaints, setPendingComplaints] = useState(0);
+    const [adminEmail, setAdminEmail] = useState("");
 
     useEffect(() => {
         checkAdmin();
     }, []);
+
+    useEffect(() => {
+        if (isAdmin) {
+            fetchPendingCount();
+            const interval = setInterval(fetchPendingCount, 8000); // sync badge count every 8s
+            return () => clearInterval(interval);
+        }
+    }, [isAdmin]);
+
+    const fetchPendingCount = async () => {
+        try {
+            const data = await supportService.getAdminTickets();
+            const pending = data.filter((t: any) => t.status === "PENDING").length;
+            setPendingComplaints(pending);
+        } catch (e) {
+            console.error("Failed to load badge count:", e);
+        }
+    };
 
     const checkAdmin = async () => {
         try {
@@ -23,6 +44,8 @@ const AdminLayout = () => {
                 navigate("/auth");
                 return;
             }
+
+            setAdminEmail(session.user.email || "Admin");
 
             // Check role
             const { data: roleData, error } = await supabase
@@ -52,13 +75,19 @@ const AdminLayout = () => {
     };
 
     if (loading) {
-        return <div className="h-screen w-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+        return (
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-3" />
+                <p className="text-slate-500 font-semibold animate-pulse">Initializing Security...</p>
+            </div>
+        );
     }
 
     if (!isAdmin) return null;
 
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+        { icon: HelpCircle, label: "Complaints Desk", path: "/admin/complaints", badge: pendingComplaints },
         { icon: Shield, label: "KYC Requests", path: "/admin/kyc" },
         { icon: Banknote, label: "Fund Requests", path: "/admin/fund-requests" },
         { icon: Users, label: "User Management", path: "/admin/users" },
@@ -67,54 +96,128 @@ const AdminLayout = () => {
         { icon: Gift, label: "Rewards Manager", path: "/admin/rewards" },
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
-        // { icon: Settings, label: "Settings", path: "/admin/settings" },
     ];
 
+    // Find the active page label for breadcrumbs
+    const currentActiveItem = navItems.find(item => item.path === location.pathname);
+
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-slate-50/50 overflow-hidden relative">
+            {/* Visual glow shapes in the background */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-blue-100/30 blur-[120px] pointer-events-none -z-10" />
+            <div className="absolute bottom-0 left-64 w-[600px] h-[600px] rounded-full bg-indigo-100/20 blur-[150px] pointer-events-none -z-10" />
+
             {/* Sidebar */}
-            <aside className="w-64 bg-slate-900 text-white flex flex-col">
-                <div className="p-6">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                        Prepe Admin
-                    </h1>
+            <aside className="w-72 bg-white/70 backdrop-blur-xl border-r border-slate-200/60 flex flex-col z-20 shadow-[4px_0_30px_rgba(0,0,0,0.015)] relative">
+                
+                {/* Sidebar Header Brand Panel */}
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <span className="text-white font-black text-xl tracking-tight">P</span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-black bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
+                                Pre-pe
+                            </h1>
+                            <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">ADMIN CONTROL</span>
+                        </div>
+                    </div>
                 </div>
 
-                <nav className="flex-1 px-4 space-y-2">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.path}
-                            onClick={() => navigate(item.path)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path
-                                ? "bg-blue-600 text-white"
-                                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                {/* Sidebar Navigation */}
+                <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+                    {navItems.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                    isActive
+                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/10 scale-[1.02] font-semibold"
+                                        : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
                                 }`}
-                        >
-                            <item.icon className="h-5 w-5" />
-                            <span className="font-medium">{item.label}</span>
-                        </button>
-                    ))}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`} />
+                                    <span className="text-sm font-semibold tracking-tight">{item.label}</span>
+                                </div>
+                                {item.badge !== undefined && item.badge > 0 && (
+                                    <Badge className={`text-[10px] font-black border-0 px-2 py-0.5 rounded-full ${
+                                        isActive 
+                                            ? "bg-white text-blue-600" 
+                                            : "bg-rose-100 text-rose-700 border border-rose-200/50 animate-pulse"
+                                    }`}>
+                                        {item.badge}
+                                    </Badge>
+                                )}
+                            </button>
+                        );
+                    })}
                 </nav>
 
-                <div className="p-4 border-t border-slate-800">
+                {/* Sidebar User profile footer */}
+                <div className="p-4 border-t border-slate-100/80 bg-slate-50/50">
+                    <div className="flex items-center gap-3 px-2 py-3 rounded-xl mb-3">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm uppercase">
+                            {adminEmail[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 truncate leading-none mb-1">Administrative Role</p>
+                            <p className="text-[10px] font-medium text-slate-400 truncate leading-none">{adminEmail}</p>
+                        </div>
+                    </div>
+                    
                     <Button
                         variant="ghost"
-                        className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                        className="w-full justify-start rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold h-11 border border-transparent hover:border-rose-100/50 transition-all duration-300"
                         onClick={handleLogout}
                     >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
+                        <LogOut className="mr-2 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
+                        Sign Out
                     </Button>
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-auto">
-                <div className="p-8">
-                    <Outlet />
-                </div>
-            </main>
-            <Toaster />
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                
+                {/* Dashboard Top Header Navigation Bar */}
+                <header className="h-20 bg-white/50 backdrop-blur-md border-b border-slate-200/60 px-8 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Admin Control</span>
+                        <ChevronRight className="h-3 w-3 text-slate-300" />
+                        <span className="text-sm font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-full border border-slate-200/50">
+                            {currentActiveItem?.label || "Overview"}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        {/* Live Alert System */}
+                        {pendingComplaints > 0 && (
+                            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200/60 text-amber-800 px-3 py-1.5 rounded-xl animate-pulse text-xs font-bold">
+                                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                                {pendingComplaints} live support requests pending attention
+                            </div>
+                        )}
+                        <div className="h-9 w-9 rounded-xl bg-slate-100 border border-slate-200/50 flex items-center justify-center text-slate-600 hover:bg-slate-200/50 cursor-pointer transition-colors relative">
+                            <Bell className="h-4.5 w-4.5" />
+                            {pendingComplaints > 0 && (
+                                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
+                            )}
+                        </div>
+                    </div>
+                </header>
+
+                {/* Dashboard Screen Viewport */}
+                <main className="flex-1 overflow-y-auto p-8 relative">
+                    <div className="max-w-7xl mx-auto">
+                        <Outlet />
+                    </div>
+                </main>
+            </div>
+            <Toaster position="top-right" closeButton richColors />
         </div>
     );
 };

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Gift, Coins, Zap, Star, Timer, Sparkles, Trophy } from 'lucide-react';
+import { Star, Timer, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SpinWheelProps {
@@ -12,22 +12,42 @@ interface SpinWheelProps {
 }
 
 const slices = [
-  { id: 1, label: '50 Pts', value: 50, color: 'from-amber-400 to-yellow-600', icon: Star },
-  { id: 2, label: '10 Pts', value: 10, color: 'from-rose-500 to-red-600', icon: Coins },
-  { id: 3, label: '500 Pts', value: 500, color: 'from-indigo-500 to-purple-600', icon: Trophy },
-  { id: 4, label: 'Oops', value: 0, color: 'from-slate-700 to-slate-900', icon: Gift },
-  { id: 5, label: '100 Pts', value: 100, color: 'from-emerald-500 to-green-600', icon: Zap },
-  { id: 6, label: '25 Pts', value: 25, color: 'from-sky-400 to-blue-600', icon: Coins },
-  { id: 7, label: 'Bonus', value: 150, color: 'from-fuchsia-500 to-purple-600', icon: Sparkles },
-  { id: 8, label: '5 Pts', value: 5, color: 'from-orange-400 to-orange-600', icon: Coins },
+  { id: 1, label: '50 Pts', value: 50, color: 'from-amber-400 to-yellow-600' },
+  { id: 2, label: '10 Pts', value: 10, color: 'from-rose-500 to-red-600' },
+  { id: 3, label: '500 Pts', value: 500, color: 'from-indigo-500 to-purple-600' },
+  { id: 4, label: 'Oops', value: 0, color: 'from-slate-700 to-slate-900' },
+  { id: 5, label: '100 Pts', value: 100, color: 'from-emerald-500 to-green-600' },
+  { id: 6, label: '25 Pts', value: 25, color: 'from-sky-400 to-blue-600' },
+  { id: 7, label: 'Bonus', value: 150, color: 'from-fuchsia-500 to-purple-600' },
+  { id: 8, label: '5 Pts', value: 5, color: 'from-orange-400 to-orange-600' },
 ];
 
 export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextResetTime }: SpinWheelProps) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showPrize, setShowPrize] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const wheelControls = useAnimation();
   
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const angleRef = useRef(0);
+  const isSpinningRef = useRef(false);
+  const requestRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const lastSliceIndexRef = useRef(-1);
+
+  // Setup Initial Canvas Draw
+  useEffect(() => {
+    drawWheel(angleRef.current);
+    
+    const handleResize = () => {
+      drawWheel(angleRef.current);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, []);
+
   // Calculate time until next reset (Calendar Day)
   useEffect(() => {
     if (remainingSpins > 0 || !nextResetTime) {
@@ -58,47 +78,239 @@ export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextRe
     const s = seconds % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
-  
-  const spin = async () => {
-    if (isSpinning || disabled || timeLeft > 0 || remainingSpins <= 0) return;
-    setIsSpinning(true);
-    setShowPrize(null);
-    
-    // Reset wheel position
-    await wheelControls.set({ rotate: 0 });
-    
-    // Generate a purely random spin angle (at least 8 full rotations)
-    // We rotate backwards (counter-clockwise) or forwards, doesn't matter. Let's do forward.
-    const randomAngle = Math.floor(Math.random() * 360);
-    const targetAngle = (360 * 8) + randomAngle;
-    
-    // Spin the wheel rapidly
-    await wheelControls.start({
-        rotate: targetAngle,
-        transition: { duration: 4.5, ease: [0.15, 0, 0.15, 1] }
-    });
 
-    // Calculate which slice landed exactly under the 12 o'clock needle
-    // The top is at -90 degrees (or 270 degrees in CSS circle).
-    let normalized = (270 - targetAngle) % 360;
-    if (normalized < 0) normalized += 360;
+  const playTickSound = (vel: number) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
     
-    let prizeIndex = 0;
-    if (normalized >= 315) {
-        prizeIndex = 0;
-    } else {
-        prizeIndex = Math.floor(normalized / 45) + 1;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    // High to low frequency sweep to simulate a snappy mechanical "peg click"
+    osc.type = 'sine';
+    const startFreq = 900 + Math.min(vel * 1200, 700);
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.03);
+    
+    // Volume envelope linked to velocity for maximum tactile realism
+    gain.gain.setValueAtTime(0.06 * Math.min(vel * 5, 1.2), now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    
+    osc.start(now);
+    osc.stop(now + 0.035);
+  };
+
+  const playVictoryChime = () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // Rich synthesized major arpeggio
+    
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+      
+      gain.gain.setValueAtTime(0, now + idx * 0.1);
+      gain.gain.linearRampToValueAtTime(0.12, now + idx * 0.1 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.55);
+      
+      osc.start(now + idx * 0.1);
+      osc.stop(now + idx * 0.1 + 0.6);
+    });
+  };
+
+  const drawWheel = (currentAngle: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const dpr = window.devicePixelRatio || 1;
+    const size = canvas.clientWidth;
+    
+    if (canvas.width !== size * dpr) {
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
     }
     
-    const prize = slices[prizeIndex];
-
-    setIsSpinning(false);
-    setShowPrize(prize.value);
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, size, size);
     
-    // Notify parent
-    setTimeout(() => {
-        onSpinComplete(prize.value);
-    }, 500);
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = size / 2 - 4;
+    
+    ctx.translate(cx, cy);
+    ctx.rotate(currentAngle);
+    
+    const sliceAngle = Math.PI / 4;
+    
+    slices.forEach((slice, i) => {
+      const startAngle = i * sliceAngle;
+      const endAngle = (i + 1) * sliceAngle;
+      
+      // Draw Slice Sector
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, radius, startAngle, endAngle);
+      ctx.closePath();
+      
+      // Slice Gradients
+      const grad = ctx.createLinearGradient(0, 0, radius * Math.cos(startAngle + sliceAngle / 2), radius * Math.sin(startAngle + sliceAngle / 2));
+      if (slice.color === 'from-amber-400 to-yellow-600') {
+        grad.addColorStop(0, '#fbbf24');
+        grad.addColorStop(1, '#ca8a04');
+      } else if (slice.color === 'from-rose-500 to-red-600') {
+        grad.addColorStop(0, '#f43f5e');
+        grad.addColorStop(1, '#e11d48');
+      } else if (slice.color === 'from-indigo-500 to-purple-600') {
+        grad.addColorStop(0, '#6366f1');
+        grad.addColorStop(1, '#7c3aed');
+      } else if (slice.color === 'from-slate-700 to-slate-900') {
+        grad.addColorStop(0, '#475569');
+        grad.addColorStop(1, '#0f172a');
+      } else if (slice.color === 'from-emerald-500 to-green-600') {
+        grad.addColorStop(0, '#10b981');
+        grad.addColorStop(1, '#059669');
+      } else if (slice.color === 'from-sky-400 to-blue-600') {
+        grad.addColorStop(0, '#38bdf8');
+        grad.addColorStop(1, '#2563eb');
+      } else if (slice.color === 'from-fuchsia-500 to-purple-600') {
+        grad.addColorStop(0, '#d946ef');
+        grad.addColorStop(1, '#9333ea');
+      } else {
+        grad.addColorStop(0, '#fb923c');
+        grad.addColorStop(1, '#ea580c');
+      }
+      
+      ctx.fillStyle = grad;
+      ctx.fill();
+      
+      // Segment Borders
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // Draw Outer Pegs
+      ctx.save();
+      const midAngle = startAngle + sliceAngle / 2;
+      ctx.rotate(midAngle);
+      
+      ctx.beginPath();
+      ctx.arc(radius - 6, 0, 3.5, 0, 2 * Math.PI);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 4;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Draw Text label & Emojis
+      ctx.translate(radius * 0.62, 0);
+      ctx.rotate(Math.PI / 2);
+      
+      const emojiMap: Record<number, string> = {
+        1: '⭐', // 50 Pts
+        2: '🪙', // 10 Pts
+        3: '🏆', // 500 Pts
+        4: '🎁', // Oops
+        5: '⚡', // 100 Pts
+        6: '🪙', // 25 Pts
+        7: '✨', // Bonus
+        8: '🪙', // 5 Pts
+      };
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      ctx.font = '16px sans-serif';
+      ctx.fillText(emojiMap[slice.id] || '🪙', 0, -11);
+      
+      ctx.font = '900 10px "Outfit", "Inter", sans-serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 3;
+      ctx.fillText(slice.label.toUpperCase(), 0, 9);
+      ctx.shadowBlur = 0;
+      
+      ctx.restore();
+    });
+    
+    ctx.restore();
+  };
+
+  const spin = () => {
+    if (isSpinning || disabled || timeLeft > 0 || remainingSpins <= 0) return;
+    
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    
+    setIsSpinning(true);
+    isSpinningRef.current = true;
+    setShowPrize(null);
+    
+    // Physics Deceleration Setup
+    let velocity = 0.28 + Math.random() * 0.12; 
+    const friction = 0.983 + Math.random() * 0.003; 
+    
+    const animate = () => {
+      if (velocity < 0.0015) {
+        // Stopped completely!
+        isSpinningRef.current = false;
+        setIsSpinning(false);
+        
+        let normalized = (1.5 * Math.PI - angleRef.current) % (2 * Math.PI);
+        if (normalized < 0) normalized += 2 * Math.PI;
+        
+        const sliceAngle = Math.PI / 4;
+        const prizeIndex = Math.floor(normalized / sliceAngle) % 8;
+        const prize = slices[prizeIndex];
+        
+        setShowPrize(prize.value);
+        playVictoryChime();
+        
+        setTimeout(() => {
+          onSpinComplete(prize.value);
+        }, 500);
+        
+        if (requestRef.current) {
+          cancelAnimationFrame(requestRef.current);
+          requestRef.current = null;
+        }
+        return;
+      }
+      
+      angleRef.current += velocity;
+      velocity *= friction;
+      
+      // Calculate Peg Clicking crossings
+      const sliceAngle = Math.PI / 4;
+      const currentSlice = Math.floor((angleRef.current + Math.PI / 2) / sliceAngle);
+      if (currentSlice !== lastSliceIndexRef.current) {
+        lastSliceIndexRef.current = currentSlice;
+        playTickSound(velocity);
+      }
+      
+      drawWheel(angleRef.current);
+      requestRef.current = requestAnimationFrame(animate);
+    };
+    
+    requestRef.current = requestAnimationFrame(animate);
   };
 
   const isActuallyDisabled = (remainingSpins <= 0 || disabled) && !isSpinning;
@@ -157,40 +369,16 @@ export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextRe
             </div>
         </div>
 
-        {/* Wheel container */}
-        <motion.div 
-            animate={wheelControls}
-            className={cn(
-            "relative w-full h-full p-1.5 bg-slate-950 rounded-full shadow-2xl border-4 border-slate-900 overflow-hidden transition-all duration-700",
+        {/* High-DPI Canvas Wheel container */}
+        <div className={cn(
+            "relative w-full h-full p-1 bg-slate-950 rounded-full shadow-2xl border-4 border-slate-900 overflow-hidden transition-all duration-500 flex items-center justify-center",
             isActuallyDisabled && "opacity-40 grayscale-[0.5] scale-95"
         )}>
-          {/* Slices */}
-          <div className="w-full h-full rounded-full relative overflow-hidden">
-            {slices.map((slice, index) => {
-              const angle = (360 / slices.length) * index;
-              const Icon = slice.icon;
-              return (
-                <div
-                  key={slice.id}
-                  className={cn(
-                    "absolute w-[50%] h-[50%] top-0 right-0 origin-bottom-left flex items-center justify-center border-l border-white/10 transition-all bg-gradient-to-br",
-                    slice.color
-                  )}
-                  style={{
-                    transform: `rotate(${angle}deg)`,
-                    clipPath: 'polygon(0 100%, 100% 0, 100% 100%)',
-                  }}
-                >
-                   <div className="absolute bottom-4 right-4 flex flex-col items-center transform -rotate-[22.5deg] scale-90 md:scale-100">
-                      <Icon className="w-5 h-5 text-white mb-1 drop-shadow-lg" />
-                      <span className="text-white font-black text-[9px] md:text-[10px] tracking-tighter uppercase drop-shadow-lg whitespace-nowrap">
-                        {slice.label}
-                      </span>
-                   </div>
-                </div>
-              );
-            })}
-          </div>
+          <canvas 
+            ref={canvasRef} 
+            className="w-full h-full rounded-full bg-slate-950 pointer-events-none"
+            style={{ aspectRatio: '1/1' }}
+          />
 
           <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-black/20 via-transparent to-white/10 pointer-events-none z-10" />
           <div className="absolute inset-4 border border-white/5 rounded-full pointer-events-none z-10" />
@@ -202,7 +390,7 @@ export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextRe
                   <Star className={cn("w-6 h-6 text-yellow-400 relative z-10")} />
               </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Rolling Timer Overlay */}
         <AnimatePresence>
@@ -230,7 +418,6 @@ export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextRe
 
       <div className="w-full max-w-xs space-y-4">
           <AnimatePresence>
-             {/* Hide during spin */}
              {!isSpinning && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -252,14 +439,13 @@ export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextRe
                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500" />
                       </Button>
                       
-                      {/* Big Reward Celebration (Shown next to button after spin) */}
                       {showPrize !== null && (
                         <motion.div 
                            initial={{ opacity: 0, scale: 0.5, y: -20 }}
                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                           className="mt-4 bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-[0_0_80px_rgba(79,70,229,0.3)] border-2 border-indigo-100 flex flex-col items-center"
+                           className="mt-4 bg-white/95 backdrop-blur-xl rounded-2xl p-6 shadow-[0_0_80px_rgba(79,70,229,0.3)] border-2 border-indigo-100 flex flex-col items-center"
                         >
-                            <Sparkles className="w-8 h-8 text-yellow-500 mb-2 animate-bounce drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
+                            <span className="text-3xl mb-2 animate-bounce">🎉</span>
                             <h2 className="text-2xl font-black text-slate-950 tracking-tighter drop-shadow-sm">POINT EARNED!</h2>
                             <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 drop-shadow-sm">+{showPrize} PTS</p>
                         </motion.div>
@@ -268,11 +454,10 @@ export function SpinWheel({ onSpinComplete, disabled, remainingSpins = 0, nextRe
              )}
           </AnimatePresence>
           
-          {/* Show a placeholder when spinning so layout doesn't jump */}
           {isSpinning && (
               <div className="w-full h-16 flex items-center justify-center">
-                  <span className="text-indigo-400 font-black tracking-widest animate-pulse flex items-center gap-2">
-                      <Loader2 className="w-5 h-5" /> SPINNING...
+                  <span className="text-indigo-400 font-black tracking-widest animate-pulse flex items-center gap-2 text-lg">
+                      <Loader2 className="w-6 h-6" /> SPINNING...
                   </span>
               </div>
           )}

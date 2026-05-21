@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
     Loader2,
-    Eye,
     CheckCircle,
     XCircle,
     ChevronRight,
@@ -16,7 +15,6 @@ import {
     FileText,
     Shield,
     Mail,
-    ExternalLink,
     ShieldAlert,
     ShieldCheck,
     Clock,
@@ -24,41 +22,130 @@ import {
     Check,
     X,
     Maximize2,
-    ChevronLeft
+    ChevronLeft,
+    Search,
+    Filter,
+    Copy,
+    RotateCw,
+    RotateCcw,
+    ZoomIn,
+    ZoomOut,
+    Info,
+    Lock,
+    Unlock,
+    ArrowRight,
+    CornerDownRight
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { decryptSensitiveData, maskAadhaar } from '@/lib/crypto';
+import { decryptSensitiveData, maskAadhaar, maskPAN } from '@/lib/crypto';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 export const KYCRequests = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    
+    // UI Workspace States
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [planFilter, setPlanFilter] = useState<'ALL' | 'BASIC' | 'PRO' | 'BUSINESS'>('ALL');
+    
+    // Details Panel loading states
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
     const [loadingImages, setLoadingImages] = useState(false);
     const [decryptedData, setDecryptedData] = useState<{ pan: string, aadhar: string } | null>(null);
+    const [copiedField, setCopiedField] = useState<string | null>(null);
+
+    // Rejection Dialog States
     const [rejectReason, setRejectReason] = useState("");
     const [showRejectDialog, setShowRejectDialog] = useState(false);
 
-    // Approval Checklist
-    const [showApproveDialog, setShowApproveDialog] = useState(false);
-    const [approveChecklist, setApproveChecklist] = useState({
-        numbersMatch: false,
-        photosClear: false,
-        selfieMatches: false,
-        notExpired: false,
-        shopAuthentic: false
-    });
-    const isApproveEnabled = Object.values(approveChecklist).every(Boolean);
+    // Custom Interactive Lightbox States
+    const [activeLightboxImage, setActiveLightboxImage] = useState<{ key: string; url: string; label: string } | null>(null);
+    const [lightboxZoom, setLightboxZoom] = useState(1);
+    const [lightboxRotation, setLightboxRotation] = useState(0);
 
-    // Fetch Pending Requests
-    const { data: requests, isLoading } = useQuery<any[]>({
+    // Inline Verification Checklist State
+    const [approveChecklist, setApproveChecklist] = useState<Record<string, boolean>>({});
+
+    // Helper: Determine required files by Plan Type
+    const isKeyRequiredForPlan = (key: string, planType: string) => {
+        const plan = (planType || 'BASIC').toUpperCase();
+        if (key === 'shop_photo') {
+            return plan === 'BUSINESS';
+        }
+        if (key === 'selfie') {
+            return plan === 'PRO' || plan === 'BUSINESS';
+        }
+        return true; // Aadhaar front, back, and PAN are required for all
+    };
+
+    // Helper: Get human description of why a document is required under the plan
+    const getDocumentRequirementMessage = (key: string, planType: string) => {
+        const plan = (planType || 'BASIC').toUpperCase();
+        switch (key) {
+            case 'aadhar_front':
+            case 'aadhar_back':
+                return `Identity Proof (Required for all plans)`;
+            case 'pan_card':
+                return `Tax & Income Verification (Required for all plans)`;
+            case 'selfie':
+                if (plan === 'BASIC') return `Not required under Basic Plan (Exempt)`;
+                return `Bio-Face Authenticity Match (Required for ${plan} Plan)`;
+            case 'shop_photo':
+                if (plan === 'BASIC' || plan === 'PRO') return `Not required under ${plan === 'PRO' ? 'Pro' : 'Basic'} Plan (Exempt)`;
+                return `Business Address Proof (Required for Business Plan)`;
+            default:
+                return '';
+        }
+    };
+
+    // Helper: Get active checklist items dynamically for Plan Type
+    const getChecklistItems = (planType: string) => {
+        const plan = (planType || 'BASIC').toUpperCase();
+        const base = [
+            { key: 'numbersMatch', label: "Digital entry matches printed text on Aadhaar & PAN exactly" },
+            { key: 'photosClear', label: "Images are high-resolution, clear, and text is fully legible" },
+            { key: 'originalDocuments', label: "Scans are of original physical cards (no printouts/photocopies)" },
+            { key: 'tamperCheck', label: "No signs of editing, overlay, pixelation, or image tampering" },
+            { key: 'notExpired', label: "Documents are active, not expired, and show no physical damage" }
+        ];
+        
+        if (plan === 'PRO') {
+            return [
+                ...base,
+                { key: 'selfieMatches', label: "Selfie photo matches the facial features on Aadhaar & PAN" },
+                { key: 'selfieLiveness', label: "Selfie is a live shot under clear lighting with proper contrast" }
+            ];
+        } else if (plan === 'BUSINESS') {
+            return [
+                ...base,
+                { key: 'selfieMatches', label: "Selfie photo matches the facial features on Aadhaar & PAN" },
+                { key: 'selfieLiveness', label: "Selfie is a live shot under clear lighting with proper contrast" },
+                { key: 'shopAuthentic', label: "Shop storefront photo matches business name and street address" },
+                { key: 'storefrontMatch', label: "Active commercial activity visible with authentic branding signage" }
+            ];
+        }
+        return base;
+    };
+
+    const activeChecklistItems = useMemo(() => {
+        if (!selectedRequest) return [];
+        return getChecklistItems(selectedRequest?.profiles?.plan_type);
+    }, [selectedRequest]);
+
+    const isApproveEnabled = useMemo(() => {
+        if (activeChecklistItems.length === 0) return false;
+        return activeChecklistItems.every(item => approveChecklist[item.key]);
+    }, [activeChecklistItems, approveChecklist]);
+
+    // Fetch Pending Requests and Enriched Profiles
+    const { data: requests, isLoading, error: queryError } = useQuery<any[]>({
         queryKey: ['admin_kyc_requests'],
         queryFn: async () => {
-            // 1. Fetch KYC Requests (Raw)
+            // 1. Fetch KYC Requests (PENDING)
             const { data: kycData, error: kycError } = await (supabase as any)
                 .from('kyc_verifications')
                 .select('*')
@@ -72,12 +159,13 @@ export const KYCRequests = () => {
             const userIds = kycData.map((req: any) => req.user_id);
             const { data: profilesData, error: profilesError } = await supabase
                 .from('profiles')
-                .select('user_id, full_name, email, plan_type, sim_provider')
+                .select('*') // Safe select all columns to prevent column-not-found errors (like sim_provider)
                 .in('user_id', userIds);
 
             if (profilesError) {
                 console.error("Error fetching profiles:", profilesError);
-                return kycData;
+                // Return kyc data even if profile query fails
+                return kycData.map((req: any) => ({ ...req, profiles: null }));
             }
 
             // 3. Merge Data
@@ -93,47 +181,64 @@ export const KYCRequests = () => {
         }
     });
 
+    // Handle Sensitive Decryption safely
+    const safeDecrypt = async (encryptedValue: string) => {
+        if (!encryptedValue) return "";
+        try {
+            const decrypted = await decryptSensitiveData(encryptedValue);
+            if (decrypted === "DECRYPTION_ERROR") {
+                // If it fails (e.g. database has plaintext instead of cipher), fall back to raw value
+                return encryptedValue;
+            }
+            return decrypted;
+        } catch (err) {
+            console.warn("Failed decrypting string, using raw value:", err);
+            return encryptedValue;
+        }
+    };
+
     // Load Signed URLs and Decrypt data when a request is selected
     useEffect(() => {
         const loadRequestDetails = async () => {
             if (!selectedRequest) {
                 setDecryptedData(null);
                 setImageUrls({});
+                setApproveChecklist({});
                 return;
-            };
+            }
 
             setLoadingImages(true);
 
-            // 1. Decrypt Sensitive Numbers
+            // 1. Decrypt Sensitive Numbers with safe fallbacks
             try {
                 const [pan, aadhar] = await Promise.all([
-                    decryptSensitiveData(selectedRequest.pan_number),
-                    decryptSensitiveData(selectedRequest.aadhar_number)
+                    safeDecrypt(selectedRequest.pan_number),
+                    safeDecrypt(selectedRequest.aadhar_number)
                 ]);
                 setDecryptedData({ pan, aadhar });
             } catch (err) {
-                console.error("Decryption error:", err);
-                toast({ title: "Decryption Failed", description: "Could not safely decrypt sensitive data", variant: "destructive" });
+                console.error("Decryption pipeline error:", err);
+                toast({ title: "Decryption Warning", description: "Identity numbers could not be fully decrypted. Displaying raw data.", variant: "destructive" });
+                setDecryptedData({ 
+                    pan: selectedRequest.pan_number || "N/A", 
+                    aadhar: selectedRequest.aadhar_number || "N/A" 
+                });
             }
 
-            // 2. Load Images
-            if (!selectedRequest?.document_urls) {
-                setLoadingImages(false);
-                return;
-            }
-
+            // 2. Load Signed Images for files that actually have paths in document_urls
             const urls: Record<string, string> = {};
             const keys = ['aadhar_front', 'aadhar_back', 'pan_card', 'selfie', 'shop_photo'];
+            const docUrls = selectedRequest.document_urls || {};
 
             try {
                 await Promise.all(keys.map(async (key) => {
-                    const path = selectedRequest.document_urls[key];
+                    const path = docUrls[key];
                     if (path) {
                         const { data, error } = await supabase.storage
                             .from('kyc-documents')
                             .createSignedUrl(path, 3600); // 1 hour expiry
                         if (error) {
-                            console.error(`Error creating signed URL for ${key}:`, error);
+                            console.warn(`Could not fetch signed url for ${key}:`, error.message);
                         } else if (data?.signedUrl) {
                             urls[key] = data.signedUrl;
                         }
@@ -142,7 +247,7 @@ export const KYCRequests = () => {
                 setImageUrls(urls);
             } catch (error) {
                 console.error("Error loading images:", error);
-                toast({ title: "Image Load Error", description: "Failed to load secure images", variant: "destructive" });
+                toast({ title: "Image Load Issues", description: "Some secure images failed to load.", variant: "destructive" });
             } finally {
                 setLoadingImages(false);
             }
@@ -150,6 +255,44 @@ export const KYCRequests = () => {
 
         loadRequestDetails();
     }, [selectedRequest]);
+
+    // Copy to clipboard utility
+    const handleCopy = (text: string, fieldName: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedField(fieldName);
+        toast({ title: "Copied!", description: `${fieldName} copied to clipboard.` });
+        setTimeout(() => setCopiedField(null), 2000);
+    };
+
+    // Filtered applicant requests list
+    const filteredRequests = useMemo(() => {
+        if (!requests) return [];
+        return requests.filter((req) => {
+            const profile = req.profiles;
+            const userName = (profile?.full_name || 'Anonymous').toLowerCase();
+            const userEmail = (profile?.email || '').toLowerCase();
+            const query = searchQuery.toLowerCase();
+            
+            const matchesSearch = userName.includes(query) || userEmail.includes(query) || req.id.toLowerCase().includes(query);
+            const matchesPlan = planFilter === 'ALL' || (profile?.plan_type || 'BASIC').toUpperCase() === planFilter;
+            
+            return matchesSearch && matchesPlan;
+        });
+    }, [requests, searchQuery, planFilter]);
+
+    // Active pending queue stats calculated from live data
+    const queueStats = useMemo(() => {
+        if (!requests) return { total: 0, basic: 0, pro: 0, business: 0 };
+        return requests.reduce((acc, req) => {
+            const plan = (req.profiles?.plan_type || 'BASIC').toUpperCase();
+            acc.total += 1;
+            if (plan === 'BASIC') acc.basic += 1;
+            else if (plan === 'PRO') acc.pro += 1;
+            else if (plan === 'BUSINESS') acc.business += 1;
+            return acc;
+        }, { total: 0, basic: 0, pro: 0, business: 0 });
+    }, [requests]);
 
     // Approve/Reject Mutation
     const updateStatus = useMutation({
@@ -179,7 +322,7 @@ export const KYCRequests = () => {
                     details: { kyc_id: id, reason: reason || null }
                 });
                 if (auditError) {
-                    console.warn("Audit Log Warning: Could not write to admin_audit_logs table. Check RLS policies.", auditError);
+                    console.warn("Audit Log Warning: Could not write to admin_audit_logs table.", auditError);
                 }
             }
         },
@@ -187,12 +330,11 @@ export const KYCRequests = () => {
             queryClient.invalidateQueries({ queryKey: ['admin_kyc_requests'] });
             setSelectedRequest(null);
             setShowRejectDialog(false);
-            setShowApproveDialog(false);
             setRejectReason("");
-            setApproveChecklist({ numbersMatch: false, photosClear: false, selfieMatches: false, notExpired: false, shopAuthentic: false });
+            setApproveChecklist({});
             toast({
                 title: variables.status === 'APPROVED' ? "Application Approved" : "Application Rejected",
-                description: `Successfully processed the KYC for ${selectedRequest?.profiles?.full_name || 'the user'}.`,
+                description: `Successfully processed the KYC request.`,
             });
         },
         onError: (err) => {
@@ -202,10 +344,18 @@ export const KYCRequests = () => {
 
     const handleExecuteApprove = () => {
         if (!selectedRequest || !isApproveEnabled) return;
+        
+        // Build detailed audit notification message with verified checklist items
+        const checkedLabels = activeChecklistItems
+            .filter(item => approveChecklist[item.key])
+            .map(item => item.label);
+        const approvalDetailsText = `Verified Checklist:\n` + checkedLabels.map(l => `• ${l}`).join('\n');
+
         updateStatus.mutate({
             id: selectedRequest.id,
             status: 'APPROVED',
-            userId: selectedRequest.user_id
+            userId: selectedRequest.user_id,
+            reason: approvalDetailsText
         });
     };
 
@@ -222,405 +372,742 @@ export const KYCRequests = () => {
         });
     };
 
+    // Lightbox image rotation and zoom functions
+    const handleRotate = (dir: 'cw' | 'ccw') => {
+        setLightboxRotation(prev => (dir === 'cw' ? prev + 90 : prev - 90) % 360);
+    };
+
+    const handleZoom = (type: 'in' | 'out') => {
+        setLightboxZoom(prev => {
+            const next = type === 'in' ? prev + 0.25 : prev - 0.25;
+            return Math.max(0.5, Math.min(3, next));
+        });
+    };
+
+    const handleResetLightbox = () => {
+        setLightboxZoom(1);
+        setLightboxRotation(0);
+    };
+
+    // Cycle through uploaded images in the lightbox
+    const handleCycleImage = (direction: 'next' | 'prev') => {
+        if (!selectedRequest || !activeLightboxImage) return;
+        const availableKeys = Object.keys(imageUrls).filter(k => imageUrls[k]);
+        if (availableKeys.length <= 1) return;
+
+        const currentIndex = availableKeys.indexOf(activeLightboxImage.key);
+        let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+        
+        if (nextIndex >= availableKeys.length) nextIndex = 0;
+        if (nextIndex < 0) nextIndex = availableKeys.length - 1;
+
+        const nextKey = availableKeys[nextIndex];
+        const nextUrl = imageUrls[nextKey];
+        const nextLabel = nextKey.replace('_', ' ').toUpperCase();
+
+        setActiveLightboxImage({
+            key: nextKey,
+            url: nextUrl,
+            label: nextLabel
+        });
+        handleResetLightbox();
+    };
+
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center p-20 space-y-4">
             <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-            <p className="text-slate-500 font-medium">Loading applications...</p>
+            <p className="text-slate-500 font-medium">Loading applications database...</p>
         </div>
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 pb-12">
-            {!selectedRequest ? (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className="p-2 bg-blue-600 rounded-lg">
-                                    <Shield className="w-5 h-5 text-white" />
-                                </div>
-                                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">KYC Queue</h1>
-                            </div>
-                            <p className="text-slate-500 font-medium">Manage and verify new applicant identities.</p>
+        <div className="max-w-[1600px] mx-auto px-4 pb-12 h-[calc(100vh-100px)] overflow-hidden flex flex-col">
+            
+            {/* Top Workspace Bar */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 pb-4 border-b border-slate-200/60 mb-6">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="p-2 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl shadow-md shadow-blue-500/10">
+                            <Shield className="w-5 h-5 text-white" />
                         </div>
-                        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
-                            <Clock className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-semibold text-slate-700">{requests?.length || 0} Pending Requests</span>
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Identity Compliance Audit</h1>
+                    </div>
+                    <p className="text-slate-500 text-sm font-medium">Verify plan-specific KYC requests and manage document approval checklists.</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-white border border-slate-200/80 px-4 py-2 rounded-2xl shadow-sm">
+                        <Clock className="w-4 h-4 text-amber-500 animate-pulse" />
+                        <span className="text-xs font-bold text-slate-700">{queueStats.total} Total Pending</span>
+                    </div>
+                </div>
+            </header>
+
+            {/* Split Screen Workspace */}
+            <div className="flex-1 flex flex-col md:flex-row items-stretch gap-6 overflow-hidden min-h-0">
+                
+                {/* Left Side: Applicant Queue Panel */}
+                <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden shrink-0">
+                    
+                    {/* Search & Filter Controls */}
+                    <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3 shrink-0">
+                        <div className="relative">
+                            <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by name, email, ID..."
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 text-xs font-medium bg-white shadow-sm transition-all"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
-                    </header>
 
-                    <div className="grid grid-cols-1 gap-4">
-                        {requests?.length === 0 ? (
-                            <Card className="p-20 text-center border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-3xl">
-                                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
-                                    <CheckCircle className="w-10 h-10 text-green-500" />
-                                </div>
-                                <h3 className="font-bold text-2xl text-slate-800 mb-2">Queue is Clear</h3>
-                                <p className="text-slate-500 max-w-md mx-auto">All pending KYC applications have been processed. You'll be notified when new ones arrive.</p>
-                            </Card>
-                        ) : (
-                            requests?.map((req) => (
-                                <Card key={req.id} className="overflow-hidden border border-slate-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 group rounded-3xl bg-white">
-                                    <div className="flex flex-col md:flex-row items-stretch p-2">
-                                        <div className="p-6 flex-1 flex flex-col md:flex-row items-center gap-8">
-                                            <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-600 transition-colors duration-300">
-                                                <User className="w-8 h-8 text-slate-400 group-hover:text-white transition-colors duration-300" />
-                                            </div>
-
-                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-                                                <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Applicant</p>
-                                                    <h3 className="text-lg font-bold text-slate-900 truncate">
-                                                        {req.profiles?.full_name || 'Anonymous User'}
-                                                    </h3>
-                                                    <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-500 mt-1">
-                                                        <Mail className="w-3.5 h-3.5" />
-                                                        <span className="truncate">{req.profiles?.email || 'No email associated'}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col justify-center">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Documents Submitted</p>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">PAN</Badge>
-                                                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">AADHAAR</Badge>
-                                                        <Badge variant="secondary" className="bg-slate-50 text-slate-600 border-slate-200 font-mono text-[9px] py-0.5 px-2">SELFIE</Badge>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col justify-center">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date Submitted</p>
-                                                    <div className="flex items-center gap-2 text-slate-700">
-                                                        <Calendar className="w-4 h-4 text-slate-400" />
-                                                        <span className="text-sm font-semibold">{new Date(req.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-4 md:border-l border-slate-100 bg-slate-50/50 flex items-center justify-center">
-                                            <Button
-                                                onClick={() => setSelectedRequest(req)}
-                                                className="w-full md:w-auto px-8 h-12 rounded-2xl bg-slate-900 text-white hover:bg-blue-600 border-none transition-all duration-300 font-bold shadow-lg shadow-slate-900/10 hover:shadow-blue-600/20"
-                                            >
-                                                Review <ChevronRight className="w-4 h-4 ml-1" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Card>
-                            ))
-                        )}
+                        {/* Plan Filter Segment Buttons */}
+                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                            {(['ALL', 'BASIC', 'PRO', 'BUSINESS'] as const).map((filter) => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setPlanFilter(filter)}
+                                    className={cn(
+                                        "flex-1 text-[10px] font-black tracking-wider py-1.5 rounded-lg transition-all uppercase",
+                                        planFilter === filter
+                                            ? "bg-white text-slate-900 shadow-sm font-black"
+                                            : "text-slate-400 hover:text-slate-600"
+                                    )}
+                                >
+                                    {filter}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                </div>
-            ) : (
-                <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 overflow-y-auto animate-in fade-in zoom-in-95 duration-300">
-                    {/* Header */}
-                    <div className="p-6 md:p-8 bg-white border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between shrink-0 gap-4 sticky top-0 z-20">
-                        <div className="flex items-center gap-4">
-                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold hidden md:flex" onClick={() => setSelectedRequest(null)}>
-                                <ChevronLeft className="w-4 h-4 mr-2" /> Back
-                            </Button>
-                            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
-                                <ShieldCheck className="w-7 h-7 text-blue-600" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                                    Identity Verification
-                                </h2>
-                                <p className="text-sm font-medium text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                    Application <span className="font-mono text-slate-700 font-bold bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{selectedRequest?.id.slice(0, 8)}</span>
+                    {/* Applicant Scrollable List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                        {filteredRequests.length === 0 ? (
+                            <div className="p-8 text-center border border-dashed border-slate-200 bg-slate-50/30 rounded-2xl">
+                                <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-50" />
+                                <h4 className="font-bold text-xs text-slate-700">No Pending Applications</h4>
+                                <p className="text-[10px] text-slate-400 max-w-xs mx-auto mt-1">
+                                    {planFilter !== 'ALL' 
+                                        ? `No pending ${planFilter} applicants match your filters.` 
+                                        : "All received KYC applications have been reviewed successfully."}
                                 </p>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                            <Button variant="outline" className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold md:hidden" onClick={() => setSelectedRequest(null)}>
-                                <ChevronLeft className="w-4 h-4 mr-2" /> Back
-                            </Button>
-                            <Badge className="bg-amber-50 text-amber-600 border-amber-100 px-4 py-1.5 rounded-full text-xs font-bold flex gap-2 items-center">
-                                <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                                MANUAL REVIEW
-                            </Badge>
-                        </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="max-w-screen-2xl mx-auto w-full flex-1 overflow-hidden flex flex-col md:flex-row bg-white/50 border-x border-slate-200/60 shadow-2xl min-h-screen">
-                        {/* Sidebar: Details & Profile Photo */}
-                        <div className="w-full md:w-80 lg:w-96 border-r border-slate-200 bg-white/80 backdrop-blur-xl p-6 md:p-8 overflow-y-auto space-y-8 shrink-0">
-                            <section className="flex flex-col items-center text-center pb-6 border-b border-slate-100">
-                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden mb-4 bg-slate-100 relative group flex items-center justify-center">
-                                    {loadingImages ? (
-                                        <Skeleton className="w-full h-full" />
-                                    ) : imageUrls['selfie'] ? (
-                                        <>
-                                            <img
-                                                src={imageUrls['selfie']}
-                                                alt="Profile Photo"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <a
-                                                href={imageUrls['selfie']}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-sm"
-                                            >
-                                                <Maximize2 className="w-6 h-6" />
-                                            </a>
-                                        </>
-                                    ) : (
-                                        <User className="w-12 h-12 text-slate-300" />
-                                    )}
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-900">{selectedRequest?.profiles?.full_name || 'N/A'}</h3>
-                                <p className="text-xs text-slate-500 font-medium mt-1 mb-3">{selectedRequest?.profiles?.email}</p>
+                        ) : (
+                            filteredRequests.map((req) => {
+                                const profile = req.profiles;
+                                const plan = (profile?.plan_type || 'BASIC').toUpperCase();
+                                const isSelected = selectedRequest?.id === req.id;
                                 
-                                <div className="flex flex-wrap gap-2 justify-center">
-                                    <Badge className={cn(
-                                        "px-3 py-1 rounded-full text-[10px] font-black tracking-widest border-none",
-                                        selectedRequest?.profiles?.plan_type === 'BUSINESS' 
-                                            ? "bg-purple-600 text-white shadow-lg shadow-purple-200" 
-                                            : selectedRequest?.profiles?.plan_type === 'PRO'
-                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                                : "bg-slate-900 text-white shadow-lg shadow-slate-200"
-                                    )}>
-                                        {selectedRequest?.profiles?.plan_type || 'BASIC'} PLAN
-                                    </Badge>
-                                    {selectedRequest?.profiles?.sim_provider && (
-                                        <Badge variant="outline" className="px-3 py-1 rounded-full text-[10px] font-bold border-slate-200 text-slate-600 bg-white">
-                                            {selectedRequest.profiles.sim_provider}
-                                        </Badge>
-                                    )}
-                                </div>
-                            </section>
+                                // Calculate how many documents have paths uploaded
+                                const docUrls = req.document_urls || {};
+                                const keysToCheck = ['aadhar_front', 'aadhar_back', 'pan_card', 'selfie', 'shop_photo'];
+                                const uploadedCount = keysToCheck.filter(k => isKeyRequiredForPlan(k, plan) && docUrls[k]).length;
+                                const requiredCount = keysToCheck.filter(k => isKeyRequiredForPlan(k, plan)).length;
 
-                            <section>
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5 flex items-center gap-2">
-                                    <User className="w-3 h-3" /> Basic Info
+                                return (
+                                    <button
+                                        key={req.id}
+                                        onClick={() => {
+                                            setSelectedRequest(req);
+                                            handleResetLightbox();
+                                        }}
+                                        className={cn(
+                                            "w-full text-left p-4 rounded-2xl border transition-all duration-300 group flex items-start gap-4",
+                                            isSelected
+                                                ? "border-blue-600/30 bg-blue-50/20 shadow-md shadow-blue-500/5 ring-1 ring-blue-500/10"
+                                                : "border-slate-100 hover:border-slate-300 bg-white hover:bg-slate-50/40"
+                                        )}
+                                    >
+                                        {/* Avatar / Circle */}
+                                        <div className={cn(
+                                            "h-10 w-10 rounded-xl flex items-center justify-center font-black text-sm uppercase shrink-0 transition-colors duration-300",
+                                            isSelected
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                                        )}>
+                                            {profile?.full_name ? profile.full_name[0] : <User className="w-5 h-5" />}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2 mb-1">
+                                                <h4 className="text-xs font-black text-slate-800 truncate group-hover:text-blue-600 transition-colors duration-300">
+                                                    {profile?.full_name || 'Test User'}
+                                                </h4>
+                                                <Badge className={cn(
+                                                    "text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded border-0 uppercase shrink-0",
+                                                    plan === 'BUSINESS'
+                                                        ? "bg-purple-100 text-purple-700"
+                                                        : plan === 'PRO'
+                                                            ? "bg-blue-100 text-blue-700"
+                                                            : "bg-slate-100 text-slate-600"
+                                                )}>
+                                                    {plan}
+                                                </Badge>
+                                            </div>
+
+                                            <p className="text-[10px] text-slate-400 truncate font-semibold mb-2">{profile?.email || 'No email associated'}</p>
+
+                                            <div className="flex items-center justify-between">
+                                                {/* Upload completion status */}
+                                                <span className="text-[9px] font-bold text-slate-500 flex items-center gap-1">
+                                                    <FileText className="w-3 h-3 text-slate-400" />
+                                                    {uploadedCount === 0 ? (
+                                                        <span className="text-amber-600">Empty Submission</span>
+                                                    ) : (
+                                                        <span>{uploadedCount}/{requiredCount} Documents</span>
+                                                    )}
+                                                </span>
+
+                                                <span className="text-[8px] font-medium text-slate-400 flex items-center gap-1 shrink-0 font-mono">
+                                                    <Calendar className="w-2.5 h-2.5" />
+                                                    {new Date(req.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+
+                {/* Right Side: Active Workspace Reviewer */}
+                <div className="flex-1 bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden flex flex-col min-w-0">
+                    
+                    {!selectedRequest ? (
+                        /* Empty State: Queue Analytics Board */
+                        <div className="flex-1 overflow-y-auto p-8 flex flex-col justify-center max-w-4xl mx-auto space-y-8">
+                            <div className="text-center space-y-2">
+                                <div className="h-16 w-16 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                                    <ShieldCheck className="w-8 h-8 text-blue-600 animate-pulse" />
+                                </div>
+                                <h2 className="text-xl font-black text-slate-800">Review Panel Active</h2>
+                                <p className="text-slate-500 text-xs max-w-md mx-auto">Select a pending KYC request from the left column to run identity audits and check documents against compliance checklists.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Card className="border border-slate-100 bg-gradient-to-tr from-slate-50/50 to-slate-100/50 shadow-sm">
+                                    <CardContent className="p-5 text-center">
+                                        <Badge className="bg-slate-100 text-slate-600 mb-2 border-0">BASIC KYC</Badge>
+                                        <p className="text-2xl font-black text-slate-800">{queueStats.basic}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Pending Requests</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border border-slate-100 bg-gradient-to-tr from-blue-50/30 to-blue-100/20 shadow-sm">
+                                    <CardContent className="p-5 text-center">
+                                        <Badge className="bg-blue-100 text-blue-700 mb-2 border-0">PRO KYC</Badge>
+                                        <p className="text-2xl font-black text-blue-700">{queueStats.pro}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Pending Requests</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border border-slate-100 bg-gradient-to-tr from-purple-50/30 to-purple-100/20 shadow-sm">
+                                    <CardContent className="p-5 text-center">
+                                        <Badge className="bg-purple-100 text-purple-700 mb-2 border-0">BUSINESS KYC</Badge>
+                                        <p className="text-2xl font-black text-purple-700">{queueStats.business}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Pending Requests</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                    <Info className="w-3.5 h-3.5 text-slate-400" /> General Guidelines
                                 </h4>
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Gender</p>
-                                            <p className="text-sm font-bold text-slate-800 capitalize">{selectedRequest?.gender || '-'}</p>
-                                        </div>
-                                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Age</p>
-                                            <p className="text-sm font-bold text-slate-800">{selectedRequest?.dob ? new Date().getFullYear() - new Date(selectedRequest.dob).getFullYear() : '-'}</p>
-                                        </div>
+                                <ul className="space-y-2.5">
+                                    <li className="flex items-start gap-2.5 text-xs text-slate-600 leading-snug">
+                                        <CornerDownRight className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                        <span>Ensure digital record entries (Aadhaar & PAN digits) exactly match the printed numbers on the physical card.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-xs text-slate-600 leading-snug">
+                                        <CornerDownRight className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                        <span>Confirm document photos are authentic, have clear text, and show no signs of digital edit tampering.</span>
+                                    </li>
+                                    <li className="flex items-start gap-2.5 text-xs text-slate-600 leading-snug">
+                                        <CornerDownRight className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                        <span>For Pro & Business applicants, compare the facial details on the live selfie with the identity photo records.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Workspace Active Request Review Panel */
+                        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                            
+                            {/* Request Sub-header / Profile Banner */}
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/40 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                                        <User className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                            {selectedRequest.profiles?.full_name || 'Test User'}
+                                            <Badge className={cn(
+                                                "text-[9px] font-black px-2 py-0.5 rounded border-0 uppercase font-mono",
+                                                (selectedRequest.profiles?.plan_type || 'BASIC').toUpperCase() === 'BUSINESS'
+                                                    ? "bg-purple-600 text-white shadow-sm shadow-purple-200"
+                                                    : (selectedRequest.profiles?.plan_type || 'BASIC').toUpperCase() === 'PRO'
+                                                        ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                                                        : "bg-slate-800 text-white shadow-sm shadow-slate-200"
+                                            )}>
+                                                {selectedRequest.profiles?.plan_type || 'BASIC'} PLAN
+                                            </Badge>
+                                        </h2>
+                                        <p className="text-xs text-slate-400 font-semibold mt-0.5 flex items-center gap-1.5">
+                                            <span>{selectedRequest.profiles?.email || 'No email associated'}</span>
+                                            {selectedRequest.profiles?.phone && (
+                                                <>
+                                                    <span className="text-slate-300">•</span>
+                                                    <span>{selectedRequest.profiles.phone}</span>
+                                                </>
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
-                            </section>
 
-                            <section>
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-5 flex items-center gap-2">
-                                    <FileText className="w-3 h-3" /> Identity Records
-                                </h4>
-                                <div className="space-y-4">
-                                    <div className="group bg-slate-900 p-5 rounded-[24px] shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">PAN Number</p>
-                                            <Badge className="bg-blue-500/20 text-blue-400 border-none text-[8px] px-1.5 h-4">SECURE</Badge>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedRequest(null)}
+                                        className="rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50 shadow-none text-xs"
+                                    >
+                                        Close Application
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Main Scrollable workspace contents */}
+                            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 custom-scrollbar">
+                                
+                                {/* Info Grids (Gender, DOB, Identity Digits) */}
+                                <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    
+                                    {/* Personal details cards */}
+                                    <div className="lg:col-span-1 grid grid-cols-2 gap-4">
+                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-center">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Gender</p>
+                                            <p className="text-sm font-black text-slate-800 capitalize">{selectedRequest.gender || 'Not entered'}</p>
                                         </div>
-                                        <p className="text-lg font-mono font-black text-white tracking-widest uppercase">
+                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 flex flex-col justify-center">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Date of Birth</p>
+                                            <p className="text-sm font-black text-slate-800">
+                                                {selectedRequest.dob 
+                                                    ? new Date(selectedRequest.dob).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+                                                    : 'Not entered'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* PAN ID Record */}
+                                    <div className="bg-slate-900 p-4 rounded-2xl shadow-sm text-white flex flex-col justify-between group relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl pointer-events-none" />
+                                        
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">PAN Card Number</p>
+                                            <button 
+                                                onClick={() => handleCopy(decryptedData?.pan || '', "PAN Number")}
+                                                className="text-slate-400 hover:text-white transition-colors"
+                                                title="Copy to clipboard"
+                                            >
+                                                {copiedField === 'PAN Number' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                            </button>
+                                        </div>
+
+                                        <p className="text-lg font-mono font-black tracking-widest text-blue-200">
                                             {decryptedData ? decryptedData.pan : '••••••••••'}
                                         </p>
                                     </div>
 
-                                    <div className="group bg-white p-5 rounded-[24px] border border-slate-200 transition-all hover:scale-[1.02] hover:border-blue-200">
+                                    {/* Aadhaar ID Record */}
+                                    <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col justify-between group relative">
                                         <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Aadhaar Number</p>
-                                            <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] px-1.5 h-4">MASKED</Badge>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Aadhaar Card Number</p>
+                                            <button 
+                                                onClick={() => handleCopy(decryptedData?.aadhar || '', "Aadhaar Number")}
+                                                className="text-slate-400 hover:text-slate-700 transition-colors"
+                                                title="Copy to clipboard"
+                                            >
+                                                {copiedField === 'Aadhaar Number' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                            </button>
                                         </div>
-                                        <p className="text-lg font-mono font-black text-slate-800 tracking-widest">
+
+                                        <p className="text-lg font-mono font-black tracking-widest text-slate-800">
                                             {decryptedData ? maskAadhaar(decryptedData.aadhar) : '••••-••••-••••'}
                                         </p>
                                     </div>
-                                </div>
-                            </section>
 
-                            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100/50">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                                    <p className="text-[10px] font-bold text-blue-800 leading-relaxed uppercase tracking-tight">
-                                        Ensure document numbers match the details on the images provided.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                                </section>
 
-                        {/* Main Stage: Documents */}
-                        <div className="flex-1 bg-slate-50/50 p-6 md:p-10 overflow-y-auto">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 md:ml-1">Proof Verification</h4>
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                                {['aadhar_front', 'aadhar_back', 'pan_card', 'shop_photo'].map((key) => (
-                                    <div key={key} className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200/60 group/card relative flex flex-col">
-                                        <div className="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-5 bg-blue-600 rounded-full" />
-                                                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">
-                                                    {key.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                            {imageUrls[key] && (
-                                                <a
-                                                    href={imageUrls[key]}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
+                                {/* Plan Requirements Dynamic Banner */}
+                                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10 flex items-start gap-3">
+                                    <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="text-xs font-black text-blue-900 uppercase tracking-wider">Required Proofs Checklist ({selectedRequest.profiles?.plan_type || 'BASIC'} Plan)</p>
+                                        <p className="text-slate-500 text-[10px] font-medium mt-0.5 leading-relaxed">
+                                            {selectedRequest.profiles?.plan_type === 'BUSINESS' 
+                                                ? "Applicant is required to submit Aadhar Front, Aadhar Back, PAN, Selfie, and Shop Photo proofs."
+                                                : selectedRequest.profiles?.plan_type === 'PRO'
+                                                    ? "Applicant is required to submit Aadhar Front, Aadhar Back, PAN, and Selfie proofs (Shop Photo is Exempt)."
+                                                    : "Applicant is required to submit Aadhaar Front, Aadhaar Back, and PAN proofs only (Selfie & Shop Photo are Exempt)."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Documents Cards Stage */}
+                                <section className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Document Proof Gallery</h4>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {['aadhar_front', 'aadhar_back', 'pan_card', 'selfie', 'shop_photo'].map((key) => {
+                                            const isRequired = isKeyRequiredForPlan(key, selectedRequest.profiles?.plan_type);
+                                            const path = selectedRequest.document_urls?.[key];
+                                            const loadedUrl = imageUrls[key];
+                                            
+                                            return (
+                                                <Card 
+                                                    key={key} 
+                                                    className={cn(
+                                                        "overflow-hidden rounded-2xl border transition-all duration-300 flex flex-col shadow-none relative group",
+                                                        !isRequired
+                                                            ? "border-emerald-100 bg-emerald-50/10"
+                                                            : !path
+                                                                ? "border-amber-100 bg-amber-50/10"
+                                                                : "border-slate-200/80 hover:shadow-md hover:border-slate-300"
+                                                    )}
                                                 >
-                                                    <Maximize2 className="w-3.5 h-3.5" />
-                                                </a>
-                                            )}
-                                        </div>
-
-                                        <div className="flex-1 aspect-video relative bg-slate-50 flex items-center justify-center overflow-hidden">
-                                            {loadingImages ? (
-                                                <div className="w-full h-full p-4 space-y-3">
-                                                    <Skeleton className="w-full h-full rounded-2xl" />
-                                                </div>
-                                            ) : imageUrls[key] ? (
-                                                <img
-                                                    src={imageUrls[key]}
-                                                    alt={key}
-                                                    className="w-full h-full object-contain transition-all duration-700 group-hover/card:scale-110"
-                                                />
-                                            ) : (
-                                                <div className="flex flex-col items-center gap-3 text-slate-300 p-8 text-center">
-                                                    <div className={cn(
-                                                        "w-16 h-16 rounded-full flex items-center justify-center",
-                                                        key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS'
-                                                            ? "bg-emerald-50"
-                                                            : "bg-slate-100"
-                                                    )}>
-                                                        {key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS' ? (
-                                                            <CheckCircle className="w-8 h-8 text-emerald-500" />
+                                                    {/* Card Header Label */}
+                                                    <div className="px-4 py-2.5 border-b border-slate-100 bg-white flex justify-between items-center shrink-0 min-w-0 gap-2">
+                                                        <span className="text-[9px] font-black text-slate-800 uppercase tracking-wider truncate min-w-0" title={key.replace('_', ' ')}>
+                                                            {key.replace('_', ' ')}
+                                                        </span>
+                                                        
+                                                        {!isRequired ? (
+                                                            <Badge className="bg-emerald-100 text-emerald-800 border-none text-[8px] font-black px-1.5 h-4 py-0 shrink-0">EXEMPT</Badge>
+                                                        ) : !path ? (
+                                                            <Badge className="bg-amber-100 text-amber-800 border-none text-[8px] font-black px-1.5 h-4 py-0 shrink-0">REQUIRED</Badge>
                                                         ) : (
-                                                            <ShieldAlert className="w-8 h-8" />
+                                                            <Badge className="bg-blue-100 text-blue-800 border-none text-[8px] font-black px-1.5 h-4 py-0 shrink-0">UPLOADED</Badge>
                                                         )}
                                                     </div>
-                                                    <div>
-                                                        <p className={cn(
-                                                            "text-xs font-bold uppercase tracking-widest",
-                                                            key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS'
-                                                            ? "text-emerald-600"
-                                                            : "text-slate-500"
-                                                        )}>
-                                                            {key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS' 
-                                                                ? `${selectedRequest?.profiles?.plan_type || 'Basic'} Plan` 
-                                                                : 'Image Unavailable'}
-                                                        </p>
-                                                        <p className="text-[10px] text-slate-400 mt-1 max-w-[140px]">
-                                                            {key === 'shop_photo' && selectedRequest?.profiles?.plan_type !== 'BUSINESS'
-                                                                ? "Shop photo is not required for this user's plan."
-                                                                : "Document could not be retrieved from secure storage."}
-                                                        </p>
+
+                                                    {/* Document Card Viewer Stage */}
+                                                    <div className="h-36 relative bg-slate-50 flex items-center justify-center overflow-hidden flex-1 select-none">
+                                                        {loadingImages ? (
+                                                            <div className="w-full h-full p-3 space-y-2">
+                                                                <Skeleton className="w-full h-full rounded-lg" />
+                                                            </div>
+                                                        ) : loadedUrl ? (
+                                                            <>
+                                                                <img
+                                                                    src={loadedUrl}
+                                                                    alt={key}
+                                                                    className="w-full h-full object-contain p-2 bg-slate-100/50 transition-transform duration-500 group-hover:scale-102"
+                                                                />
+                                                                
+                                                                {/* Hover Action overlay */}
+                                                                <button
+                                                                    onClick={() => setActiveLightboxImage({
+                                                                        key,
+                                                                        url: loadedUrl,
+                                                                        label: key.replace('_', ' ').toUpperCase()
+                                                                    })}
+                                                                    className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 backdrop-blur-[2px] cursor-pointer"
+                                                                >
+                                                                    <Maximize2 className="w-5 h-5 text-white" />
+                                                                    <span className="text-[9px] font-black tracking-widest uppercase">Inspect Proof</span>
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            /* File Missing / Not required / Access Error block states */
+                                                            <div className="p-4 text-center flex flex-col items-center justify-center space-y-2">
+                                                                {!isRequired ? (
+                                                                    <>
+                                                                        <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                                                                            <CheckCircle className="w-5 h-5 text-emerald-500" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black uppercase text-emerald-700">Plan Exempt</p>
+                                                                            <p className="text-[8px] text-emerald-600/70 max-w-[130px] mx-auto mt-0.5 leading-snug">
+                                                                                {getDocumentRequirementMessage(key, selectedRequest.profiles?.plan_type)}
+                                                                            </p>
+                                                                        </div>
+                                                                    </>
+                                                                ) : !path ? (
+                                                                    <>
+                                                                        <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center animate-pulse">
+                                                                            <Clock className="w-5 h-5 text-amber-500" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black uppercase text-amber-700">Not Uploaded</p>
+                                                                            <p className="text-[8px] text-amber-600/70 max-w-[130px] mx-auto mt-0.5 leading-snug">
+                                                                                {getDocumentRequirementMessage(key, selectedRequest.profiles?.plan_type)}
+                                                                            </p>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="h-10 w-10 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center">
+                                                                            <ShieldAlert className="w-5 h-5 text-rose-500" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black uppercase text-rose-700">Access Issue</p>
+                                                                            <p className="text-[8px] text-rose-600/70 max-w-[130px] mx-auto mt-0.5 leading-snug">
+                                                                                Signed URL creation failed. RLS permissions or path error.
+                                                                            </p>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            )}
-
-                                            {/* Status Overlay */}
-                                            {imageUrls[key] && (
-                                                <div className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
-                                                    <Badge className="bg-black/40 backdrop-blur-md text-white border-none text-[8px] font-bold">STRICTLY CONFIDENTIAL</Badge>
-                                                </div>
-                                            )}
-                                        </div>
+                                                </Card>
+                                            );
+                                        })}
                                     </div>
-                                ))}
-                            </div>
+                                </section>
 
-                            <div className="mt-8 bg-amber-50 rounded-3xl p-6 border border-amber-100">
-                                <h5 className="text-xs font-black text-amber-800 uppercase mb-3 flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4" /> Checklist for Reviewer
-                                </h5>
-                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {[
-                                        "Numbers on documents match the digital entry",
-                                        "Photos are clear and text is readable",
-                                        "Selfie matches the photo on ID proofs",
-                                        "Documents are not expired or damaged"
-                                    ].map((item, i) => (
-                                        <li key={i} className="flex items-center gap-2 text-xs text-amber-900/70 font-medium">
-                                            <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0">
-                                                <div className="w-1 h-1 bg-amber-600 rounded-full" />
+                                {/* Interactive Verification Actions Hub */}
+                                <section className="p-6 bg-slate-50 border border-slate-200/60 rounded-3xl space-y-6">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/50 pb-4">
+                                        <div>
+                                            <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+                                                <ShieldCheck className="w-4 h-4 text-blue-600" /> compliance Audit Checklist
+                                            </h4>
+                                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Please check off each box as you verify the documents above.</p>
+                                        </div>
+
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                const allChecked = activeChecklistItems.every(item => approveChecklist[item.key]);
+                                                const updated = { ...approveChecklist };
+                                                activeChecklistItems.forEach(item => {
+                                                    updated[item.key] = !allChecked;
+                                                });
+                                                setApproveChecklist(updated);
+                                            }}
+                                            className="text-[9px] font-black tracking-widest uppercase text-blue-600 hover:bg-blue-50 px-3 h-7 rounded-lg shrink-0"
+                                        >
+                                            {activeChecklistItems.every(item => approveChecklist[item.key]) ? 'Deselect All' : 'Select All Verification Checks'}
+                                        </Button>
+                                    </div>
+
+                                    {/* Checklist Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {activeChecklistItems.map(({ key, label }) => (
+                                            <div
+                                                key={key}
+                                                onClick={() => setApproveChecklist(prev => ({ ...prev, [key]: !prev[key] }))}
+                                                className={cn(
+                                                    "flex items-start gap-3.5 bg-white p-4 rounded-xl border cursor-pointer select-none transition-all duration-300 hover:shadow-sm",
+                                                    approveChecklist[key] 
+                                                        ? "border-emerald-500/30 bg-emerald-50/10 ring-1 ring-emerald-500/10" 
+                                                        : "border-slate-100 hover:border-slate-200"
+                                                )}
+                                            >
+                                                <Checkbox
+                                                    id={`chk-${key}`}
+                                                    checked={approveChecklist[key]}
+                                                    className="mt-0.5 w-5 h-5 rounded-md border-2 border-slate-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-none text-white pointer-events-none"
+                                                />
+                                                <span className={cn(
+                                                    "text-xs font-bold leading-tight select-none",
+                                                    approveChecklist[key] 
+                                                        ? "text-emerald-700/60 line-through decoration-emerald-500/30 decoration-2" 
+                                                        : "text-slate-600"
+                                                )}>
+                                                    {label}
+                                                </span>
                                             </div>
-                                            {item}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+                                        ))}
+                                    </div>
 
-                    {/* Footer Actions */}
-                    <div className="p-6 md:p-8 bg-white border-t border-slate-100 flex flex-col md:flex-row justify-end gap-3 md:gap-4 shrink-0">
-                        <Button
-                            variant="outline"
-                            className="h-14 md:w-48 rounded-2xl border-2 border-slate-200 text-slate-900 font-bold hover:bg-slate-50 transition-all text-base"
-                            onClick={() => setShowRejectDialog(true)}
-                            disabled={updateStatus.isPending}
-                        >
-                            <XCircle className="w-5 h-5 mr-2 text-rose-500" /> Reject Application
-                        </Button>
-                        <Button
-                            className="h-14 md:w-64 rounded-2xl bg-slate-900 text-white hover:bg-emerald-600 border-none font-black shadow-2xl shadow-slate-900/20 transition-all duration-300 text-base"
-                            onClick={() => setShowApproveDialog(true)}
-                            disabled={updateStatus.isPending || loadingImages}
-                        >
-                            {updateStatus.isPending ? (
-                                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...</>
-                            ) : (
-                                <><CheckCircle className="w-5 h-5 mr-2" /> Approve Application</>
-                            )}
-                        </Button>
-                    </div>
+                                    {/* Action row */}
+                                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-200/50">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setShowRejectDialog(true)}
+                                            disabled={updateStatus.isPending}
+                                            className="h-12 px-6 rounded-xl border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 hover:text-rose-700 transition-all text-xs"
+                                        >
+                                            <XCircle className="w-4 h-4 mr-2" /> Reject & Return Application
+                                        </Button>
 
-                    {/* Error Overlay if images fail */}
-                    {!loadingImages && Object.keys(imageUrls).length === 0 && selectedRequest?.document_urls && (
-                        <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center bg-white/40 backdrop-blur-[2px]">
-                            <div className="bg-white p-6 rounded-3xl shadow-2xl border border-rose-100 flex flex-col items-center gap-4 pointer-events-auto max-w-sm text-center">
-                                <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center">
-                                    <ShieldAlert className="w-6 h-6 text-rose-600" />
-                                </div>
-                                <div>
-                                    <h5 className="font-bold text-slate-900">Security Access Issue</h5>
-                                    <p className="text-sm text-slate-500 mt-1">Admin lacks permission to view these secure assets. Please check storage RLS policies.</p>
-                                </div>
-                                <Button size="sm" variant="outline" className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => window.location.reload()}>
-                                    Refresh Session
-                                </Button>
+                                        <Button
+                                            onClick={handleExecuteApprove}
+                                            disabled={!isApproveEnabled || updateStatus.isPending || loadingImages}
+                                            className={cn(
+                                                "h-12 px-8 rounded-xl font-black shadow-lg transition-all duration-300 text-xs border-0",
+                                                isApproveEnabled
+                                                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-600"
+                                                    : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                                            )}
+                                        >
+                                            {updateStatus.isPending ? (
+                                                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Auditing...</>
+                                            ) : (
+                                                <><CheckCircle className="w-4 h-4 mr-2" /> Approve & Unlock KYC Account</>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </section>
                             </div>
                         </div>
                     )}
                 </div>
+            </div>
+
+            {/* Custom Immersive Image Lightbox */}
+            {activeLightboxImage && (
+                <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-6 select-none animate-in fade-in duration-300">
+                    
+                    {/* Lightbox Top Header */}
+                    <div className="flex items-center justify-between w-full shrink-0 border-b border-white/10 pb-4 text-white">
+                        <div>
+                            <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">Document Inspection</span>
+                            <h3 className="text-sm font-bold mt-0.5 tracking-wide text-blue-400">{activeLightboxImage.label}</h3>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                            <span className="text-slate-400 text-xs font-mono bg-white/5 border border-white/10 px-3 py-1 rounded-xl">
+                                {Object.keys(imageUrls).indexOf(activeLightboxImage.key) + 1} / {Object.keys(imageUrls).filter(k => imageUrls[k]).length} uploaded
+                            </span>
+                            <button
+                                onClick={() => setActiveLightboxImage(null)}
+                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Lightbox Center Image Stage */}
+                    <div className="flex-1 flex items-center justify-center overflow-hidden relative p-4 my-4">
+                        
+                        {/* Prev Image shortcut arrow */}
+                        {Object.keys(imageUrls).filter(k => imageUrls[k]).length > 1 && (
+                            <button
+                                onClick={() => handleCycleImage('prev')}
+                                className="absolute left-6 z-10 p-4 rounded-full bg-black/60 border border-white/5 text-white hover:bg-blue-600 transition-all cursor-pointer shadow-lg"
+                                title="Previous document"
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* Img Box wrapper with zoom and rotation applied */}
+                        <div 
+                            className="transition-transform duration-300 ease-out flex items-center justify-center max-w-[85vw] max-h-[70vh]"
+                            style={{ 
+                                transform: `scale(${lightboxZoom}) rotate(${lightboxRotation}deg)`
+                            }}
+                        >
+                            <img
+                                src={activeLightboxImage.url}
+                                alt={activeLightboxImage.label}
+                                className="max-w-full max-h-[70vh] object-contain rounded-lg border border-white/10 shadow-2xl"
+                                draggable="false"
+                            />
+                        </div>
+
+                        {/* Next Image shortcut arrow */}
+                        {Object.keys(imageUrls).filter(k => imageUrls[k]).length > 1 && (
+                            <button
+                                onClick={() => handleCycleImage('next')}
+                                className="absolute right-6 z-10 p-4 rounded-full bg-black/60 border border-white/5 text-white hover:bg-blue-600 transition-all cursor-pointer shadow-lg"
+                                title="Next document"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Lightbox Action controls toolbar */}
+                    <div className="flex items-center justify-center gap-3 shrink-0 border-t border-white/10 pt-4">
+                        <button
+                            onClick={() => handleZoom('in')}
+                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            title="Zoom In"
+                        >
+                            <ZoomIn className="w-5 h-5" />
+                        </button>
+                        
+                        <button
+                            onClick={() => handleZoom('out')}
+                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            title="Zoom Out"
+                        >
+                            <ZoomOut className="w-5 h-5" />
+                        </button>
+
+                        <div className="h-6 w-px bg-white/10 mx-2" />
+
+                        <button
+                            onClick={() => handleRotate('ccw')}
+                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            title="Rotate 90° Counter-Clockwise"
+                        >
+                            <RotateCcw className="w-5 h-5" />
+                        </button>
+
+                        <button
+                            onClick={() => handleRotate('cw')}
+                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            title="Rotate 90° Clockwise"
+                        >
+                            <RotateCw className="w-5 h-5" />
+                        </button>
+
+                        <div className="h-6 w-px bg-white/10 mx-2" />
+
+                        <button
+                            onClick={handleResetLightbox}
+                            className="px-5 h-11 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                        >
+                            Reset Canvas
+                        </button>
+                    </div>
+
+                </div>
             )}
 
-            {/* Rejection Dialog */}
+            {/* Rejection Capture Dialog */}
             <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-                <DialogContent className="max-w-md rounded-[32px] p-8 border-none shadow-2xl">
+                <DialogContent className="max-w-md rounded-[32px] p-8 border-none shadow-2xl bg-white">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">Reject Application</DialogTitle>
-                        <DialogDescription className="text-slate-500">
-                            Please provide a reason. This will be shared with the applicant to help them correct their documents.
+                        <DialogTitle className="text-lg font-black text-slate-900 tracking-tight">Reject Application</DialogTitle>
+                        <DialogDescription className="text-slate-500 text-xs">
+                            Please provide a detailed reason. This message will be sent to the applicant to help them correct their document uploads.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="py-6">
+                    <div className="py-5">
                         <textarea
-                            className="w-full h-32 rounded-2xl border-2 border-slate-100 p-4 font-medium text-slate-800 placeholder:text-slate-400 focus:border-rose-300 focus:outline-none transition-all resize-none"
-                            placeholder="e.g. Aadhar back photo is blurry, Please retake..."
+                            className="w-full h-32 rounded-2xl border-2 border-slate-100 p-4 font-medium text-xs text-slate-800 placeholder:text-slate-400 focus:border-rose-300 focus:outline-none transition-all resize-none bg-slate-50/50"
+                            placeholder="e.g., Aadhaar Back photo is blurry and illegible. Please take a clear, high-resolution photo and re-upload..."
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
                         />
                     </div>
 
                     <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="ghost" className="rounded-xl font-bold text-slate-500" onClick={() => setShowRejectDialog(false)}>
+                        <Button 
+                            variant="ghost" 
+                            className="rounded-xl font-bold text-slate-500 text-xs" 
+                            onClick={() => {
+                                setShowRejectDialog(false);
+                                setRejectReason("");
+                            }}
+                        >
                             Cancel
                         </Button>
                         <Button
-                            className="rounded-xl bg-rose-600 text-white font-bold px-8 hover:bg-rose-700 shadow-lg shadow-rose-600/20"
+                            className="rounded-xl bg-rose-600 text-white font-bold px-6 hover:bg-rose-700 shadow-lg shadow-rose-600/10 text-xs"
                             onClick={handleRejectSubmit}
                             disabled={updateStatus.isPending || !rejectReason.trim()}
                         >
@@ -630,104 +1117,6 @@ export const KYCRequests = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* Approval Checklist Dialog */}
-            <Dialog open={showApproveDialog} onOpenChange={(open) => {
-                setShowApproveDialog(open);
-                if (!open) {
-                    setApproveChecklist({ numbersMatch: false, photosClear: false, selfieMatches: false, notExpired: false, shopAuthentic: false });
-                }
-            }}>
-                <DialogContent className="max-w-3xl rounded-[32px] p-10 border-none shadow-2xl bg-slate-50">
-                    <DialogHeader className="mb-6 flex flex-row items-start gap-5 space-y-0">
-                        <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center shrink-0 border border-emerald-200">
-                            <ShieldCheck className="w-8 h-8 text-emerald-600" />
-                        </div>
-                        <div className="text-left mt-1 flex-1">
-                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight mb-2 flex items-center justify-between">
-                                Final Verification Checklist
-                                <div className="flex items-center gap-2">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-[10px] font-black tracking-widest uppercase text-blue-600 hover:bg-blue-50 px-3 h-7 rounded-lg"
-                                        onClick={() => {
-                                            const allChecked = Object.values(approveChecklist).every(Boolean);
-                                            setApproveChecklist({
-                                                numbersMatch: !allChecked,
-                                                photosClear: !allChecked,
-                                                selfieMatches: !allChecked,
-                                                notExpired: !allChecked,
-                                                shopAuthentic: !allChecked
-                                            });
-                                        }}
-                                    >
-                                        {Object.values(approveChecklist).every(Boolean) ? 'Deselect All' : 'Select All'}
-                                    </Button>
-                                </div>
-                            </DialogTitle>
-                            <DialogDescription className="text-slate-500 text-sm max-w-lg leading-relaxed">
-                                Please confirm that you have manually verified the following details before officially approving this account.
-                            </DialogDescription>
-                        </div>
-                    </DialogHeader>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-                        {[
-                            { key: 'numbersMatch', label: "Numbers on documents match the digital entry" },
-                            { key: 'photosClear', label: "Photos are clear and text is readable" },
-                            { key: 'selfieMatches', label: "Selfie matches the photo on ID proofs" },
-                            { key: 'notExpired', label: "Documents are not expired or damaged" },
-                            { key: 'shopAuthentic', label: "Shop photo appears authentic and corresponds to the applicant" }
-                        ].map(({ key, label }) => (
-                            <div key={key} className={cn(
-                                "flex items-start space-x-4 bg-white p-5 rounded-2xl shadow-sm border transition-all cursor-pointer duration-300",
-                                approveChecklist[key as keyof typeof approveChecklist] ? "border-emerald-500/30 bg-emerald-50/20" : "border-slate-100 hover:border-emerald-200"
-                            )} onClick={() => setApproveChecklist(prev => ({ ...prev, [key]: !prev[key as keyof typeof approveChecklist] }))}>
-                                <Checkbox
-                                    id={key}
-                                    checked={approveChecklist[key as keyof typeof approveChecklist]}
-                                    className="mt-0.5 w-6 h-6 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-none text-white pointer-events-none transition-all duration-300"
-                                />
-                                <div className="leading-tight flex-1">
-                                    <label
-                                        htmlFor={key}
-                                        className={cn(
-                                            "text-sm font-bold leading-snug cursor-pointer transition-all duration-300 select-none block",
-                                            approveChecklist[key as keyof typeof approveChecklist] 
-                                                ? "text-emerald-600/60 line-through decoration-emerald-500/40 decoration-2" 
-                                                : "text-slate-700"
-                                        )}
-                                    >
-                                        {label}
-                                    </label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <DialogFooter className="mt-8 flex flex-col sm:flex-row gap-4 border-t border-slate-200/60 pt-6">
-                        <Button variant="outline" className="h-12 flex-1 rounded-xl border-slate-200 text-slate-600 font-bold" onClick={() => setShowApproveDialog(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            className={cn(
-                                "h-12 flex-1 rounded-xl font-black shadow-lg transition-all duration-300",
-                                isApproveEnabled
-                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30"
-                                    : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                            )}
-                            onClick={handleExecuteApprove}
-                            disabled={!isApproveEnabled || updateStatus.isPending}
-                        >
-                            {updateStatus.isPending ? (
-                                <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...</>
-                            ) : (
-                                "Approve & Unlock"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

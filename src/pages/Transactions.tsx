@@ -29,6 +29,25 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 
+const normalizeTransactionStatus = (status?: string): 'SUCCESS' | 'FAILED' | 'PENDING' => {
+  if (!status) return 'PENDING';
+  const normalized = status.toUpperCase();
+  if (normalized === 'SUCCESS' || normalized === 'SUCCESSFUL') {
+    return 'SUCCESS';
+  }
+  if (
+    normalized === 'FAILED' || 
+    normalized === 'FAILURE' || 
+    normalized === 'FAIL' || 
+    normalized === 'REJECTED' || 
+    normalized === 'CANCELLED' || 
+    normalized === 'ERROR'
+  ) {
+    return 'FAILED';
+  }
+  return 'PENDING';
+};
+
 const TransactionsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -52,12 +71,12 @@ const TransactionsPage = () => {
   const filteredTransactions = transactions.filter(t => {
     const matchesSearch = t.mobile_number?.includes(searchQuery) || t.id.includes(searchQuery);
     if (activeTab === "all") return matchesSearch;
-    return matchesSearch && t.status.toLowerCase() === activeTab.toLowerCase();
+    return matchesSearch && normalizeTransactionStatus(t.status) === activeTab;
   });
 
   const stats = {
-    total: transactions.reduce((acc, t) => acc + (t.status === 'SUCCESS' ? Number(t.amount) : 0), 0),
-    count: transactions.filter(t => t.status === 'SUCCESS').length
+    total: transactions.reduce((acc, t) => acc + (normalizeTransactionStatus(t.status) === 'SUCCESS' ? Number(t.amount) : 0), 0),
+    count: transactions.filter(t => normalizeTransactionStatus(t.status) === 'SUCCESS').length
   };
 
   return (
@@ -184,11 +203,11 @@ const TransactionsPage = () => {
                       {/* Status Section */}
                       <div className="flex flex-col items-end gap-2">
                         <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black tracking-widest border-none ${
-                          txn.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
-                          txn.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                          normalizeTransactionStatus(txn.status) === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
+                          normalizeTransactionStatus(txn.status) === 'PENDING' ? 'bg-amber-100 text-amber-700' :
                           'bg-rose-100 text-rose-700'
                         }`}>
-                          {txn.status}
+                          {normalizeTransactionStatus(txn.status)}
                         </Badge>
                         <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-blue-600 transition-colors" />
                       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminService } from "@/services/admin";
 import { Button } from "@/components/ui/button";
 import {
     MessageCircle, Zap, Gift, Shield, Megaphone,
@@ -50,36 +51,12 @@ export const WhatsAppBanner = () => {
     // Load published banners from Supabase
     const fetchBanners = async () => {
         try {
-            const { data, error } = await (supabase as any)
-                .from('banners')
-                .select('id,title,subtitle,tag,cta_text,cta_link,grad_from,grad_to,icon_name,style,image_url,sort_order')
-                .eq('status', 'published')
-                .eq('type', 'banner')
-                .order('sort_order', { ascending: true });
-
-            if (error) {
-                // Handle missing columns gracefully
-                if (error.code === '42703' || error.message?.includes('column')) {
-                    console.warn("Banners table missing columns for Home. Using generic fetch.");
-                    const { data: fallbackData } = await (supabase as any)
-                        .from('banners')
-                        .select('*')
-                        .limit(5);
-                    if (fallbackData && fallbackData.length > 0) {
-                        setBanners(fallbackData);
-                        setActive(0);
-                        return;
-                    }
-                }
-                // If table doesn't exist or other error, fallback to static defaults
-                console.error("Banner fetch error:", error);
-                setBanners(FALLBACK);
-                return;
-            }
-
+            const data = await adminService.getBanners('banner', 'published');
             if (data && data.length > 0) {
                 setBanners(data);
                 setActive(0);
+            } else {
+                setBanners(FALLBACK);
             }
         } catch (err) {
             console.error("Critical banner fetch failure:", err);
@@ -90,15 +67,17 @@ export const WhatsAppBanner = () => {
     useEffect(() => {
         fetchBanners();
 
-        // Realtime: re-fetch whenever banners table changes
-        const channel = supabase
-            .channel('banners_public')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'banners' }, () => {
-                fetchBanners();
-            })
-            .subscribe();
+        const handleBannersUpdate = () => {
+            fetchBanners();
+        };
 
-        return () => { supabase.removeChannel(channel); };
+        window.addEventListener('storage', handleBannersUpdate);
+        window.addEventListener('prepe_banners_updated', handleBannersUpdate);
+
+        return () => {
+            window.removeEventListener('storage', handleBannersUpdate);
+            window.removeEventListener('prepe_banners_updated', handleBannersUpdate);
+        };
     }, []);
 
     // Auto-scroll timer

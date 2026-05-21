@@ -33,7 +33,7 @@ const NetworkDiagnostics = () => {
     const fetchIPData = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/kwik-ip');
+            const response = await fetch('/api/network/ip');
             
             if (!response.ok) {
                 throw new Error(`API returned status ${response.status}`);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { adminService } from '@/services/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -210,31 +211,14 @@ const AdminBanners = () => {
     const { data: banners = [], isLoading } = useQuery<Banner[]>({
         queryKey: ['admin_banners'],
         queryFn: async () => {
-            const { data, error } = await (supabase as any)
-                .from('banners')
-                .select('*')
-                .order('sort_order', { ascending: true });
-            if (error) throw error;
-            return data || [];
+            return await adminService.getBanners();
         },
     });
-
-    // ── Realtime subscription to invalidate on DB change
-    useEffect(() => {
-        const channel = supabase
-            .channel('banners_admin')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'banners' }, () => {
-                qc.invalidateQueries({ queryKey: ['admin_banners'] });
-            })
-            .subscribe();
-        return () => { supabase.removeChannel(channel); };
-    }, [qc]);
 
     // ── Delete mutation
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await (supabase as any).from('banners').delete().eq('id', id);
-            if (error) throw error;
+            await adminService.deleteBanner(id);
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['admin_banners'] });
@@ -245,16 +229,13 @@ const AdminBanners = () => {
 
     // ── Toggle publish
     const togglePublish = async (b: Banner) => {
-        const newStatus = b.status === 'published' ? 'draft' : 'published';
-        const { error } = await (supabase as any).from('banners')
-            .update({ status: newStatus, updated_at: new Date().toISOString() })
-            .eq('id', b.id);
-        if (error) {
+        try {
+            await adminService.toggleBannerPublish(b.id);
+            qc.invalidateQueries({ queryKey: ['admin_banners'] });
+            toast({ title: b.status === 'published' ? '📝 Moved to Draft' : '🌐 Published!' });
+        } catch (error: any) {
             toast({ title: 'Failed to update status', description: error.message, variant: 'destructive' });
-            return;
         }
-        qc.invalidateQueries({ queryKey: ['admin_banners'] });
-        toast({ title: newStatus === 'published' ? '🌐 Published!' : '📝 Moved to Draft' });
     };
 
     // ── Reorder
@@ -262,15 +243,12 @@ const AdminBanners = () => {
         const idx = banners.findIndex(x => x.id === b.id);
         const swap = banners[dir === 'up' ? idx - 1 : idx + 1];
         if (!swap) return;
-        const [r1, r2] = await Promise.all([
-            (supabase as any).from('banners').update({ sort_order: swap.sort_order }).eq('id', b.id),
-            (supabase as any).from('banners').update({ sort_order: b.sort_order }).eq('id', swap.id),
-        ]);
-        if (r1.error || r2.error) {
-            toast({ title: 'Reorder failed', description: (r1.error || r2.error).message, variant: 'destructive' });
-            return;
+        try {
+            await adminService.reorderBanners(b.id, swap.sort_order, swap.id, b.sort_order);
+            qc.invalidateQueries({ queryKey: ['admin_banners'] });
+        } catch (error: any) {
+            toast({ title: 'Reorder failed', description: error.message, variant: 'destructive' });
         }
-        qc.invalidateQueries({ queryKey: ['admin_banners'] });
     };
 
 

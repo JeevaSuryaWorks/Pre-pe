@@ -36,7 +36,30 @@ const formatDT = (iso: string) =>
         hour: "2-digit", minute: "2-digit", hour12: true,
     });
 
+const normalizeTransactionStatus = (status?: string): 'SUCCESS' | 'FAILED' | 'PENDING' | 'REFUNDED' => {
+    if (!status) return 'PENDING';
+    const normalized = status.toUpperCase();
+    if (normalized === 'SUCCESS' || normalized === 'SUCCESSFUL') {
+        return 'SUCCESS';
+    }
+    if (normalized === 'REFUNDED') {
+        return 'REFUNDED';
+    }
+    if (
+        normalized === 'FAILED' || 
+        normalized === 'FAILURE' || 
+        normalized === 'FAIL' || 
+        normalized === 'REJECTED' || 
+        normalized === 'CANCELLED' || 
+        normalized === 'ERROR'
+    ) {
+        return 'FAILED';
+    }
+    return 'PENDING';
+};
+
 const StatusBadge = ({ status }: { status: string }) => {
+    const normalized = normalizeTransactionStatus(status);
     const map: Record<string, string> = {
         SUCCESS: "bg-emerald-50 text-emerald-700 border-emerald-200",
         FAILED: "bg-rose-50 text-rose-700 border-rose-200",
@@ -44,8 +67,8 @@ const StatusBadge = ({ status }: { status: string }) => {
         REFUNDED: "bg-indigo-50 text-indigo-700 border-indigo-200",
     };
     return (
-        <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border", map[status] || "bg-slate-50 text-slate-500 border-slate-200")}>
-            {status}
+        <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border", map[normalized] || "bg-slate-50 text-slate-500 border-slate-200")}>
+            {normalized}
         </Badge>
     );
 };
@@ -99,7 +122,8 @@ const TransactionsAdmin = () => {
 
     const filtered = useMemo(() => {
         return txns.filter((t) => {
-            const matchStatus = statusFilter === "ALL" || t.status === statusFilter;
+            const normStatus = normalizeTransactionStatus(t.status);
+            const matchStatus = statusFilter === "ALL" || normStatus === statusFilter;
             const matchType = typeFilter === "ALL" || t.type === typeFilter;
             const q = search.toLowerCase();
             const matchSearch = !q ||
@@ -114,10 +138,10 @@ const TransactionsAdmin = () => {
     }, [txns, statusFilter, typeFilter, search]);
 
     // Stats
-    const totalCredit = txns.filter(t => t.type === "CREDIT" && t.status === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
-    const totalDebit = txns.filter(t => t.type === "DEBIT" && t.status === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
+    const totalCredit = txns.filter(t => t.type === "CREDIT" && normalizeTransactionStatus(t.status) === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
+    const totalDebit = txns.filter(t => t.type === "DEBIT" && normalizeTransactionStatus(t.status) === "SUCCESS").reduce((s, t) => s + Number(t.amount), 0);
     const uniqueUsers = new Set(txns.map(t => t.user_id)).size;
-    const pending = txns.filter(t => t.status === "PENDING").length;
+    const pending = txns.filter(t => normalizeTransactionStatus(t.status) === "PENDING").length;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">

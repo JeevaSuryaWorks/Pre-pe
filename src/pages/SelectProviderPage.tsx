@@ -24,16 +24,16 @@ export const SelectProviderPage = ({ type, title = "Select Provider" }: SelectPr
         if (type === 'dth') {
             return {
                 recent: [
-                    { id: 'd2h', name: 'Videocon D2H', logo: 'https://companieslogo.com/img/orig/D2H-e9c8e178.png' },
-                    { id: 'tatasky', name: 'Tata Sky', logo: 'https://companieslogo.com/img/orig/TATA-37a282f9.png' }, // Now Tata Play
-                    { id: 'sundirect', name: 'Sun Direct TV', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/67/Sun_Direct_Logo.jpg/250px-Sun_Direct_Logo.jpg' },
+                    { id: 'd2h', name: 'Videocon D2H', logo: '/operators/videocon-d2h.svg' },
+                    { id: 'tatasky', name: 'Tata Play', logo: '/operators/tataplay.svg' },
+                    { id: 'sundirect', name: 'Sun Direct TV', logo: '/operators/sun-direct.svg' },
                 ],
                 all: [
-                    { id: 'airtel', name: 'Airtel TV', logo: 'https://assets.airtel.in/static-assets/new-home/img/airtel-red.svg' },
-                    { id: 'dishtv', name: 'Dish TV', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9f/Dish_TV_Logo.svg/1200px-Dish_TV_Logo.svg.png' },
-                    { id: 'sundirect', name: 'Sun Direct TV', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/67/Sun_Direct_Logo.jpg/250px-Sun_Direct_Logo.jpg' },
-                    { id: 'tatasky', name: 'Tata Sky', logo: 'https://companieslogo.com/img/orig/TATA-37a282f9.png' },
-                    { id: 'd2h', name: 'Videocon D2H', logo: 'https://companieslogo.com/img/orig/D2H-e9c8e178.png' },
+                    { id: 'airtel', name: 'Airtel DTH', logo: '/operators/airtel-dth.svg' },
+                    { id: 'dishtv', name: 'Dish TV', logo: '/operators/dishtv.svg' },
+                    { id: 'sundirect', name: 'Sun Direct TV', logo: '/operators/sun-direct.svg' },
+                    { id: 'tatasky', name: 'Tata Play', logo: '/operators/tataplay.svg' },
+                    { id: 'd2h', name: 'Videocon D2H', logo: '/operators/videocon-d2h.svg' },
                 ]
             };
         }

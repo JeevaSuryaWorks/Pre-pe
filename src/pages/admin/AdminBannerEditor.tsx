@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { adminService } from '@/services/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -300,11 +301,16 @@ const AdminBannerEditor = () => {
         if (!id) return;
         (async () => {
             setFetching(true);
-            const { data, error } = await (supabase as any).from('banners').select('*').eq('id', id).single();
-            if (error) { toast({ title: 'Banner not found', variant: 'destructive' }); navigate('/admin/banners'); return; }
-            const { created_at, ...rest } = data;
-            setForm(rest as BannerForm);
-            setFetching(false);
+            try {
+                const data = await adminService.getBannerById(id);
+                const { created_at, id: bid, ...rest } = data;
+                setForm(rest as BannerForm);
+            } catch (error: any) {
+                toast({ title: 'Banner not found', description: error.message, variant: 'destructive' });
+                navigate('/admin/banners');
+            } finally {
+                setFetching(false);
+            }
         })();
     }, [id]);
 
@@ -316,18 +322,17 @@ const AdminBannerEditor = () => {
     const save = async (status: 'draft' | 'published') => {
         if (!form.title.trim()) { toast({ title: 'Title is required', variant: 'destructive' }); return; }
         setLoading(true);
-        const payload = { ...form, status, updated_at: new Date().toISOString() };
-        let error;
-        if (isNew) {
-            ({ error } = await (supabase as any).from('banners').insert(payload));
-        } else {
-            ({ error } = await (supabase as any).from('banners').update(payload).eq('id', id));
+        try {
+            const payload = { ...form, id, status, updated_at: new Date().toISOString() };
+            await adminService.upsertBanner(payload);
+            localStorage.removeItem('banner_editor_draft');
+            toast({ title: status === 'published' ? '🌐 Published!' : '📝 Saved as Draft' });
+            navigate('/admin/banners');
+        } catch (error: any) {
+            toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
-        localStorage.removeItem('banner_editor_draft');
-        toast({ title: status === 'published' ? '🌐 Published!' : '📝 Saved as Draft' });
-        navigate('/admin/banners');
     };
 
     if (fetching) return (

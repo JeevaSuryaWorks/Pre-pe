@@ -96,52 +96,72 @@ export default function GiftCardsPage() {
     };
 
     const loadVouchers = async () => {
+        setLoading(true);
         try {
             const { data, error } = await supabase
-                .from('gift_vouchers' as any)
+                .from('gift_vouchers' as never)
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (!error && data && data.length > 0) {
-                setVouchers(data as any);
-            } else {
-                // Read from LocalStorage fallback if DB table missing
-                const local = localStorage.getItem('prepe_gift_vouchers');
-                if (local) {
-                    setVouchers(JSON.parse(local));
-                } else {
-                    const defaults: GiftVoucher[] = [
-                        {
-                            id: 'v1',
-                            name: 'Amazon Prime Shopping Voucher',
-                            provider: 'Amazon Pay',
-                            amount: 500,
-                            price: 475,
-                            discount: 5,
-                            code: 'AMZPRIME500',
-                            bannerUrl: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&q=80&w=600',
-                            description: 'Get flat 5% instant cashback on Amazon Pay shopping voucher. Safe, instant, redeemable worldwide.',
-                            created_at: new Date().toISOString()
-                        },
-                        {
-                            id: 'v2',
-                            name: 'Google Play Gift Card',
-                            provider: 'Google Play',
-                            amount: 250,
-                            price: 240,
-                            discount: 4,
-                            code: 'GPLAY250',
-                            bannerUrl: 'https://images.unsplash.com/photo-1510519138101-570d1dca3d66?auto=format&fit=crop&q=80&w=600',
-                            description: 'Google Play instant prepaid code. Claim game items, books, movies and custom skins instantly.',
-                            created_at: new Date().toISOString()
-                        }
-                    ];
-                    localStorage.setItem('prepe_gift_vouchers', JSON.stringify(defaults));
-                    setVouchers(defaults);
-                }
+            if (error) throw error;
+            if (data && data.length > 0) {
+                const mapped = (data as any[]).map(v => ({
+                    id: v.id,
+                    name: v.name,
+                    provider: v.provider || '',
+                    amount: Number(v.amount),
+                    price: Number(v.price || v.amount),
+                    discount: Number(v.discount || 0),
+                    code: v.code || '',
+                    bannerUrl: v.banner_url || v.bannerUrl || 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&q=80&w=600',
+                    description: v.description || '',
+                    created_at: v.created_at
+                }));
+                setVouchers(mapped);
+                setLoading(false);
+                return;
             }
         } catch (e) {
-            console.warn("Using localStorage voucher registry.");
+            console.error("Failed to fetch gift vouchers from Supabase, loading fallback:", e);
+        }
+
+        try {
+            // Read directly from LocalStorage as fallback
+            const local = localStorage.getItem('prepe_gift_vouchers');
+            if (local) {
+                setVouchers(JSON.parse(local));
+            } else {
+                const defaults: GiftVoucher[] = [
+                    {
+                        id: 'v1',
+                        name: 'Amazon Prime Shopping Voucher',
+                        provider: 'Amazon Pay',
+                        amount: 500,
+                        price: 475,
+                        discount: 5,
+                        code: 'AMZPRIME500',
+                        bannerUrl: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&q=80&w=600',
+                        description: 'Get flat 5% instant cashback on Amazon Pay shopping voucher. Safe, instant, redeemable worldwide.',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'v2',
+                        name: 'Google Play Gift Card',
+                        provider: 'Google Play',
+                        amount: 250,
+                        price: 240,
+                        discount: 4,
+                        code: 'GPLAY250',
+                        bannerUrl: 'https://images.unsplash.com/photo-1510519138101-570d1dca3d66?auto=format&fit=crop&q=80&w=600',
+                        description: 'Google Play instant prepaid code. Claim game items, books, movies and custom skins instantly.',
+                        created_at: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('prepe_gift_vouchers', JSON.stringify(defaults));
+                setVouchers(defaults);
+            }
+        } catch (e) {
+            console.error("Using localStorage voucher registry error:", e);
         } finally {
             setLoading(false);
         }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { adminService } from '@/services/admin';
 import { useAuth } from '@/hooks/useAuth';
 import { 
     Bell, ChevronLeft, Megaphone, ShieldAlert, 
@@ -41,41 +42,8 @@ const NotificationsPage = () => {
 
             // 1. Fetch Global Announcements (banners)
             try {
-                const { data: announcements, error: annError } = await supabase
-                    .from('banners' as any)
-                    .select('*')
-                    .eq('type', 'announcement')
-                    .eq('status', 'published')
-                    .order('sort_order', { ascending: true });
-
-                if (annError) {
-                    // Check for common column mismatch errors (400)
-                    if (annError.code === '42703' || annError.message?.includes('column')) {
-                        console.warn("Banners table is missing columns. Attempting generic fetch.");
-                        const { data: fallbackAnns } = await supabase
-                            .from('banners' as any)
-                            .select('*')
-                            .limit(5);
-                        
-                        if (fallbackAnns) {
-                            fallbackAnns.forEach((a: any) => {
-                                allNotifications.push({
-                                    id: a.id,
-                                    type: 'announcement',
-                                    title: a.title || 'Notification',
-                                    content: a.subtitle || a.content || 'Check out this update!',
-                                    date: a.updated_at || a.created_at || new Date().toISOString(),
-                                    cta_link: a.cta_link,
-                                    cta_text: a.cta_text,
-                                    icon: Megaphone,
-                                    color: 'blue'
-                                });
-                            });
-                        }
-                    } else {
-                        throw annError;
-                    }
-                } else if (announcements) {
+                const announcements = await adminService.getBanners('announcement', 'published');
+                if (announcements) {
                     announcements.forEach((a: any) => {
                         allNotifications.push({
                             id: a.id,
@@ -94,32 +62,49 @@ const NotificationsPage = () => {
                 console.error("Announcements fetch failed:", err);
             }
 
-            // 2. Fetch User KYC Rejections
+            // 2. Fetch User KYC Status Updates (Approved & Rejected)
             try {
-                const { data: kycRejections, error: kycError } = await supabase
+                const { data: kycStatusList, error: kycError } = await supabase
                     .from('kyc_verifications' as any)
                     .select('*')
                     .eq('user_id', user?.id)
-                    .eq('status', 'REJECTED')
+                    .in('status', ['APPROVED', 'REJECTED'])
                     .order('updated_at', { ascending: false });
 
-                if (!kycError && kycRejections) {
-                    kycRejections.forEach((k: any) => {
-                        allNotifications.push({
-                            id: `kyc-${k.id}`,
-                            type: 'rejection',
-                            title: 'KYC Verification Rejected',
-                            content: k.rejection_reason || 'Your KYC application was rejected by the administrator. Please re-submit with clear documents.',
-                            date: k.updated_at,
-                            cta_link: '/kyc',
-                            cta_text: 'Fix Now',
-                            icon: ShieldAlert,
-                            color: 'rose'
-                        });
+                if (!kycError && kycStatusList) {
+                    kycStatusList.forEach((k: any) => {
+                        if (k.status === 'APPROVED') {
+                            const detailsText = k.rejection_reason && k.rejection_reason.startsWith('Verified Checklist:')
+                                ? `Congratulations! Your Identity Compliance Audit has been successfully verified. Your plan benefits and limits are now fully unlocked.\n\n${k.rejection_reason}`
+                                : 'Congratulations! Your Identity Compliance Audit has been successfully verified. Your plan benefits and limits are now fully unlocked.';
+                            allNotifications.push({
+                                id: `kyc-${k.id}`,
+                                type: 'approval' as any,
+                                title: 'KYC Verification Approved 🎉',
+                                content: detailsText,
+                                date: k.updated_at,
+                                cta_link: '/home',
+                                cta_text: 'Explore Now',
+                                icon: CircleCheck,
+                                color: 'emerald'
+                            });
+                        } else {
+                            allNotifications.push({
+                                id: `kyc-${k.id}`,
+                                type: 'rejection',
+                                title: 'KYC Verification Rejected',
+                                content: k.rejection_reason || 'Your KYC application was rejected by the administrator. Please re-submit with clear documents.',
+                                date: k.updated_at,
+                                cta_link: '/kyc',
+                                cta_text: 'Fix Now',
+                                icon: ShieldAlert,
+                                color: 'rose'
+                            });
+                        }
                     });
                 }
             } catch (err) {
-                console.error("KYC rejections fetch failed:", err);
+                console.error("KYC status fetch failed:", err);
             }
 
             // Sort by date descending
@@ -191,13 +176,21 @@ const NotificationsPage = () => {
                                     >
                                         <div className={cn(
                                             "relative bg-white rounded-3xl p-5 border shadow-sm transition-all duration-300 hover:shadow-md",
-                                            notif.type === 'rejection' ? "border-rose-100 hover:border-rose-200" : "border-slate-100 hover:border-blue-100"
+                                            notif.type === 'rejection' 
+                                                ? "border-rose-100 hover:border-rose-200" 
+                                                : notif.type === 'approval'
+                                                    ? "border-emerald-100 hover:border-emerald-200"
+                                                    : "border-slate-100 hover:border-blue-100"
                                         )}>
                                             <div className="flex gap-4">
                                                 {/* Icon Pillar */}
                                                 <div className={cn(
                                                     "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm",
-                                                    notif.color === 'rose' ? "bg-rose-50 text-rose-600" : "bg-blue-50 text-blue-600"
+                                                    notif.color === 'rose' 
+                                                        ? "bg-rose-50 text-rose-600" 
+                                                        : notif.color === 'emerald'
+                                                            ? "bg-emerald-50 text-emerald-600"
+                                                            : "bg-blue-50 text-blue-600"
                                                 )}>
                                                     <notif.icon className="w-6 h-6" />
                                                 </div>
@@ -211,9 +204,28 @@ const NotificationsPage = () => {
                                                             {new Date(notif.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                                                         </span>
                                                     </div>
-                                                    <p className="text-[12px] font-medium text-slate-500 leading-relaxed line-clamp-2 mb-4">
-                                                        {notif.content}
-                                                    </p>
+                                                    <div className="text-[12px] font-medium text-slate-500 leading-relaxed mb-4">
+                                                        {notif.content.split('\n').map((line, lIdx) => {
+                                                            if (line.startsWith('•')) {
+                                                                return (
+                                                                    <div key={lIdx} className="flex items-center gap-2 mt-1.5 pl-1.5 text-slate-600">
+                                                                        <CircleCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                                                        <span className="font-semibold text-[11px] text-slate-600">{line.substring(1).trim()}</span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <p 
+                                                                    key={lIdx} 
+                                                                    className={cn(
+                                                                        lIdx > 0 && "mt-3 font-black text-slate-800 uppercase tracking-widest text-[9px] flex items-center gap-1.5 text-blue-600 border-t border-slate-100 pt-3"
+                                                                    )}
+                                                                >
+                                                                    {line}
+                                                                </p>
+                                                            );
+                                                        })}
+                                                    </div>
 
                                                     {/* Actions */}
                                                     <div className="flex items-center gap-3">
@@ -230,7 +242,9 @@ const NotificationsPage = () => {
                                                                     "text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-2",
                                                                     notif.type === 'rejection' 
                                                                         ? "bg-rose-600 text-white hover:bg-rose-700" 
-                                                                        : "bg-slate-900 text-white hover:bg-slate-800"
+                                                                        : notif.type === 'approval'
+                                                                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                                            : "bg-slate-900 text-white hover:bg-slate-800"
                                                                 )}
                                                             >
                                                                 {notif.cta_text}

@@ -39,6 +39,7 @@ import PaidUsers from "./pages/admin/PaidUsers";
 import PlanManager from "./pages/admin/PlanManager";
 import RewardsManager from "./pages/admin/RewardsManager";
 import AdminTasks from "./pages/admin/AdminTasks";
+import AdminComplaints from "./pages/admin/AdminComplaints";
 import { FundRequestPage } from "./pages/FundRequestPage";
 import DTHRechargePage from "./pages/DTHRecharge";
 import DNPLPage from "./pages/DNPLPage";
@@ -183,6 +184,7 @@ const App = () => (
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="kyc" element={<KYCRequests />} />
+                <Route path="complaints" element={<AdminComplaints />} />
                 <Route path="logs" element={<AdminLogs />} />
 
                 {/* Placeholders for future */}

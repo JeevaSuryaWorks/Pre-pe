@@ -58,6 +58,18 @@ const UserManagement = () => {
 
     useEffect(() => {
         fetchUsers();
+
+        const handleUsersUpdate = () => {
+            fetchUsers();
+        };
+
+        window.addEventListener('storage', handleUsersUpdate);
+        window.addEventListener('prepe_users_updated', handleUsersUpdate);
+
+        return () => {
+            window.removeEventListener('storage', handleUsersUpdate);
+            window.removeEventListener('prepe_users_updated', handleUsersUpdate);
+        };
     }, [page, search]);
 
     const fetchUsers = async () => {

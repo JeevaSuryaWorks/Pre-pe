@@ -36,10 +36,34 @@ async function getRewardConfig(key: string, defaultValue: any): Promise<any> {
       .from('reward_settings' as never)
       .select('value')
       .eq('key', key)
-      .single();
-    
-    if (error || !data) return defaultValue;
-    return (data as any).value;
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data && (data as any).value !== undefined) {
+      return (data as any).value;
+    }
+  } catch (err) {
+    console.error(`Failed to get reward config for ${key} from Supabase:`, err);
+  }
+
+  const local = localStorage.getItem('prepe_reward_settings');
+  if (!local) {
+    const defaults = [
+      { key: 'signup_bonus', value: { points: 200, enabled: true } },
+      { key: 'first_recharge', value: { min_amount: 100, cashback_percent: 10, max_cashback: 50, enabled: true } },
+      { key: 'redemption', value: { points_per_rupee: 100, min_points: 1000, enabled: true } },
+      { key: 'ad_reward_config', value: { rewardAmount: 5, dailyLimit: 3, cooldownDuration: 30, enabled: true } },
+      { key: 'spin_limit_BASIC', value: 1 },
+      { key: 'spin_limit_GOLD', value: 3 },
+      { key: 'spin_limit_PREMIUM', value: 10 }
+    ];
+    localStorage.setItem('prepe_reward_settings', JSON.stringify(defaults));
+    return defaults.find(x => x.key === key)?.value ?? defaultValue;
+  }
+  try {
+    const list = JSON.parse(local);
+    const item = list.find((x: any) => x.key === key);
+    return item ? item.value : defaultValue;
   } catch (e) {
     return defaultValue;
   }
@@ -531,45 +555,153 @@ export async function watchAdAndEarnPoints(userId: string): Promise<{ success: b
  * Fetch all active tasks
  */
 export async function getAvailableTasks(): Promise<any[]> {
-    const { data, error } = await (supabase as any)
-        .from('rewards_tasks')
-        .select('*')
-        .eq('is_active', true)
-        .order('reward_points', { ascending: false });
-    
-    if (error) return [];
-    return data || [];
+    try {
+        const { data, error } = await supabase
+            .from('rewards_tasks' as never)
+            .select('*')
+            .eq('is_active', true)
+            .order('reward_points', { ascending: false });
+        if (error) throw error;
+        if (data && data.length > 0) {
+            return data;
+        }
+    } catch (err) {
+        console.error("Failed to fetch available tasks from Supabase:", err);
+    }
+
+    let local = localStorage.getItem('prepe_rewards_tasks');
+    if (!local) {
+        const defaults = [
+            {
+                id: 'task-kyc',
+                title: 'Upgrade KYC Status',
+                description: 'Verify your Aadhaar and PAN documents to unlock unlimited wallet additions and recharges.',
+                reward_points: 500,
+                icon_name: 'ShieldCheck',
+                requirement_type: 'KYC',
+                requirement_value: 0,
+                button_text: 'Complete KYC',
+                target_url: '/profile/kyc',
+                is_active: true,
+                created_at: new Date().toISOString()
+            },
+            {
+                id: 'task-first-recharge',
+                title: 'Complete First Recharge',
+                description: 'Initiate your very first mobile or utility bill payment of at least ₹100.',
+                reward_points: 250,
+                icon_name: 'Zap',
+                requirement_type: 'TRANSACTION',
+                requirement_value: 100,
+                button_text: 'Recharge Now',
+                target_url: '/services',
+                is_active: true,
+                created_at: new Date().toISOString()
+            },
+            {
+                id: 'task-referral',
+                title: 'Invite 3 Friends',
+                description: 'Share your referral code. Earn reward points once 3 friends download and register.',
+                reward_points: 1000,
+                icon_name: 'Share2',
+                requirement_type: 'REFERRAL',
+                requirement_value: 3,
+                button_text: 'Invite Friends',
+                target_url: '/profile/refer',
+                is_active: true,
+                created_at: new Date().toISOString()
+            }
+        ];
+        localStorage.setItem('prepe_rewards_tasks', JSON.stringify(defaults));
+        local = JSON.stringify(defaults);
+    }
+    try {
+        const list = JSON.parse(local);
+        return list.filter((item: any) => item.is_active === true).sort((a: any, b: any) => (b.reward_points ?? 0) - (a.reward_points ?? 0));
+    } catch (e) {
+        return [];
+    }
 }
 
 /**
  * Get IDs of tasks completed by user
  */
 export async function getUserCompletedTasks(userId: string): Promise<string[]> {
-    const { data, error } = await (supabase as any)
-        .from('user_completed_tasks')
-        .select('task_id')
-        .eq('user_id', userId);
-    
-    if (error) return [];
-    return data.map((d: any) => d.task_id) || [];
+    try {
+        const { data, error } = await supabase
+            .from('user_completed_tasks' as never)
+            .select('task_id')
+            .eq('user_id', userId);
+        if (error) throw error;
+        if (data) {
+            return data.map((d: any) => d.task_id);
+        }
+    } catch (err) {
+        console.error("Failed to fetch completed tasks from Supabase:", err);
+    }
+
+    const local = localStorage.getItem('prepe_user_completed_tasks');
+    if (!local) return [];
+    try {
+        const list = JSON.parse(local);
+        return list.filter((d: any) => d.user_id === userId).map((d: any) => d.task_id);
+    } catch (e) {
+        return [];
+    }
 }
 
 /**
  * Claim a task reward
  */
 export async function claimTaskReward(userId: string, task: any): Promise<boolean> {
-    // 1. Record completion
-    const { error: completeError } = await (supabase as any)
-        .from('user_completed_tasks')
-        .insert({
-            user_id: userId,
-            task_id: task.id,
-            earned_points: task.reward_points
-        });
-    
-    if (completeError) return false;
+    try {
+        const { data: alreadyCompleted, error: checkError } = await supabase
+            .from('user_completed_tasks' as never)
+            .select('id')
+            .eq('user_id', userId)
+            .eq('task_id', task.id)
+            .maybeSingle();
 
-    // 2. Add points
+        if (checkError) throw checkError;
+        if (alreadyCompleted) return false;
+
+        const { error: insertError } = await supabase
+            .from('user_completed_tasks' as never)
+            .insert({
+                user_id: userId,
+                task_id: task.id,
+                earned_points: task.reward_points,
+                created_at: new Date().toISOString()
+            } as never);
+
+        if (insertError) throw insertError;
+
+        await addRewardPoints(
+            userId, 
+            task.reward_points, 
+            'MANUAL', 
+            `Reward for task: ${task.title}`
+        );
+
+        return true;
+    } catch (err) {
+        console.error("Failed to claim task reward via Supabase, falling back to local:", err);
+    }
+
+    const local = localStorage.getItem('prepe_user_completed_tasks');
+    const list = local ? JSON.parse(local) : [];
+    
+    const alreadyCompleted = list.some((item: any) => item.user_id === userId && item.task_id === task.id);
+    if (alreadyCompleted) return false;
+
+    list.push({
+        user_id: userId,
+        task_id: task.id,
+        earned_points: task.reward_points,
+        created_at: new Date().toISOString()
+    });
+    localStorage.setItem('prepe_user_completed_tasks', JSON.stringify(list));
+
     await addRewardPoints(
         userId, 
         task.reward_points, 

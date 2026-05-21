@@ -9,18 +9,21 @@ generator client {
 // Database (Supabase PostgreSQL)
 //////////////////////////////////////
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 //////////////////////////////////////
 // ENUMS
 //////////////////////////////////////
 enum AppRole {
-  USER
-  ADMIN
-  DISTRIBUTOR
-  RETAILER
+  USER        @map("user")
+  ADMIN       @map("admin")
+  DISTRIBUTOR @map("distributor")
+  RETAILER    @map("retailer")
+
+  @@map("app_role")
 }
 
 enum RechargeStatus {
@@ -54,6 +57,7 @@ model profiles {
   reward_points        reward_points_ledger[]
   scratch_cards        scratch_cards[]
   gift_card_vouchers   gift_card_vouchers[]
+  support_tickets      support_tickets[]
 
   @@map("profiles")
 }
@@ -132,6 +136,7 @@ model transactions {
   updated_at         DateTime       @db.Timestamptz
 
   profile profiles @relation(fields: [user_id], references: [user_id])
+  support_tickets support_tickets[]
 
   @@map("transactions")
 }
@@ -225,6 +230,7 @@ model kyc_verifications {
   gender        String?
   document_urls Json?     @default("{}")
   status        String    @default("PENDING")
+  rejection_reason String?
   created_at    DateTime  @default(now()) @db.Timestamptz
   updated_at    DateTime  @default(now()) @db.Timestamptz
 
@@ -310,4 +316,24 @@ model gift_card_vouchers {
   profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
   @@map("gift_card_vouchers")
+}
+
+//////////////////////////////////////
+// SUPPORT TICKETS (Complaints Desk)
+//////////////////////////////////////
+model support_tickets {
+  id             String   @id @default(uuid()) @db.Uuid
+  user_id        String   @db.Uuid
+  transaction_id String   @db.Uuid
+  reason         String   @db.VarChar(100)
+  details        String?  @db.Text
+  status         String   @default("PENDING") @db.VarChar(20)
+  admin_notes    String?  @db.Text
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @db.Timestamptz
+
+  profile        profiles     @relation(fields: [user_id], references: [user_id])
+  transaction    transactions @relation(fields: [transaction_id], references: [id])
+
+  @@map("support_tickets")
 }

@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://api.pre-pe.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
       },

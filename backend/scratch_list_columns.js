@@ -3,8 +3,13 @@ const prisma = new PrismaClient();
 
 async function main() {
   try {
-    const columns = await prisma.$queryRaw`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'reward_settings';`;
-    console.log('Columns:', columns);
+    const defaults = await prisma.$queryRaw`
+      SELECT table_name, column_name, column_default 
+      FROM information_schema.columns 
+      WHERE table_name IN ('reward_points_ledger', 'scratch_cards', 'user_completed_tasks')
+        AND column_name = 'id';
+    `;
+    console.log('Defaults:', defaults);
   } catch (err) {
     console.error('Error:', err);
   } finally {
@@ -13,3 +18,4 @@ async function main() {
 }
 
 main();
+

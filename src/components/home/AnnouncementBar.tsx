@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminService } from "@/services/admin";
 import { Megaphone, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,36 +17,8 @@ export const AnnouncementBar = () => {
 
     const fetchAnnouncements = async () => {
         try {
-            const { data, error } = await (supabase as any)
-                .from('banners')
-                .select('id, title, cta_link')
-                .eq('status', 'published')
-                .eq('type', 'announcement')
-                .order('sort_order', { ascending: true });
-            
-            if (error) {
-                // If columns are missing, try a generic fetch
-                if (error.code === '42703' || error.message?.includes('column')) {
-                    const { data: fallback } = await (supabase as any)
-                        .from('banners')
-                        .select('*')
-                        .limit(3);
-                    if (fallback) {
-                        setAnnouncements(fallback.map((a: any) => ({
-                            id: a.id,
-                            title: a.title,
-                            cta_link: a.cta_link
-                        })));
-                        return;
-                    }
-                }
-                console.warn("Announcement fetch failed:", error.message);
-                return;
-            }
-
-            if (data) {
-                setAnnouncements(data);
-            }
+            const data = await adminService.getBanners('announcement', 'published');
+            setAnnouncements(data || []);
         } catch (err) {
             console.error("Critical announcement fetch failure:", err);
         }
@@ -54,14 +27,17 @@ export const AnnouncementBar = () => {
     useEffect(() => {
         fetchAnnouncements();
 
-        const channel = supabase
-            .channel('announcements_public')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'banners' }, () => {
-                fetchAnnouncements();
-            })
-            .subscribe();
+        const handleBannersUpdate = () => {
+            fetchAnnouncements();
+        };
 
-        return () => { supabase.removeChannel(channel); };
+        window.addEventListener('storage', handleBannersUpdate);
+        window.addEventListener('prepe_banners_updated', handleBannersUpdate);
+
+        return () => {
+            window.removeEventListener('storage', handleBannersUpdate);
+            window.removeEventListener('prepe_banners_updated', handleBannersUpdate);
+        };
     }, []);
 
     // Rotate through announcements if multiple
