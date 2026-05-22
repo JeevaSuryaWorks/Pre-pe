@@ -328,8 +328,9 @@ export const adminService = {
 
         return (data || []).map((plan: any) => {
             const id = plan.id.toLowerCase();
-            const isGold = id === 'gold';
-            const isPremium = id === 'premium';
+            const isBasic = id === 'basic';
+            const isPro = id === 'pro';
+            const isBusiness = id === 'business';
             
             return {
                 id: plan.id,
@@ -342,18 +343,18 @@ export const adminService = {
                 is_popular: plan.is_popular,
                 order_index: plan.order_index,
                 config: {
-                    dailyRechargeLimit: isPremium ? 9999 : (isGold ? 25 : 5),
-                    dailyWalletAddLimit: isPremium ? 50000 : (isGold ? 5000 : 500),
-                    maxWalletBalance: isPremium ? 200000 : (isGold ? 20000 : 2000),
-                    bnplLimit: isPremium ? 5000 : (isGold ? 1000 : 0),
-                    bnplCycleDays: isPremium ? 30 : (isGold ? 15 : 0),
+                    dailyRechargeLimit: isBusiness || isPro ? 999999 : 5,
+                    dailyWalletAddLimit: isBusiness ? 999999 : (isPro ? 10000 : 500),
+                    maxWalletBalance: isBusiness ? 999999 : (isPro ? 25000 : 1000),
+                    bnplLimit: isBusiness ? 3000 : (isPro ? 1000 : 0),
+                    bnplCycleDays: isBusiness ? 30 : (isPro ? 15 : 0),
                     features: {
-                        bnpl: isPremium || isGold,
-                        cashback: isPremium || isGold,
-                        ads: true,
-                        prioritySupport: isPremium || isGold,
-                        bulkTools: isPremium,
-                        rewards: plan.id.toUpperCase()
+                        bnpl: isBusiness || isPro,
+                        cashback: isBusiness || isPro,
+                        ads: isBasic,
+                        prioritySupport: isBusiness || isPro,
+                        bulkTools: isBusiness,
+                        rewards: isBasic ? 'BASIC' : 'PREMIUM'
                     }
                 }
             };

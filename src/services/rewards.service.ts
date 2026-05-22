@@ -180,7 +180,7 @@ export async function getUserTotalCashback(userId: string): Promise<number> {
     .eq('wallet_id', (wallet as any).id)
     .eq('type', 'CREDIT')
     // Match common reward patterns in descriptions
-    .or('description.ilike.%Cashback%,description.ilike.%Redeemed%');
+    .or('description.ilike.%Cashback%,description.ilike.%Redeemed%,description.ilike.%Reward%');
 
   if (error || !data) return 0;
 

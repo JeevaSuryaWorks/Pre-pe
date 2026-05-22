@@ -252,22 +252,49 @@ export default function RewardsDashboard() {
   const handleRedeem = async () => {
     if (totalPoints < 1000) return;
     
-    setIsRedeeming(true);
-    const result = await redeemRewardPoints(user?.id || '', Math.floor(totalPoints / 1000) * 1000);
-    setIsRedeeming(false);
+    const pointsToRedeem = Math.floor(totalPoints / 1000) * 1000;
+    const cashbackToAdd = (pointsToRedeem / 1000) * 10;
 
-    if (result.success) {
-      toast({
-        title: "Redemption Successful!",
-        description: `₹${result.amount} has been added to your wallet.`,
-      });
-      loadData(true);
-    } else {
+    // Save current state for potential rollback
+    const prevPoints = totalPoints;
+    const prevCashback = cashback;
+
+    // Optimistic UI updates
+    setTotalPoints(prev => prev - pointsToRedeem);
+    setCashback(prev => prev + cashbackToAdd);
+    setIsRedeeming(true);
+
+    try {
+      const result = await redeemRewardPoints(user?.id || '', pointsToRedeem);
+      
+      if (result.success) {
+        toast({
+          title: "Redemption Successful!",
+          description: `₹${result.amount.toFixed(2)} has been added to your wallet.`,
+        });
+        // Silent reload to sync any extra server-side changes
+        await loadData(true);
+      } else {
+        // Rollback on logical error from service
+        setTotalPoints(prevPoints);
+        setCashback(prevCashback);
+        toast({
+          title: "Redemption Failed",
+          description: result.error || "Please try again later.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      // Rollback on network/unexpected error
+      setTotalPoints(prevPoints);
+      setCashback(prevCashback);
       toast({
         title: "Redemption Failed",
-        description: result.error || "Please try again later.",
+        description: "A network error occurred. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -286,8 +313,10 @@ export default function RewardsDashboard() {
     );
   }
 
+  const progress = Math.min((totalPoints / 1000) * 100, 100);
+
   return (
-    <Layout title="Executive Rewards" showBottomNav>
+    <Layout title="Rewards" showBottomNav>
       <div className="min-h-screen bg-[#F8FAFC]">
         <div className="max-w-lg mx-auto py-8">
           
@@ -316,53 +345,80 @@ export default function RewardsDashboard() {
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative px-6 py-10 rounded-[3rem] bg-slate-900 border border-white/10 shadow-3xl text-center overflow-hidden mb-10"
+            className="relative px-6 py-10 rounded-[3rem] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-white/10 shadow-3xl text-center overflow-hidden mb-10 mx-4 sm:mx-0"
           >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FF671F]/20 via-transparent to-[#046A38]/20 pointer-events-none"></div>
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#FF671F]/10 rounded-full blur-[120px] transform translate-x-1/2 -translate-y-1/2"></div>
+              {/* Ambient Glowing Orbs */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-[#FF671F]/15 rounded-full blur-[80px] pointer-events-none" />
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-[#046A38]/20 rounded-full blur-[80px] pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
               
-              <div className="space-y-6 relative z-10 w-full max-w-2xl">
-                  <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-[#FF671F]/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
-                      <div className="bg-white/10 px-5 py-1.5 rounded-full backdrop-blur-3xl border border-white/20 flex items-center gap-2 mb-3 mx-auto w-fit">
-                          <TrendingUp className="w-3.5 h-3.5 text-[#FF671F]" />
-                          <span className="tracking-widest uppercase text-[9px] font-black text-orange-200">Executive Rewards</span>
+              <div className="space-y-6 relative z-10 w-full flex flex-col items-center">
+                  <div className="relative w-full flex flex-col items-center">
+                      {/* Premium Rewards Badge */}
+                      <div className="bg-white/5 px-5 py-1.5 rounded-full backdrop-blur-3xl border border-white/10 flex items-center gap-2 mb-4 mx-auto w-fit shadow-inner">
+                          <Trophy className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
+                          <span className="tracking-widest uppercase text-[9px] font-black text-slate-200">Rewards Dashboard</span>
                       </div>
-                       <div className="flex items-baseline justify-center gap-2 relative">
-                           <h2 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40 drop-shadow-2xl">
-                               {totalPoints.toLocaleString()}
-                           </h2>
-                           <span className="text-sm text-[#FF671F] font-black tracking-tight drop-shadow-lg">PTS</span>
+
+                       {/* Glowing Points Display */}
+                       <div className="flex flex-col items-center justify-center relative">
+                           <div className="flex items-baseline gap-2">
+                               <h2 className="text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white via-slate-100 to-slate-400 drop-shadow-[0_4px_12px_rgba(255,255,255,0.15)] font-sans">
+                                   {totalPoints.toLocaleString()}
+                               </h2>
+                               <span className="text-sm text-amber-400 font-black tracking-tight uppercase drop-shadow-md">Points</span>
+                           </div>
                        </div>
 
-                      {/* Redeem Button */}
-                      <div className="mt-8 flex flex-col items-center gap-4">
+                       {/* Sleek Custom Progress Bar */}
+                       <div className="w-full max-w-xs mx-auto mt-6 space-y-2 px-2">
+                           <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-slate-400">
+                               <span>Goal Progress</span>
+                               <span className="text-amber-400 font-black">{Math.floor(progress)}%</span>
+                           </div>
+                           <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10 relative p-[2px]">
+                               <motion.div 
+                                   initial={{ width: 0 }}
+                                   animate={{ width: `${progress}%` }}
+                                   transition={{ duration: 1.2, ease: "easeOut" }}
+                                   className="h-full bg-gradient-to-r from-[#FF671F] via-[#FFD700] to-[#046A38] rounded-full relative"
+                               >
+                                   <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:16px_16px] animate-[shimmer_1.5s_infinite_linear]" />
+                               </motion.div>
+                           </div>
+                           <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-500">
+                               <span>0 PTS</span>
+                               <span>1,000 PTS Threshold</span>
+                           </div>
+                       </div>
+
+                      {/* Redeem Action */}
+                      <div className="mt-8 flex flex-col items-center gap-4 w-full">
                           <motion.button
-                            whileHover={totalPoints >= 1000 ? { scale: 1.05 } : {}}
-                            whileTap={totalPoints >= 1000 ? { scale: 0.95 } : {}}
+                            whileHover={totalPoints >= 1000 ? { scale: 1.04 } : {}}
+                            whileTap={totalPoints >= 1000 ? { scale: 0.96 } : {}}
                             onClick={handleRedeem}
                             disabled={totalPoints < 1000 || isRedeeming}
                             className={`
-                                relative px-10 py-4 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-2xl
+                                relative w-full max-w-xs py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl border
                                 ${totalPoints >= 1000 
-                                    ? 'bg-gradient-to-r from-[#FF671F] to-orange-600 text-white shadow-orange-500/20 hover:shadow-orange-500/40' 
-                                    : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
+                                    ? 'bg-gradient-to-r from-[#FF671F] via-orange-500 to-[#FF671F] text-white border-orange-400/40 shadow-orange-500/20 hover:shadow-orange-500/40 active:scale-95' 
+                                    : 'bg-white/5 text-slate-500 border-white/5 cursor-not-allowed shadow-none'
                                 }
                             `}
                           >
                               {isRedeeming ? (
-                                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-white" />
                               ) : (
-                                  <div className="flex items-center gap-2">
-                                      <Zap className={totalPoints >= 1000 ? "w-4 h-4 fill-current" : "w-4 h-4"} />
+                                  <div className="flex items-center justify-center gap-2">
+                                      <Zap className={totalPoints >= 1000 ? "w-4 h-4 fill-white text-white" : "w-4 h-4 text-slate-500"} />
                                       {totalPoints >= 1000 ? 'Redeem for Wallet' : 'Need 1,000 Pts to Redeem'}
                                   </div>
                               )}
                           </motion.button>
                           
                           {totalPoints >= 1000 && (
-                             <p className="text-[10px] font-bold text-orange-200/60 uppercase tracking-widest animate-pulse">
+                             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest animate-pulse">
                                 Convert to ₹{(Math.floor(totalPoints / 1000) * 10).toFixed(2)} instantly
                              </p>
                           )}
@@ -555,25 +611,33 @@ export default function RewardsDashboard() {
                                 </div>
                              )}
                           </div>
-                     </Card>
+                      </Card>
 
-                     {/* How to Earn Banner */}
-                     <div className="bg-slate-950 rounded-[3rem] p-8 text-white relative overflow-hidden group">
-                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] opacity-20 -mr-32 -mt-32"></div>
-                         <div className="relative z-10 flex flex-col items-center text-center gap-6">
-                             <div className="space-y-2">
-                                 <h3 className="text-2xl font-black tracking-tight">Become an Elite Member</h3>
-                                 <p className="text-indigo-200/60 font-medium text-xs leading-relaxed max-w-[280px] mx-auto">
-                                     Higher plans give you up to <span className="text-indigo-400 font-black">2x Rewards Multiplier</span> and exclusive 
-                                     access to high-value scratch cards.
-                                 </p>
-                             </div>
-                             <Button className="w-full bg-white text-slate-950 hover:bg-emerald-50 rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-[10px] transition-transform active:scale-95 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                                 View Executive Plans
-                             </Button>
-                         </div>
-                     </div>
-                  </motion.div>
+                      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/70 border border-amber-500/30 rounded-[3rem] p-8 text-white relative overflow-hidden group shadow-2xl">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)] pointer-events-none" />
+                          <div className="absolute -right-16 -bottom-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+                          
+                          <div className="relative z-10 flex flex-col items-center text-center gap-6">
+                              <div className="space-y-2">
+                                  <div className="mx-auto bg-amber-500/15 border border-amber-500/30 text-amber-400 px-3.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest w-fit flex items-center gap-1.5 shadow-inner">
+                                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Elite Club Member
+                                  </div>
+                                  <h3 className="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-500 drop-shadow-sm mt-2">
+                                      Become an Elite Member
+                                  </h3>
+                                  <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-[280px] mx-auto">
+                                      Unlock premium privileges! Get up to <span className="text-amber-400 font-black">2x Rewards Multiplier</span>, exclusive high-yield scratch cards, and VIP digital access.
+                                  </p>
+                              </div>
+                              <Button 
+                                  onClick={() => navigate('/upgrade')}
+                                  className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black uppercase tracking-widest text-[10px] rounded-2xl h-12 shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                              >
+                                  View Executive Plans
+                              </Button>
+                          </div>
+                      </div>
+                   </motion.div>
                </TabsContent>
 
                <TabsContent value="spin" className="focus-visible:outline-none">

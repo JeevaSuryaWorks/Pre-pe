@@ -5,12 +5,14 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Loader2, Zap, Landmark, Building2, AlertCircle } from 'lucide-react';
+import { 
+    CheckCircle2, Loader2, Zap, Landmark, Building2, AlertCircle, 
+    Smartphone, ShieldCheck, ArrowRight, Search, CreditCard, Crown 
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { adminService } from '@/services/admin';
 import { supabase } from '@/integrations/supabase/client';
-import { Smartphone, ShieldCheck, ArrowRight, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { paymentService } from '@/services/payment.service';
 import { Capacitor } from '@capacitor/core';
@@ -24,11 +26,11 @@ declare global {
 const DEFAULT_PLANS = [
     {
         id: 'BASIC',
-        name: 'Basic Free',
-        subtitle: 'Digital India Entry 🇮🇳',
+        name: 'Basic Plan',
+        subtitle: 'Free forever',
         price: 'Free',
         price_amount: 0,
-        description: 'Perfect for light users getting started with basic digital utility payments.',
+        description: 'Standard recharge and utility tools with no subscription fees.',
         features: [
             'Standard mobile recharges',
             'Basic DTH & utility payments',
@@ -39,12 +41,12 @@ const DEFAULT_PLANS = [
     },
     {
         id: 'PRO',
-        name: 'Pro Premium',
-        subtitle: 'Patriotic Power User ⚡',
-        price: '₹199/month',
-        price_amount: 199,
+        name: 'Pro Plan',
+        subtitle: '21 days free Trial',
+        price: '₹299/month',
+        price_amount: 299,
         is_popular: true,
-        description: 'Unlock maximum capabilities with high limits, priority processing, and cashback rewards.',
+        description: 'Perfect for active users looking for cashback discounts and higher monthly limits.',
         features: [
             'Instant 2-step recharges',
             'All Bharat BillPay (BBPS) bills',
@@ -56,11 +58,11 @@ const DEFAULT_PLANS = [
     },
     {
         id: 'BUSINESS',
-        name: 'Business Elite',
-        subtitle: 'Atmanirbhar Vyapaar 🏢',
-        price: '₹499/month',
-        price_amount: 499,
-        description: 'Tailored for retail shops and merchants managing high-volume customer collections.',
+        name: 'Business Plan',
+        subtitle: 'Specially for Shops',
+        price: '₹999/month',
+        price_amount: 999,
+        description: 'Industrial-grade limits, zero commission overheads, and immediate dedicated support.',
         features: [
             'High-volume transaction processing',
             'Unlimited wallet cap',
@@ -75,18 +77,42 @@ const DEFAULT_PLANS = [
 const getPlanIcon = (id: string) => {
     switch (id.toUpperCase()) {
         case 'BASIC': return Landmark;
-        case 'PRO': return Zap;
+        case 'PRO': return Crown;
         case 'BUSINESS': return Building2;
         default: return Zap;
     }
 };
 
-const getPlanColors = (id: string) => {
+const getPlanTheme = (id: string) => {
     switch (id.toUpperCase()) {
-        case 'BASIC': return { color: 'text-[#046A38]', bgColor: 'bg-[#046A38]/5' };
-        case 'PRO': return { color: 'text-[#000080]', bgColor: 'bg-[#000080]/5' };
-        case 'BUSINESS': return { color: 'text-[#FF671F]', bgColor: 'bg-[#FF671F]/5' };
-        default: return { color: 'text-[#000080]', bgColor: 'bg-[#000080]/5' };
+        case 'BASIC': return { 
+            color: 'text-[#046A38]', 
+            bgColor: 'bg-[#046A38]/5', 
+            grad: 'from-[#046A38]/10 to-[#046A38]/5',
+            border: 'border-[#046A38]/20',
+            shadow: 'shadow-emerald-900/5'
+        };
+        case 'PRO': return { 
+            color: 'text-[#000080]', 
+            bgColor: 'bg-[#000080]/5', 
+            grad: 'from-[#000080]/10 to-[#000080]/5',
+            border: 'border-[#000080]/20',
+            shadow: 'shadow-blue-900/5'
+        };
+        case 'BUSINESS': return { 
+            color: 'text-[#FF671F]', 
+            bgColor: 'bg-[#FF671F]/5', 
+            grad: 'from-[#FF671F]/10 to-[#FF671F]/5',
+            border: 'border-[#FF671F]/20',
+            shadow: 'shadow-orange-900/5'
+        };
+        default: return { 
+            color: 'text-[#000080]', 
+            bgColor: 'bg-[#000080]/5', 
+            grad: 'from-[#000080]/5 to-[#000080]/5',
+            border: 'border-[#000080]/10',
+            shadow: 'shadow-slate-900/5'
+        };
     }
 };
 
@@ -99,6 +125,7 @@ export default function PlanSelectionPage() {
     const [loading, setLoading] = useState(true);
     const [paymentMode, setPaymentMode] = useState<'RZP' | 'UPI' | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     useEffect(() => {
         // Load Razorpay Script
@@ -134,6 +161,7 @@ export default function PlanSelectionPage() {
     const handleSelectPlan = async (plan: any) => {
         const planId = plan.id;
         setSubmitting(planId);
+        setPaymentMode('RZP');
         try {
             // Check if plan is paid
             if (plan.price_amount && plan.price_amount > 0) {
@@ -143,7 +171,7 @@ export default function PlanSelectionPage() {
                     throw new Error("Razorpay SDK failed to load. Please check your internet connection.");
                 }
 
-                // 2. Open Razorpay Checkout
+                // Open Razorpay Checkout
                 const options = {
                     key: orderData.key,
                     amount: orderData.amount,
@@ -152,7 +180,6 @@ export default function PlanSelectionPage() {
                     description: `Plan Upgrade: ${plan.name}`,
                     order_id: orderData.id,
                     handler: async (response: any) => {
-                        // 3. Verify Payment
                         setSubmitting(planId); // Set loading while verifying
                         try {
                             const verifyData = await paymentService.verifyRazorpay({
@@ -168,6 +195,7 @@ export default function PlanSelectionPage() {
                                     variant: "destructive"
                                 });
                                 setSubmitting(null);
+                                setPaymentMode(null);
                                 return;
                             }
 
@@ -185,15 +213,16 @@ export default function PlanSelectionPage() {
                                 variant: "destructive"
                             });
                             setSubmitting(null);
+                            setPaymentMode(null);
                         }
                     },
                     modal: {
-                        onblur: () => setSubmitting(null)
+                        onblur: () => { setSubmitting(null); setPaymentMode(null); }
                     },
                     prefill: {
                         email: (await supabase.auth.getUser()).data.user?.email || ""
                     },
-                    theme: { color: "#2563eb" }
+                    theme: { color: "#000080" }
                 };
 
                 const rzp = new window.Razorpay(options);
@@ -207,7 +236,7 @@ export default function PlanSelectionPage() {
             if (success) {
                 toast({
                     title: "Plan Selected",
-                    description: `You've successfully selected the ${planId} plan.`,
+                    description: `You've successfully selected the ${plan.name}.`,
                 });
                 navigate('/kyc');
             } else {
@@ -225,6 +254,7 @@ export default function PlanSelectionPage() {
             });
         } finally {
             setSubmitting(null);
+            setPaymentMode(null);
         }
     };
 
@@ -257,6 +287,8 @@ export default function PlanSelectionPage() {
 
                         toast({ title: "Plan Activated!", description: `Welcome to the ${plan.name} plan.` });
                         navigate('/kyc');
+                        setSubmitting(null);
+                        setPaymentMode(null);
                     } else if (result.status === 'FAILED') {
                         clearInterval(interval);
                         toast({ title: "Payment Failed", description: "The transaction was unsuccessful.", variant: "destructive" });
@@ -292,10 +324,13 @@ export default function PlanSelectionPage() {
     if (loading) {
         return (
             <Layout hideHeader>
-                <div className="min-h-screen flex items-center justify-center bg-slate-50/50">
+                <div className="min-h-screen flex items-center justify-center bg-white">
                     <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-                        <p className="text-slate-500 font-medium">Loading premium plans...</p>
+                        <div className="relative">
+                            <div className="w-12 h-12 border-4 border-blue-100 rounded-full animate-pulse" />
+                            <Loader2 className="w-12 h-12 animate-spin text-[#000080] absolute inset-0" />
+                        </div>
+                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Loading patriotic plans...</p>
                     </div>
                 </div>
             </Layout>
@@ -304,22 +339,23 @@ export default function PlanSelectionPage() {
 
     return (
         <Layout hideHeader>
-            <div className="min-h-screen pt-12 pb-24 px-4 bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 relative">
-                {/* Decorative patriotic elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF671F]/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#046A38]/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
+            <div className="min-h-screen pt-12 pb-24 px-4 bg-gradient-to-br from-[#FF671F]/5 via-white to-[#046A38]/5 relative overflow-hidden">
+                {/* Immersive tri-color mesh background */}
+                <div className="absolute top-0 left-0 w-80 h-80 bg-[#FF671F]/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="absolute top-1/2 left-1/2 w-[600px] h-[600px] bg-white/40 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="absolute bottom-0 right-0 w-80 h-80 bg-[#046A38]/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none" />
 
-                <div className="max-w-md mx-auto space-y-8 relative z-10">
-                    <div className="text-center space-y-3">
-                        <div className="mx-auto w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-4 ring-8 ring-slate-50">
-                            <Smartphone className="w-8 h-8 text-[#FF671F]" />
+                <div className="max-w-6xl mx-auto space-y-10 relative z-10">
+                    <div className="text-center space-y-4 max-w-lg mx-auto">
+                        <div className="mx-auto w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-2 ring-8 ring-slate-50 border border-slate-100">
+                            <Smartphone className="w-8 h-8 text-[#000080]" />
                         </div>
-                        <h1 className="text-3xl font-black tracking-tight text-slate-900">Choose Your Plan</h1>
-                        <p className="text-sm text-slate-500 max-w-sm mx-auto font-medium">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-none">Choose Your Plan</h1>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed px-4">
                             Pick the right plan that fits your needs. Each plan unlocks different features and requires specific verification. 🇮🇳
                         </p>
 
-                        <div className="max-w-md mx-auto mt-6 relative">
+                        <div className="relative max-w-sm mx-auto">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                             <Input
                                 placeholder="Search plans..."
@@ -330,122 +366,190 @@ export default function PlanSelectionPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6 max-w-md mx-auto w-full px-2">
-                        {filteredPlans.map((plan, index) => {
-                            const Icon = getPlanIcon(plan.id);
-                            const { color, bgColor } = getPlanColors(plan.id);
-                            const isBasic = plan.id.toUpperCase() === 'BASIC';
-                            const isPro = plan.id.toUpperCase() === 'PRO';
-                            const isBusiness = plan.id.toUpperCase() === 'BUSINESS';
-                            const isPopular = plan.is_popular || isPro;
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center w-full px-2 max-w-5xl mx-auto">
+                        <AnimatePresence>
+                            {filteredPlans.map((plan, index) => {
+                                const Icon = getPlanIcon(plan.id);
+                                const theme = getPlanTheme(plan.id);
+                                const isBasic = plan.id.toUpperCase() === 'BASIC';
+                                const isPro = plan.id.toUpperCase() === 'PRO';
+                                const isBusiness = plan.id.toUpperCase() === 'BUSINESS';
+                                const isPopular = plan.is_popular || isPro;
 
-                            return (
-                                <motion.div
-                                    key={plan.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className="flex flex-col w-full h-full"
-                                >
-                                    <Card className={cn(
-                                        "relative w-full flex-1 flex flex-col transition-all duration-500 bg-white/95 backdrop-blur-xl rounded-[32px] overflow-hidden",
-                                        isPro 
-                                            ? "border-2 border-[#000080]/30 shadow-[0_25px_60px_-15px_rgba(0,0,128,0.15)] md:scale-105 z-10" 
-                                            : isBusiness 
-                                                ? "border border-[#FF671F]/20 hover:border-[#FF671F]/40 shadow-xl shadow-slate-200/50 hover:shadow-[0_20px_40px_rgba(255,103,31,0.08)]"
-                                                : "border border-[#046A38]/20 hover:border-[#046A38]/40 shadow-xl shadow-slate-200/50 hover:shadow-[0_20px_40px_rgba(4,106,56,0.08)]"
-                                    )}>
-                                        {/* Dynamic Flag Border Strip */}
-                                        {isPro ? (
-                                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#FF671F] via-white to-[#046A38]" />
-                                        ) : isBusiness ? (
-                                            <div className="absolute top-0 left-0 w-full h-2 bg-[#FF671F]" />
-                                        ) : (
-                                            <div className="absolute top-0 left-0 w-full h-2 bg-[#046A38]" />
-                                        )}
-                                        
-                                        {isPopular && (
-                                            <div className={cn(
-                                                "absolute top-4 right-4 text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase shadow-md",
-                                                isPro ? "bg-[#000080] shadow-blue-900/10" : isBusiness ? "bg-[#FF671F] shadow-orange-600/10" : "bg-[#046A38]"
-                                            )}>
-                                                Best Value
-                                            </div>
-                                        )}
-                                        
-                                        <CardHeader className="text-center pb-2 relative pt-8">
-                                            <div className={cn("mx-auto p-4 rounded-2xl mb-4 shadow-inner", bgColor, color)}>
-                                                <Icon className="w-8 h-8" />
-                                            </div>
-                                            <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">{plan.name}</CardTitle>
-                                            {plan.subtitle && (
-                                                <div className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">{plan.subtitle}</div>
+                                return (
+                                    <motion.div
+                                        key={plan.id}
+                                        initial={{ opacity: 0, y: 30 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1, duration: 0.5 }}
+                                        className="flex flex-col h-full w-full"
+                                    >
+                                        <Card className={cn(
+                                            "relative w-full flex-1 flex flex-col transition-all duration-500 bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden border border-white/50 shadow-xl hover:shadow-2xl hover:translate-y-[-4px]",
+                                            isPro ? "ring-2 ring-[#000080]/30 shadow-[#000080]/10" : ""
+                                        )}>
+                                            {/* Dynamic Patriotic Top Border */}
+                                            <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-[#FF671F] via-[#FFFFFF] to-[#046A38] z-20" />
+                                            
+                                            {isPopular && (
+                                                <div className={cn(
+                                                    "absolute top-5 right-5 text-white px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase shadow-md z-10",
+                                                    isPro ? "bg-[#000080]" : isBusiness ? "bg-[#FF671F]" : "bg-[#046A38]"
+                                                )}>
+                                                    Best Value
+                                                </div>
                                             )}
-                                            <div className={cn(
-                                                "text-4xl font-black tracking-tight mt-6",
-                                                isBasic ? "text-[#046A38]" : isBusiness ? "text-[#FF671F]" : "text-[#000080]"
-                                            )}>
-                                                {plan.price === 'Free' ? 'FREE' : plan.price?.split('/')[0]}
-                                                {plan.price !== 'Free' && <span className="text-sm text-slate-400 font-bold ml-1">/mo</span>}
-                                            </div>
-                                            <CardDescription className="pt-4 text-slate-500 font-medium leading-relaxed min-h-[64px] px-2">
-                                                {plan.description}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        
-                                        <CardContent className="flex-1 mt-6 px-8">
-                                            <div className="h-px bg-slate-100 mb-6" />
-                                            <ul className="space-y-4">
-                                                {plan.features.map((feature: string, i: number) => (
-                                                    <li key={i} className="flex items-start">
-                                                        <div className={cn(
-                                                            "mt-1 mr-3 p-0.5 rounded-full",
-                                                            isBasic ? "bg-[#046A38]/10 text-[#046A38]" : isBusiness ? "bg-[#FF671F]/10 text-[#FF671F]" : "bg-[#000080]/10 text-[#000080]"
-                                                        )}>
-                                                            <CheckCircle2 className="w-4 h-4" />
-                                                        </div>
-                                                        <span className="text-slate-600 text-sm font-bold leading-tight">{feature}</span>
-                                                    </li>
-                                                ))}
-                                                <li className="flex items-start pt-2">
-                                                    <div className="mt-1 mr-3 p-0.5 rounded-full bg-blue-50">
-                                                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                            
+                                            <CardHeader className="text-center pb-2 relative pt-10">
+                                                <div className={cn("mx-auto p-4 rounded-2xl mb-4 shadow-inner", theme.bgColor, theme.color)}>
+                                                    <Icon className="w-8 h-8" />
+                                                </div>
+                                                <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">{plan.name}</CardTitle>
+                                                {plan.subtitle && (
+                                                    <div className="mt-1.5">
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-[#000080]/5 text-[#000080] border border-[#000080]/15">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-[#000080] animate-pulse" />
+                                                            {plan.subtitle}
+                                                        </span>
                                                     </div>
-                                                    <span className="text-blue-700 text-xs font-black uppercase tracking-tighter">
-                                                        {isBasic ? 'MINI KYC REQUIRED' : isBusiness ? 'BUSINESS KYC REQUIRED' : 'FULL KYC REQUIRED'}
-                                                    </span>
-                                                </li>
-                                            </ul>
-                                        </CardContent>
- 
-                                        <CardFooter className="p-8">
-                                            <Button 
-                                                className={cn(
-                                                    "w-full h-14 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95",
-                                                    isBasic 
-                                                        ? "bg-[#046A38] hover:bg-green-700 text-white shadow-green-700/20"
-                                                        : isBusiness
-                                                            ? "bg-[#FF671F] hover:bg-orange-600 text-white shadow-orange-600/20"
-                                                            : "bg-[#000080] hover:bg-[#000060] text-white shadow-blue-900/20"
                                                 )}
-                                                onClick={() => handleSelectPlan(plan)}
-                                                disabled={submitting !== null}
-                                            >
-                                                {submitting === plan.id ? (
-                                                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> {paymentMode === 'RZP' ? 'Initiating...' : 'Selecting...'}</>
+                                                <div className={cn(
+                                                    "text-4xl font-black tracking-tight mt-6",
+                                                    isBasic ? "text-[#046A38]" : isBusiness ? "text-[#FF671F]" : "text-[#000080]"
+                                                )}>
+                                                    {plan.price === 'Free' ? 'FREE' : plan.price?.split('/')[0]}
+                                                    {plan.price !== 'Free' && <span className="text-sm text-slate-400 font-bold ml-1">/mo</span>}
+                                                </div>
+                                                <CardDescription className="pt-4 text-slate-500 font-medium leading-relaxed min-h-[80px] px-2 text-xs">
+                                                    {plan.description}
+                                                </CardDescription>
+                                            </CardHeader>
+                                            
+                                            <CardContent className="flex-1 mt-4 px-6 md:px-8">
+                                                <div className="h-px bg-slate-100 mb-6" />
+                                                <ul className="space-y-4">
+                                                    {plan.features.map((feature: string, i: number) => (
+                                                        <li key={i} className="flex items-start">
+                                                            <div className={cn(
+                                                                "mt-1 mr-3 p-0.5 rounded-full shrink-0",
+                                                                isBasic ? "bg-[#046A38]/10 text-[#046A38]" : isBusiness ? "bg-[#FF671F]/10 text-[#FF671F]" : "bg-[#000080]/10 text-[#000080]"
+                                                            )}>
+                                                                <CheckCircle2 className="w-4 h-4" />
+                                                            </div>
+                                                            <span className="text-slate-600 text-xs font-semibold leading-tight">{feature}</span>
+                                                        </li>
+                                                    ))}
+                                                    <li className="flex items-start pt-2">
+                                                        <div className="mt-1 mr-3 p-0.5 rounded-full bg-blue-50 shrink-0">
+                                                            <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                                        </div>
+                                                        <span className="text-blue-700 text-[10px] font-black uppercase tracking-tighter">
+                                                            {isBasic ? 'MINI KYC REQUIRED' : isBusiness ? 'BUSINESS KYC REQUIRED' : 'FULL KYC REQUIRED'}
+                                                        </span>
+                                                    </li>
+                                                </ul>
+                                            </CardContent>
+     
+                                            <CardFooter className="p-6 md:p-8 flex flex-col gap-3">
+                                                {isBasic ? (
+                                                    <Button 
+                                                        className="w-full h-14 text-sm font-black transition-all rounded-2xl shadow-lg active:scale-95 bg-[#046A38] hover:bg-[#03522C] text-white shadow-green-700/20"
+                                                        onClick={() => handleSelectPlan(plan)}
+                                                        disabled={submitting !== null}
+                                                    >
+                                                        {submitting === plan.id ? (
+                                                            <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Selecting...</>
+                                                        ) : (
+                                                            <>Activate Free Plan <ArrowRight className="ml-2 w-4 h-4" /></>
+                                                        )}
+                                                    </Button>
                                                 ) : (
-                                                    <>{isBasic ? 'Start Free' : 'Get Started'} <ArrowRight className="ml-2 w-5 h-5" /></>
+                                                    <div className="w-full flex flex-col gap-3">
+                                                        {/* Primary Button based on Device */}
+                                                        {isMobile && plan.price_amount > 0 ? (
+                                                            <Button
+                                                                onClick={() => handleUpiUpgrade(plan)}
+                                                                disabled={submitting !== null}
+                                                                className={cn(
+                                                                    "w-full h-14 rounded-2xl text-white font-black text-sm shadow-xl active:scale-95 transition-all gap-2",
+                                                                    isPro ? "bg-[#000080] hover:bg-[#000060] shadow-blue-900/20" : "bg-[#FF671F] hover:bg-orange-600 shadow-orange-600/20"
+                                                                )}
+                                                            >
+                                                                {submitting === plan.id && paymentMode === 'UPI' ? (
+                                                                    <><Loader2 className="w-4 h-4 animate-spin" /> Verifying UPI...</>
+                                                                ) : (
+                                                                    <><Smartphone className="w-4 h-4" /> Instant UPI Upgrade <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
+                                                                )}
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                onClick={() => handleSelectPlan(plan)}
+                                                                disabled={submitting !== null}
+                                                                className={cn(
+                                                                    "w-full h-14 rounded-2xl text-white font-black text-sm shadow-xl active:scale-95 transition-all gap-2",
+                                                                    isPro ? "bg-[#000080] hover:bg-[#000060] shadow-blue-900/20" : "bg-[#FF671F] hover:bg-orange-600 shadow-orange-600/20"
+                                                                )}
+                                                            >
+                                                                {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                                    <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                                                                ) : (
+                                                                    <><Zap className="w-4 h-4 fill-current" /> Pay with Card / Netbanking <ArrowRight className="w-4 h-4 ml-auto opacity-50" /></>
+                                                                )}
+                                                            </Button>
+                                                        )}
+
+                                                        {/* Secondary Button based on Device */}
+                                                        {plan.price_amount > 0 && (
+                                                            isMobile ? (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => handleSelectPlan(plan)}
+                                                                    disabled={submitting !== null}
+                                                                    className={cn(
+                                                                        "w-full h-14 rounded-2xl border-2 font-black text-sm transition-all gap-2",
+                                                                        isPro
+                                                                            ? "border-[#000080]/20 text-[#000080] hover:bg-[#000080]/5"
+                                                                            : "border-[#FF671F]/20 text-[#FF671F] hover:bg-[#FF671F]/5"
+                                                                    )}
+                                                                >
+                                                                    {submitting === plan.id && paymentMode === 'RZP' ? (
+                                                                        <><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</>
+                                                                    ) : (
+                                                                        <><CreditCard className="w-4 h-4" /> Cards / Netbanking</>
+                                                                    )}
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => handleUpiUpgrade(plan)}
+                                                                    disabled={submitting !== null}
+                                                                    className={cn(
+                                                                        "w-full h-14 rounded-2xl border-2 font-black text-sm transition-all gap-2",
+                                                                        isPro
+                                                                            ? "border-[#000080]/20 text-[#000080] hover:bg-[#000080]/5"
+                                                                            : "border-[#FF671F]/20 text-[#FF671F] hover:bg-[#FF671F]/5"
+                                                                    )}
+                                                                >
+                                                                    {submitting === plan.id && paymentMode === 'UPI' ? (
+                                                                        <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                                                                    ) : (
+                                                                        <><Smartphone className="w-4 h-4" /> UPI Upgrade (Mobile Only)</>
+                                                                    )}
+                                                                </Button>
+                                                            )
+                                                        )}
+                                                    </div>
                                                 )}
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                </motion.div>
-                            );
-                        })}
+                                            </CardFooter>
+                                        </Card>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
                     </div>
                     
                     {!plans.length && !loading && (
-                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-3xl bg-white/50 space-y-4">
+                        <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-3xl bg-white/50 space-y-4 max-w-md mx-auto">
                             <AlertCircle className="w-12 h-12 text-amber-500" />
                             <div className="text-center">
                                 <h3 className="text-lg font-black text-slate-900 uppercase">No active plans found</h3>

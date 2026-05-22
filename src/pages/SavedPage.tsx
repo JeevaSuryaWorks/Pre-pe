@@ -44,6 +44,46 @@ const SavedPage = () => {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
+    const calculateDaysLeft = (dueDateStr: string | null | undefined) => {
+        if (!dueDateStr) {
+            return { 
+                text: "No due date", 
+                colorClass: "text-slate-400 font-black uppercase tracking-wider", 
+                bgClass: "bg-slate-50 border-slate-100 text-slate-400" 
+            };
+        }
+        
+        const dueDate = new Date(dueDateStr);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) {
+            const absDays = Math.abs(diffDays);
+            return {
+                text: `Overdue by ${absDays} ${absDays === 1 ? 'Day' : 'Days'}`,
+                colorClass: "text-rose-600 font-black uppercase tracking-wider",
+                bgClass: "bg-rose-50/50 border-rose-200 text-rose-800"
+            };
+        } else if (diffDays === 0) {
+            return {
+                text: "Due Today",
+                colorClass: "text-amber-600 font-black uppercase tracking-wider animate-pulse",
+                bgClass: "bg-amber-50/50 border-amber-200 text-amber-800"
+            };
+        } else {
+            return {
+                text: `${diffDays} ${diffDays === 1 ? 'Day' : 'Days'} Left`,
+                colorClass: "text-[#046A38] font-black uppercase tracking-wider",
+                bgClass: "bg-emerald-50/50 border-emerald-200 text-emerald-800"
+            };
+        }
+    };
+
     const loadData = async () => {
         if (user) {
             setLoading(true);
@@ -236,9 +276,9 @@ const SavedPage = () => {
                     <div className="bg-white rounded-[32px] p-6 shadow-md border border-slate-100/50 backdrop-blur-xl relative overflow-hidden">
                         <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-gradient-to-br from-[#000080]/5 to-transparent rounded-full pointer-events-none" />
                         
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3 py-1 rounded-full">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3 py-1 rounded-full w-fit block">
                                     Digital Directory
                                 </span>
                                 <h1 className="text-2xl font-black text-[#000080] tracking-tight mt-2">PrePe Circle</h1>
@@ -246,9 +286,9 @@ const SavedPage = () => {
                             </div>
                             <Button
                                 onClick={() => setIsAddDialogOpen(true)}
-                                className="rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 hover:opacity-95 text-white font-black h-12 px-5 shadow-lg shadow-orange-500/20 active:scale-95 transition-all uppercase tracking-widest text-[9px] shrink-0"
+                                className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 hover:opacity-95 text-white font-black h-12 px-4 shadow-lg shadow-orange-500/20 active:scale-95 transition-all uppercase tracking-wider text-[9px] shrink-0"
                             >
-                                <Plus className="w-4 h-4 mr-1.5" /> Add New
+                                <Plus className="w-4 h-4 mr-1.5" /> Add More & Get More Rewards
                             </Button>
                         </div>
 
@@ -313,6 +353,7 @@ const SavedPage = () => {
                                     <AnimatePresence mode="popLayout">
                                         {circleItems.map((item, idx) => {
                                             const styling = getServiceIconAndColor(item.service_type);
+                                            const isOverdue = item.metadata?.due_date && new Date(item.metadata.due_date) < new Date(new Date().setHours(0,0,0,0));
                                             return (
                                                 <motion.div
                                                     key={item.id}
@@ -322,46 +363,104 @@ const SavedPage = () => {
                                                     transition={{ duration: 0.3, delay: idx * 0.05 }}
                                                 >
                                                     <Card className="overflow-hidden rounded-[28px] border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#046A38]/10 transition-all bg-white relative">
-                                                        <div className="p-5 flex items-center justify-between gap-4">
-                                                            {/* Custom Dynamic Avatar Icon */}
-                                                            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg text-white bg-gradient-to-br", styling.gradient)}>
-                                                                {styling.icon}
+                                                        <div className="p-5">
+                                                            <div className="flex items-center justify-between gap-4">
+                                                                {/* Custom Dynamic Avatar Icon */}
+                                                                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg text-white bg-gradient-to-br", styling.gradient)}>
+                                                                    {styling.icon}
+                                                                </div>
+
+                                                                {/* User and Account details */}
+                                                                <div className="flex-1 min-w-0 pr-1">
+                                                                    <div className="flex flex-col">
+                                                                        <h4 className="text-base font-black text-slate-900 truncate leading-snug" title={item.title}>
+                                                                            {item.title}
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                                                            <Badge className={cn("text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5", styling.bgLight)}>
+                                                                                {item.service_type.replace('_', ' ')}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-xs font-mono font-bold text-slate-500 mt-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100/80 inline-block">
+                                                                        {item.account_id}
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Directly Visible Mobile-Friendly Actions */}
+                                                                <div className="flex flex-col gap-2 shrink-0 items-end">
+                                                                    <Button
+                                                                        onClick={() => handleAction(item)}
+                                                                        className="rounded-2xl bg-gradient-to-r from-[#046A38] to-green-700 text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 shadow-md shadow-green-700/10 h-10 px-4 transition-all flex items-center gap-1 active:scale-95"
+                                                                    >
+                                                                        Pay <Send className="w-3 h-3" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => handleDelete(item.id)}
+                                                                        className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
 
-                                                            {/* User and Account details */}
-                                                            <div className="flex-1 min-w-0 pr-1">
-                                                                <div className="flex flex-col">
-                                                                    <h4 className="text-base font-black text-slate-900 truncate leading-snug" title={item.title}>
-                                                                        {item.title}
-                                                                    </h4>
-                                                                    <div className="flex items-center gap-1.5 mt-1.5">
-                                                                        <Badge className={cn("text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5", styling.bgLight)}>
-                                                                            {item.service_type.replace('_', ' ')}
-                                                                        </Badge>
+                                                            {/* Sleek inline divider */}
+                                                            <div className="border-t border-slate-100 my-4" />
+
+                                                            {/* Dynamic Controls Grid */}
+                                                            <div className="flex flex-col gap-3">
+                                                                {/* Due Date picker */}
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <div className="flex items-center gap-2 text-slate-600">
+                                                                        <Calendar className="w-4.5 h-4.5 text-[#046A38]" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Due Date</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {isOverdue && (
+                                                                            <span className="text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse flex items-center gap-1">
+                                                                                <AlertCircle className="w-3.5 h-3.5" /> Overdue
+                                                                            </span>
+                                                                        )}
+                                                                        <input
+                                                                            type="date"
+                                                                            value={item.metadata?.due_date || ""}
+                                                                            onChange={(e) => handleUpdateDueDate(item, e.target.value)}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#046A38]/10 transition-all font-mono cursor-pointer"
+                                                                        />
                                                                     </div>
                                                                 </div>
-                                                                <p className="text-xs font-mono font-bold text-slate-500 mt-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100/80 inline-block">
-                                                                    {item.account_id}
-                                                                </p>
-                                                            </div>
 
-                                                            {/* Directly Visible Mobile-Friendly Actions */}
-                                                            <div className="flex flex-col gap-2 shrink-0 items-end">
-                                                                <Button
-                                                                    onClick={() => handleAction(item)}
-                                                                    className="rounded-2xl bg-gradient-to-r from-[#046A38] to-green-700 text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 shadow-md shadow-green-700/10 h-10 px-4 transition-all flex items-center gap-1 active:scale-95"
-                                                                >
-                                                                    Pay <Send className="w-3 h-3" />
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => handleDelete(item.id)}
-                                                                    className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
-                                                                    title="Delete"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
+                                                                {/* Days Left Display */}
+                                                                {(() => {
+                                                                    const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                    return (
+                                                                        <div className={cn(
+                                                                            "flex items-center justify-between p-3 rounded-2xl border transition-all select-none",
+                                                                            daysInfo.bgClass
+                                                                        )}>
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <Calendar className={cn("w-4.5 h-4.5 shrink-0", 
+                                                                                    daysInfo.text.includes("Overdue") ? "text-rose-500" : 
+                                                                                    daysInfo.text.includes("Today") ? "text-amber-500" : 
+                                                                                    daysInfo.text.includes("Left") ? "text-[#046A38]" : "text-slate-400"
+                                                                                )} />
+                                                                                <div className="flex flex-col text-left">
+                                                                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
+                                                                                    <span className={cn("text-[10px] leading-none mt-1", daysInfo.colorClass)}>{daysInfo.text}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            {item.metadata?.whatsapp_reminder_active && (
+                                                                                <Badge className="text-[8px] font-black uppercase tracking-wider bg-[#046A38] text-white border-none px-2 py-0.5 rounded-full flex items-center gap-0.5 select-none shrink-0 shadow-sm animate-pulse">
+                                                                                    <MessageSquare className="w-2.5 h-2.5 fill-white text-white" /> WhatsApp Active
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </Card>
@@ -488,9 +587,7 @@ const SavedPage = () => {
                                                                             className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#000080]/10 transition-all font-mono cursor-pointer"
                                                                         />
                                                                     </div>
-                                                                </div>
-
-                                                                {/* AutoPay and WhatsApp toggles */}
+                                                                </div>                                                                {/* AutoPay and Days Left */}
                                                                 <div className="grid grid-cols-2 gap-3 mt-1">
                                                                     {/* Autopay Toggle */}
                                                                     <div 
@@ -523,36 +620,33 @@ const SavedPage = () => {
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* WhatsApp Toggle */}
-                                                                    <div 
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleToggleWhatsApp(item);
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none",
-                                                                            item.metadata?.whatsapp_reminder_active 
-                                                                                ? "bg-emerald-50/50 border-emerald-200 text-emerald-800" 
-                                                                                : "bg-slate-50/50 border-slate-100 text-slate-600 hover:bg-slate-50"
-                                                                        )}
-                                                                    >
-                                                                        <div className="flex items-center gap-2">
-                                                                            <MessageSquare className={cn("w-4 h-4 shrink-0", item.metadata?.whatsapp_reminder_active ? "text-emerald-600 fill-emerald-50" : "text-slate-400")} />
-                                                                            <div className="flex flex-col">
-                                                                                <span className="text-[10px] font-black uppercase tracking-wider">WhatsApp</span>
-                                                                                <span className="text-[8px] text-slate-400 font-semibold leading-none mt-0.5">Reminders</span>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className={cn(
-                                                                            "w-8 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none shrink-0",
-                                                                            item.metadata?.whatsapp_reminder_active ? "bg-emerald-500" : "bg-slate-200"
-                                                                        )}>
+                                                                    {/* Days Left Display */}
+                                                                    {(() => {
+                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                        return (
                                                                             <div className={cn(
-                                                                                "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
-                                                                                item.metadata?.whatsapp_reminder_active ? "translate-x-3" : "translate-x-0"
-                                                                            )} />
-                                                                        </div>
-                                                                    </div>
+                                                                                "flex items-center justify-between p-3 rounded-2xl border transition-all select-none",
+                                                                                daysInfo.bgClass
+                                                                            )}>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Calendar className={cn("w-4 h-4 shrink-0", 
+                                                                                        daysInfo.text.includes("Overdue") ? "text-rose-500" : 
+                                                                                        daysInfo.text.includes("Today") ? "text-amber-500" : 
+                                                                                        daysInfo.text.includes("Left") ? "text-[#FF671F]" : "text-slate-400"
+                                                                                    )} />
+                                                                                    <div className="flex flex-col text-left">
+                                                                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none">Status</span>
+                                                                                        <span className={cn("text-[10px] leading-none mt-0.5", daysInfo.colorClass)}>{daysInfo.text}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                {item.metadata?.whatsapp_reminder_active && (
+                                                                                    <Badge className="text-[8px] font-black uppercase tracking-wider bg-emerald-500 text-white border-none px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-pulse shadow-sm">
+                                                                                        <MessageSquare className="w-2 h-2 fill-white text-white" /> WA
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         </div>

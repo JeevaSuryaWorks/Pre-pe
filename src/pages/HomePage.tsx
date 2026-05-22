@@ -6,7 +6,8 @@ import {
     Smartphone, Tv, Lightbulb, Play, 
     ChevronRight, CreditCard, Wallet, 
     Trophy, ShieldCheck, BadgeCheck,
-    ScanLine, ArrowUpRight, ArrowRight, Globe, ShieldAlert
+    ScanLine, ArrowUpRight, ArrowRight, Globe, ShieldAlert,
+    Sparkles, TrendingUp, Flame, Gift
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
@@ -19,7 +20,12 @@ import { BottomNav } from "@/components/home/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getUserTotalPoints } from "@/services/rewards.service";
+import { 
+    getUserTotalPoints, 
+    getUserTotalCashback, 
+    getUserStreak, 
+    getUserScratchCards 
+} from "@/services/rewards.service";
 import { Layout } from "@/components/layout/Layout";
 
 const HomePage = () => {
@@ -30,25 +36,40 @@ const HomePage = () => {
     const [scrolled, setScrolled] = useState(false);
     const [totalPoints, setTotalPoints] = useState<number>(0);
     const [pointsLoading, setPointsLoading] = useState(true);
+    const [cashback, setCashback] = useState<number>(0);
+    const [cashbackLoading, setCashbackLoading] = useState(true);
+    const [streak, setStreak] = useState<number>(0);
+    const [streakLoading, setStreakLoading] = useState(true);
+    const [unscratchedCount, setUnscratchedCount] = useState<number>(0);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         
-        const fetchPoints = async () => {
+        const fetchPointsAndRewards = async () => {
             if (user?.id) {
                 try {
-                    const points = await getUserTotalPoints(user.id);
+                    const [points, cb, strk, cards] = await Promise.all([
+                        getUserTotalPoints(user.id),
+                        getUserTotalCashback(user.id),
+                        getUserStreak(user.id),
+                        getUserScratchCards(user.id)
+                    ]);
                     setTotalPoints(points);
+                    setCashback(cb);
+                    setStreak(strk);
+                    setUnscratchedCount(cards.filter(c => c.status === 'UNLOCKED').length);
                 } catch (err) {
-                    console.error("Failed to fetch points:", err);
+                    console.error("Failed to fetch points & rewards:", err);
                 } finally {
                     setPointsLoading(false);
+                    setCashbackLoading(false);
+                    setStreakLoading(false);
                 }
             }
         };
 
-        fetchPoints();
+        fetchPointsAndRewards();
         return () => window.removeEventListener('scroll', handleScroll);
     }, [user?.id]);
 
@@ -119,7 +140,7 @@ const HomePage = () => {
                                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#046A38]/20 rounded-full -ml-12 -mb-12 blur-xl" />
 
                                 <div className="relative z-10">
-                                    <div className="flex justify-between items-start mb-6">
+                                    <div className="flex justify-between items-start mb-5">
                                         <Link to="/wallet" className="group/balance transition-all active:scale-95">
                                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF671F] mb-1 group-hover/balance:text-[#FF671F]/80 transition-colors">
                                                 Available Balance
@@ -131,26 +152,135 @@ const HomePage = () => {
                                                 </h2>
                                             </div>
                                         </Link>
-                                        <Link to="/rewards" className="bg-[#000080]/5 rounded-2xl p-2 px-3 flex flex-col items-end border border-[#000080]/10 hover:bg-[#000080]/10 hover:border-[#000080]/20 transition-all active:scale-95 group/rewards">
-                                            <p className="text-[9px] font-bold text-[#000080] uppercase tracking-wider">Reward Points</p>
-                                            <div className="flex items-center gap-1">
-                                                <Trophy className="w-3 h-3 text-amber-500 fill-amber-500 group-hover/rewards:scale-110 transition-transform" />
-                                                <span className="text-sm font-black tracking-tight text-[#000080]">
-                                                    {pointsLoading ? "..." : totalPoints.toLocaleString()}
-                                                </span>
-                                            </div>
-                                        </Link>
+                                        <Link 
+                                             to="/rewards" 
+                                             className="group/rewards relative overflow-hidden bg-gradient-to-br from-amber-500/[0.04] to-yellow-500/[0.02] rounded-2xl p-2 px-3 flex flex-col items-end border border-amber-500/20 hover:border-amber-500/40 transition-all duration-300 active:scale-95 select-none"
+                                         >
+                                             {/* Animated inner glow pulse */}
+                                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-amber-500/5 to-transparent -translate-x-full group-hover/rewards:translate-x-full transition-transform duration-1000 ease-out" />
+                                             
+                                             {/* Subtle pulsing background glow */}
+                                             <div className="absolute -inset-1 bg-amber-400/10 rounded-2xl blur opacity-30 group-hover/rewards:opacity-50 transition-opacity animate-pulse" />
+
+                                             <span className="text-[9px] font-black text-amber-600 uppercase tracking-wider relative z-10">Reward Points</span>
+                                             <div className="flex items-center gap-1.5 mt-0.5 relative z-10">
+                                                 <motion.div
+                                                     animate={{ 
+                                                         rotate: [0, 8, -8, 8, 0],
+                                                         y: [0, -1.5, 0]
+                                                     }}
+                                                     transition={{
+                                                         repeat: Infinity,
+                                                         duration: 3,
+                                                         ease: "easeInOut"
+                                                     }}
+                                                     whileHover={{ scale: 1.2, rotate: 360 }}
+                                                 >
+                                                     <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-500 drop-shadow-[0_2px_4px_rgba(245,158,11,0.3)]" />
+                                                 </motion.div>
+                                                 
+                                                 <motion.span 
+                                                     key={totalPoints}
+                                                     initial={{ scale: 0.8, opacity: 0 }}
+                                                     animate={{ scale: 1, opacity: 1 }}
+                                                     transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                                     className="text-sm font-black tracking-tight text-[#000080]"
+                                                 >
+                                                     {pointsLoading ? "..." : totalPoints.toLocaleString()}
+                                                 </motion.span>
+                                             </div>
+                                             
+                                             {/* Small animated sparkles floating inside */}
+                                             <div className="absolute top-1 left-2 pointer-events-none opacity-0 group-hover/rewards:opacity-100 transition-opacity duration-300">
+                                                 <motion.div
+                                                     animate={{ 
+                                                         scale: [0.6, 1, 0.6],
+                                                         opacity: [0.2, 0.8, 0.2],
+                                                         rotate: 360 
+                                                     }}
+                                                     transition={{ repeat: Infinity, duration: 2 }}
+                                                 >
+                                                     <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                                                 </motion.div>
+                                             </div>
+                                         </Link>
                                     </div>
 
-                                    {/* Action Pillars */}
-                                    <div className="grid grid-cols-1">
-                                        <Link to="/fund-request" className="bg-[#000080] hover:bg-[#06038D] transition-all rounded-2xl py-4 flex items-center justify-center gap-3 group/btn shadow-lg shadow-blue-900/20">
-                                            <div className="bg-white/20 p-1.5 rounded-lg">
-                                                <Plus className="w-4 h-4 text-white" />
+                                    {/* Thin Glowing Divider */}
+                                    <div className="w-full h-[1px] bg-gradient-to-r from-[#FF671F]/20 via-slate-200 to-[#046A38]/20 my-4" />
+
+                                    {/* Attractive Dynamic Metrics Grid */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        
+                                        {/* Dynamic Metric 1: Cashback Earned */}
+                                        <Link to="/rewards" className="group/metric relative bg-gradient-to-br from-emerald-500/[0.04] to-teal-500/[0.02] border border-emerald-500/10 rounded-2xl p-3 flex flex-col justify-between hover:border-emerald-500/30 hover:bg-emerald-500/[0.06] transition-all duration-300 active:scale-95 overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-emerald-500/5 to-transparent -translate-y-full group-hover/metric:translate-y-full transition-transform duration-1000" />
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[8px] font-black tracking-wider text-emerald-600 uppercase">Cashback</span>
+                                                <motion.div 
+                                                    animate={{ scale: [1, 1.15, 1] }}
+                                                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                                                >
+                                                    <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/20 group-hover/metric:rotate-45 transition-transform" />
+                                                </motion.div>
                                             </div>
-                                            <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Add Money</span>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400">Total Earned</p>
+                                                <p className="text-base font-black tracking-tight text-emerald-600 group-hover/metric:scale-105 transition-transform origin-left">
+                                                    {cashbackLoading ? "..." : `₹${cashback.toFixed(2)}`}
+                                                </p>
+                                            </div>
                                         </Link>
+
+                                        {/* Dynamic Metric 3: Active Streak */}
+                                        <Link to="/rewards" className="group/metric relative bg-gradient-to-br from-orange-500/[0.04] to-amber-500/[0.02] border border-orange-500/10 rounded-2xl p-3 flex flex-col justify-between hover:border-orange-500/30 hover:bg-orange-500/[0.06] transition-all duration-300 active:scale-95 overflow-hidden">
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-orange-500/5 to-transparent -translate-y-full group-hover/metric:translate-y-full transition-transform duration-1000" />
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[8px] font-black tracking-wider text-orange-600 uppercase">Streak</span>
+                                                <motion.div
+                                                    animate={{ 
+                                                        y: [0, -2, 0],
+                                                        scaleY: [1, 1.1, 1]
+                                                    }}
+                                                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                                                    className="origin-bottom"
+                                                >
+                                                    <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/25" />
+                                                </motion.div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400">Daily Activity</p>
+                                                <p className="text-base font-black tracking-tight text-orange-600 group-hover/metric:scale-105 transition-transform origin-left">
+                                                    {streakLoading ? "..." : `${streak} Days`}
+                                                </p>
+                                            </div>
+                                        </Link>
+
                                     </div>
+
+                                    {/* Unscratched Cards Pulsing Banner (Only shows if user has > 0 unlocked unscratched cards) */}
+                                    <AnimatePresence>
+                                        {unscratchedCount > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                                animate={{ opacity: 1, height: "auto", marginTop: 14 }}
+                                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <Link to="/rewards" className="flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 px-4 animate-pulse hover:animate-none transition-all active:scale-98">
+                                                    <div className="flex items-center gap-2">
+                                                        <Gift className="w-4 h-4 text-amber-600 animate-bounce" />
+                                                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider">
+                                                            You have {unscratchedCount} Unlocked Scratch Cards!
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center text-[9px] font-black text-amber-800 uppercase tracking-widest gap-0.5">
+                                                        Claim <ChevronRight className="w-3 h-3" />
+                                                    </div>
+                                                </Link>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </div>
                         </div>
