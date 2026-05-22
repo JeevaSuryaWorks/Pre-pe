@@ -78,7 +78,7 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md rounded-[32px] p-8 border-none shadow-2xl overflow-hidden relative">
+      <DialogContent className="max-w-md rounded-[32px] p-8 border-none shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar relative">
         {/* --- PREMIUM CONSENT OVERLAY --- */}
         {showConsentDialog && (
           <div className="absolute inset-0 bg-white/95 backdrop-blur-md rounded-[32px] z-[70] flex flex-col justify-center p-8 text-center animate-in fade-in-0 zoom-in-95 duration-200">
