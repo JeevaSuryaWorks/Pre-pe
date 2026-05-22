@@ -366,7 +366,7 @@ export default function PlanSelectionPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center w-full px-2 max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch justify-center w-full px-2 max-w-5xl mx-auto">
                         <AnimatePresence>
                             {filteredPlans.map((plan, index) => {
                                 const Icon = getPlanIcon(plan.id);
@@ -382,7 +382,7 @@ export default function PlanSelectionPage() {
                                         initial={{ opacity: 0, y: 30 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.1, duration: 0.5 }}
-                                        className="flex flex-col h-full w-full"
+                                        className="flex flex-col h-full w-full max-w-md mx-auto lg:max-w-none"
                                     >
                                         <Card className={cn(
                                             "relative w-full flex-1 flex flex-col transition-all duration-500 bg-white/80 backdrop-blur-xl rounded-[32px] overflow-hidden border border-white/50 shadow-xl hover:shadow-2xl hover:translate-y-[-4px]",
