@@ -454,7 +454,7 @@ const SavedPage = () => {
                                                                                 </div>
                                                                             </div>
                                                                             {item.metadata?.whatsapp_reminder_active && (
-                                                                                <Badge className="text-[8px] font-black uppercase tracking-wider bg-[#046A38] text-white border-none px-2 py-0.5 rounded-full flex items-center gap-0.5 select-none shrink-0 shadow-sm animate-pulse">
+                                                                                <Badge className="text-[8px] font-black uppercase tracking-wider bg-[#046A38] text-white border-none px-2 py-0.5 rounded-full flex items-center gap-0.5 select-none shrink-0 shadow-sm">
                                                                                     <MessageSquare className="w-2.5 h-2.5 fill-white text-white" /> WhatsApp Active
                                                                                 </Badge>
                                                                             )}
@@ -640,7 +640,7 @@ const SavedPage = () => {
                                                                                     </div>
                                                                                 </div>
                                                                                 {item.metadata?.whatsapp_reminder_active && (
-                                                                                    <Badge className="text-[8px] font-black uppercase tracking-wider bg-emerald-500 text-white border-none px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 animate-pulse shadow-sm">
+                                                                                    <Badge className="text-[8px] font-black uppercase tracking-wider bg-emerald-500 text-white border-none px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 shadow-sm">
                                                                                         <MessageSquare className="w-2 h-2 fill-white text-white" /> WA
                                                                                     </Badge>
                                                                                 )}

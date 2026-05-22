@@ -390,8 +390,31 @@ export default function UpgradePlans() {
                                                     "text-4xl font-black tracking-tight mt-6",
                                                     isBasic ? "text-[#046A38]" : isBusiness ? "text-[#FF671F]" : "text-[#000080]"
                                                 )}>
-                                                    {plan.price?.replace(/\/ Lifetime/gi, '').trim().split('/')[0]}
-                                                    {plan.price !== 'Free' && <span className="text-sm text-slate-400 font-bold ml-1">/mo</span>}
+                                                    {(() => {
+                                                        if (!plan.price) return null;
+                                                        if (plan.price.toLowerCase() === 'free') {
+                                                            return 'Free';
+                                                        }
+                                                        const parts = plan.price.split('/');
+                                                        const amount = parts[0]?.trim();
+                                                        const period = parts[1]?.trim();
+                                                        if (!period) return amount;
+                                                        
+                                                        let displayPeriod = period;
+                                                        const lowerPeriod = period.toLowerCase();
+                                                        if (lowerPeriod === 'month' || lowerPeriod === 'monthly' || lowerPeriod === 'mo') {
+                                                            displayPeriod = 'mo';
+                                                        } else if (lowerPeriod === 'year' || lowerPeriod === 'yearly' || lowerPeriod === 'yr') {
+                                                            displayPeriod = 'yr';
+                                                        }
+                                                        
+                                                        return (
+                                                            <>
+                                                                {amount}
+                                                                <span className="text-sm text-slate-400 font-bold ml-1">/{displayPeriod}</span>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 <CardDescription className="pt-4 text-slate-500 font-medium leading-relaxed min-h-[80px] px-2 text-xs">
                                                     {plan.description}
