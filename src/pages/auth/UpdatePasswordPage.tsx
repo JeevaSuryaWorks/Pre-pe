@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ const UpdatePasswordPage = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleUpdate = async (e: React.FormEvent) => {
@@ -62,14 +63,21 @@ const UpdatePasswordPage = () => {
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                                     <Input
                                         id="password"
-                                        type="password"
+                                        type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
                                         required
-                                        className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] rounded-xl transition-all"
+                                        className="pl-10 pr-10 h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-[#FF671F] rounded-xl transition-all"
                                         minLength={6}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
                                 </div>
                             </div>
                             <Button className="w-full h-12 bg-[#FF671F] hover:bg-orange-600 text-white font-black rounded-xl shadow-lg shadow-orange-600/20 active:scale-95 transition-all" disabled={loading}>

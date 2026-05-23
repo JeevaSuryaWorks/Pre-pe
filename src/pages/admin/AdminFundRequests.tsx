@@ -74,7 +74,7 @@ export const AdminFundRequests = () => {
             if (error) throw error;
             return data || [];
         },
-        refetchInterval: 30000,
+        refetchInterval: 3000, // 3-second real-time auto-polling for instant admin responses
     });
 
     const updateMutation = useMutation({
@@ -115,7 +115,20 @@ export const AdminFundRequests = () => {
 
                 if (balErr) throw balErr;
 
-                // Log transaction — use real column names
+                // Log entry inside wallet_ledger so transaction shows in the user's ledger list
+                const { error: ledgerErr } = await (supabase as any)
+                    .from('wallet_ledger')
+                    .insert({
+                        wallet_id: wallet.id,
+                        type: 'CREDIT',
+                        amount: Number(amount),
+                        balance_after: newBalance,
+                        description: `Direct UPI credit approved - UTR: ${updatedRows[0].transaction_id || ''}`,
+                        created_at: new Date().toISOString()
+                    });
+                if (ledgerErr) console.warn('[AdminFundRequests] Ledger log failed:', ledgerErr.message);
+
+                // Log main transaction
                 const { error: txnErr } = await (supabase as any).from('transactions').insert({
                     user_id: userId,
                     type: 'CREDIT',

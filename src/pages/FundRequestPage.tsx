@@ -147,7 +147,7 @@ export const FundRequestPage = () => {
                                 exit={{ opacity: 0, scale: 0.95 }}
                             >
                                 <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[32px] overflow-hidden">
-                                    <CardContent className="p-8">
+                                    <CardContent className="p-4 sm:p-8">
                                         <AddMoney initialAmount={amount} onSuccess={() => navigate('/wallet')} />
                                     </CardContent>
                                 </Card>

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, CreditCard, Smartphone, CheckCircle, XCircle, Zap, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { paymentService } from '@/services/payment.service';
+import { manualFundService } from '@/services/manualFund.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +30,8 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   const [failureMessage, setFailureMessage] = useState<string>('');
   const [manualIntentUrl, setManualIntentUrl] = useState<string>('');
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [transactionId, setTransactionId] = useState('');
+  const [isManualSuccess, setIsManualSuccess] = useState(false);
   const { toast } = useToast();
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -250,54 +253,41 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       return;
     }
 
-    if (!referenceId) {
+    const cleanTxnId = transactionId.trim();
+    if (!cleanTxnId) {
       toast({ 
-        title: 'No Transaction Found', 
-        description: 'No active reference ID found to verify.', 
+        title: 'Transaction ID Required', 
+        description: 'Please enter or paste your 12-digit UPI Transaction ID (UTR) to submit.', 
         variant: 'destructive' 
       });
       return;
     }
 
-    setState('verifying');
-    toast({ 
-      title: 'Verifying Payment', 
-      description: 'Checking bank ledger database in real-time. Please wait...',
-    });
+    if (cleanTxnId.length < 6) {
+      toast({ 
+        title: 'Invalid Transaction ID', 
+        description: 'Please enter a valid Transaction ID / UTR.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    setState('processing');
 
     try {
-      const result = await paymentService.getPaymentStatus(referenceId);
-
-      if (result.status === 'SUCCESS') {
-        setState('success');
-        refetchWallet();
-        toast({ 
-          title: 'Payment Confirmed', 
-          description: `₹${result.amount || amount} successfully added to your wallet!`,
-        });
-        if (onSuccess) onSuccess();
-      } else if (result.status === 'FAILED') {
-        setState('failed');
-        setFailureMessage(result.failure_message || 'Payment failed. Money was not deducted if your bank says failed.');
-        toast({ 
-          title: 'Verification Failed', 
-          description: 'The bank returned a failure status for this transaction.', 
-          variant: 'destructive' 
-        });
-      } else {
-        // PENDING or NOT_FOUND: Real payment not found yet in the DB
-        setState('manual');
-        toast({ 
-          title: 'Payment Pending', 
-          description: "We haven't received confirmation from your bank yet. Please ensure the payment was fully completed, wait a moment, and click I've Paid again.",
-          variant: 'default' 
-        });
-      }
-    } catch (err) {
+      await manualFundService.submitRequest(user.id, parseFloat(amount), cleanTxnId);
+      setIsManualSuccess(true);
+      setState('success');
+      toast({ 
+        title: 'Fund Request Submitted', 
+        description: `Request for ₹${amount} submitted successfully! Admin will verify UTR: ${cleanTxnId}.`,
+      });
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
       setState('manual');
       toast({ 
-        title: 'Verification Error', 
-        description: 'Failed to verify transaction status. Please try again in a few seconds.', 
+        title: 'Submission Failed', 
+        description: err.message || 'Failed to submit fund request. Please try again.', 
         variant: 'destructive' 
       });
     }
@@ -316,10 +306,17 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
             <CheckCircle className="h-12 w-12 text-emerald-600" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-black text-slate-900">Success!</h3>
-            <p className="text-slate-500 font-medium">₹{amount} added to your account.</p>
+            <h3 className="text-2xl font-black text-slate-900">
+              {isManualSuccess ? 'Submitted!' : 'Success!'}
+            </h3>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              {isManualSuccess 
+                ? `Request for ₹${amount} is pending admin verification. Funds will be added instantly once verified.`
+                : `₹${amount} added to your account.`
+              }
+            </p>
           </div>
-          <Button onClick={() => { setState('idle'); setAmount(''); }} className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-lg">
+          <Button onClick={() => { setState('idle'); setAmount(''); setTransactionId(''); setIsManualSuccess(false); }} className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-lg">
             Return to Dashboard
           </Button>
         </motion.div>
@@ -411,9 +408,9 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6 text-center"
             >
-              <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
-                <div className="bg-white p-4 rounded-2xl shadow-sm inline-block mb-4">
-                  <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative">
+              <div className="bg-slate-50 p-4 sm:p-6 rounded-[32px] border-2 border-dashed border-slate-200">
+                <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm inline-block mb-3">
+                  <div className="w-40 h-40 sm:w-48 sm:h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative mx-auto">
                     {manualIntentUrl ? (
                       <img 
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(manualIntentUrl)}`}
@@ -426,42 +423,59 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <p className="text-lg font-black text-emerald-600 select-all font-mono">bmsmobiles@barodampay</p>
+                  <p className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                    <p className="text-sm sm:text-lg font-black text-emerald-600 select-all font-mono">bmsmobiles@barodampay</p>
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText('bmsmobiles@barodampay');
                         toast({ title: 'UPI ID Copied', description: 'bmsmobiles@barodampay copied to clipboard' });
                       }}
-                      className="px-2 py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 text-[10px] font-black uppercase"
+                      className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 text-[8px] sm:text-[10px] font-black uppercase transition-all"
                     >
                       Copy
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* Transaction ID / UTR Input Field */}
+              <div className="space-y-2 text-left bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm">
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  UPI Transaction ID / UTR (12 Digits)*
+                </Label>
+                <Input
+                  type="text"
+                  placeholder="Enter or paste 12-digit UTR number"
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value.replace(/[^0-9]/g, '').slice(0, 12))}
+                  className="rounded-2xl border-2 border-slate-200 h-12 px-4 text-sm font-semibold focus:ring-4 focus:ring-emerald-50 focus:border-emerald-500 transition-all font-mono"
+                />
+                <p className="text-[9px] text-slate-400 leading-tight ml-1 font-medium">
+                  * UTR number is printed on your GPay, PhonePe, or Paytm receipt.
+                </p>
+              </div>
               
               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 text-left">
                 <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1">Instructions:</p>
                 <ul className="text-[10px] text-amber-600 font-medium space-y-1 list-disc pl-4">
                   <li>Scan the QR code or pay to the UPI ID above.</li>
-                  <li>After payment, wait 1-2 minutes for automatic sync.</li>
-                  <li>If balance doesn't update, contact support with screenshot.</li>
+                  <li>Paste the 12-digit UPI Transaction ID (UTR) in the box above.</li>
+                  <li>Click **I've Paid** to submit your request for instant verification.</li>
                 </ul>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2.5 sm:gap-3">
                 <Button 
-                  onClick={() => setState('idle')} 
+                  onClick={() => { setState('idle'); setTransactionId(''); }} 
                   variant="outline"
-                  className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest"
+                  className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest border-2"
                 >
                   Back
                 </Button>
                 <Button 
                   onClick={handleManualPaymentCompleted}
-                  className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100"
+                  className="flex-[2] h-14 bg-emerald-600 hover:bg-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 text-white"
                 >
                   I've Paid
                 </Button>
