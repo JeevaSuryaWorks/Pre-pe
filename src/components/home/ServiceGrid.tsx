@@ -146,9 +146,9 @@ export const ServiceGrid = () => {
   const primaryServices = [
     { icon: Smartphone, label: "Mobile Recharge", path: "/mobile-recharge" },
     { icon: Tv, label: "DTH Recharge", path: "/dth-recharge" },
+    { icon: SmartphoneCharging, label: "Postpaid", path: "/services/postpaid" },
     { icon: Lightbulb, label: "Electricity Payment", path: "/services/electricity" },
-    { icon: Play, label: "Google Play", path: "/services/redeem-code" },
-    { icon: SmartphoneCharging, label: "Postpaid", path: "/services/postpaid" }
+    { icon: Play, label: "Google Play", path: "/services/redeem-code" }
   ];
 
   const secondaryServices = [
