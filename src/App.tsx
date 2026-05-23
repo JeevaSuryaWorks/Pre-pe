@@ -156,8 +156,8 @@ const App = () => (
 
 
               <Route path="/services" element={<ServicesPage />} />
+              <Route path="/services/postpaid" element={<Postpaid />} />
               <Route path="/services/:serviceName" element={<ServicePlaceholder />} />
-              <Route path="/postpaid" element={<Postpaid />} />
 
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/dnpl" element={<DNPLPage />} />
