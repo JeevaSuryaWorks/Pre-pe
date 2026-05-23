@@ -24,7 +24,8 @@ import {
     getUserTotalPoints, 
     getUserTotalCashback, 
     getUserStreak, 
-    getUserScratchCards 
+    getUserScratchCards,
+    checkAndRecordDailyStreak
 } from "@/services/rewards.service";
 import { Layout } from "@/components/layout/Layout";
 
@@ -49,6 +50,9 @@ const HomePage = () => {
         const fetchPointsAndRewards = async () => {
             if (user?.id) {
                 try {
+                    // Record daily streak check-in activity if none exists today
+                    await checkAndRecordDailyStreak(user.id);
+
                     const [points, cb, strk, cards] = await Promise.all([
                         getUserTotalPoints(user.id),
                         getUserTotalCashback(user.id),

@@ -129,17 +129,12 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       if (result.intent_url) {
         setReferenceId(result.reference_id);
         
-        if (isMobile) {
-          startPolling(result.reference_id);
-          if (Capacitor.isNativePlatform()) {
-            window.open(result.intent_url, '_system');
-          } else {
-            window.location.href = result.intent_url;
-          }
-        } else {
-          setManualIntentUrl(result.intent_url);
-          setState('manual');
-        }
+        // Start polling in background to auto-confirm if they complete payment
+        startPolling(result.reference_id);
+        
+        // Automatically display UPI QR Code screen for both mobile and desktop
+        setManualIntentUrl(result.intent_url);
+        setState('manual');
         return;
       } else {
         throw new Error('UPI Intent URL not generated');
@@ -432,7 +427,18 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
-                  <p className="text-lg font-black text-emerald-600 select-all">bmsmobiles@barodampay</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-lg font-black text-emerald-600 select-all font-mono">bmsmobiles@barodampay</p>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText('bmsmobiles@barodampay');
+                        toast({ title: 'UPI ID Copied', description: 'bmsmobiles@barodampay copied to clipboard' });
+                      }}
+                      className="px-2 py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 text-[10px] font-black uppercase"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
               </div>
               

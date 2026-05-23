@@ -105,9 +105,7 @@ const ServiceItem = ({ icon: Icon, label, path, isBorrowService, index = 0 }: Se
               ? "bg-slate-50 opacity-40"
               : label === "Mobile Recharge"
                 ? `${OPERATOR_LOGOS[logoIndex].color} shadow-lg`
-                : label === "Google Play"
-                  ? "bg-white border border-slate-100 shadow-sm group-hover:shadow-md group-hover:bg-white"
-                  : `${theme.bg} ${theme.border} border shadow-sm group-hover:shadow-md group-hover:bg-white`
+                : `${theme.bg} ${theme.border} border shadow-sm group-hover:shadow-md group-hover:bg-white`
           )}
         >
           <AnimatePresence mode="wait">
@@ -123,18 +121,6 @@ const ServiceItem = ({ icon: Icon, label, path, isBorrowService, index = 0 }: Se
                 <img
                   src={OPERATOR_LOGOS[logoIndex].path}
                   alt={OPERATOR_LOGOS[logoIndex].name}
-                  className="w-full h-full object-contain"
-                />
-              </motion.div>
-            ) : label === "Google Play" ? (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="w-full h-full flex items-center justify-center p-3"
-              >
-                <img
-                  src="/logos/google-play.svg"
-                  alt="Google Play"
                   className="w-full h-full object-contain"
                 />
               </motion.div>

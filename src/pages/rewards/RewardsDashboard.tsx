@@ -108,6 +108,9 @@ export default function RewardsDashboard() {
     if (!silent) setLoading(true);
     
     try {
+      // Record daily check-in activity if none exists today
+      await checkAndRecordDailyStreak(user.id);
+
       const [points, cb, strk, spinStatus, cards, availableTasks, completedIds] = await Promise.all([
         getUserTotalPoints(user.id),
         getUserTotalCashback(user.id),

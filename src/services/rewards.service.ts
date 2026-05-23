@@ -712,3 +712,28 @@ export async function claimTaskReward(userId: string, task: any): Promise<boolea
     return true;
 }
 
+export async function checkAndRecordDailyStreak(userId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('reward_points_ledger' as never)
+    .select('created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
+
+  const hasActivityToday = data && data.some((row: any) => {
+    const d = new Date(row.created_at);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === todayTime;
+  });
+
+  if (!hasActivityToday) {
+    // Record a cashback points ledger entry with 10 reward points for daily check-in
+    await addRewardPoints(userId, 10, 'CASHBACK_POINTS', 'Daily Streak Check-in');
+  }
+}
+
