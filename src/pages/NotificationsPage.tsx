@@ -107,6 +107,48 @@ const NotificationsPage = () => {
                 console.error("KYC status fetch failed:", err);
             }
 
+            // 3. Fetch User Manual Fund Request Updates (Approved & Rejected)
+            try {
+                const { data: fundRequestList, error: fundError } = await supabase
+                    .from('manual_fund_requests')
+                    .select('*')
+                    .eq('user_id', user?.id)
+                    .in('status', ['APPROVED', 'REJECTED'])
+                    .order('updated_at', { ascending: false });
+
+                if (!fundError && fundRequestList) {
+                    fundRequestList.forEach((req: any) => {
+                        if (req.status === 'APPROVED') {
+                            allNotifications.push({
+                                id: `fund-${req.id}`,
+                                type: 'approval' as any,
+                                title: 'Fund Deposit Approved 💰',
+                                content: `Your manual deposit request for ₹${req.amount} has been approved. The funds have been successfully credited to your Pre-pe wallet.`,
+                                date: req.updated_at,
+                                cta_link: '/wallet',
+                                cta_text: 'View Wallet',
+                                icon: CircleCheck,
+                                color: 'emerald'
+                            });
+                        } else {
+                            allNotifications.push({
+                                id: `fund-${req.id}`,
+                                type: 'rejection',
+                                title: 'Fund Deposit Rejected ❌',
+                                content: `Your manual deposit request for ₹${req.amount} was rejected.\n\nReason: ${req.admin_notes || 'Invalid transaction ID or details. Please double check your UTR number and try again.'}`,
+                                date: req.updated_at,
+                                cta_link: '/wallet',
+                                cta_text: 'Try Again',
+                                icon: AlertCircle,
+                                color: 'rose'
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Fund request status fetch failed:", err);
+            }
+
             // Sort by date descending
             allNotifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             setNotifications(allNotifications);

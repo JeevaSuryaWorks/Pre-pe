@@ -112,7 +112,11 @@ export const AdminFundRequests = () => {
                 .select('*, profiles(full_name, email, phone)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            return data || [];
+            return (data || []).map((item: any) => ({
+                ...item,
+                reject_reason: item.admin_notes || null,
+                reviewed_at: item.status !== 'PENDING' ? item.updated_at : null,
+            }));
         },
         refetchInterval: 3000, // 3-second real-time auto-polling for instant admin responses
     });
@@ -126,9 +130,7 @@ export const AdminFundRequests = () => {
                 .from('manual_fund_requests')
                 .update({
                     status,
-                    reject_reason: reason || null,
-                    reviewed_by: adminUser?.id,
-                    reviewed_at: new Date().toISOString(),
+                    admin_notes: reason || null,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', id)
