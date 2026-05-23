@@ -169,7 +169,7 @@ export function TransactionHistory() {
     else if (operator.includes('airtel') && (tx.service_type === 'DTH' || operator.includes('dth'))) logoPath = '/operators/airtel-dth.svg';
     else if (operator.includes('airtel')) logoPath = '/operators/airtel.svg';
     else if (operator.includes('vi') || operator.includes('vodafone') || operator.includes('idea')) logoPath = '/operators/vi.svg';
-    else if (operator.includes('bsnl')) logoPath = '/operators/bsnl.svg';
+    else if (operator.includes('bsnl')) logoPath = '/logos/bsnl_new.png';
     else if (operator.includes('tata') || operator.includes('tataplay') || operator.includes('sky')) logoPath = '/operators/tataplay.svg';
     else if (operator.includes('dish')) logoPath = '/operators/dishtv.svg';
     else if (operator.includes('sun')) logoPath = '/operators/sun-direct.svg';

@@ -19,7 +19,7 @@ const MOCK_OPERATORS: Operator[] = [
   { id: '1', name: 'Airtel', code: 'AIRTEL', type: 'prepaid', logo: '/operators/airtel.svg' },
   { id: '2', name: 'Jio', code: 'JIO', type: 'prepaid', logo: '/operators/jio.svg' },
   { id: '3', name: 'Vi', code: 'VI', type: 'prepaid', logo: '/operators/vi.svg' },
-  { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid', logo: '/operators/bsnl.svg' },
+  { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid', logo: '/logos/bsnl_new.png' },
   { id: '5', name: 'Airtel Postpaid', code: 'AIRTEL_POST', type: 'postpaid', logo: '/operators/airtel.svg' },
   { id: '6', name: 'Jio Postpaid', code: 'JIO_POST', type: 'postpaid', logo: '/operators/jio.svg' },
   { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth', logo: '/operators/tataplay.svg' },
@@ -58,19 +58,19 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
                        : rawType.includes('dth') ? 'dth' 
                        : rawType as any;
       const rawName = op.operator_name.toLowerCase();
-      let logoFile: string | undefined = undefined;
+      let logoPath: string | undefined = undefined;
 
       if (mappedType === 'dth') {
-        if (rawName.includes('tata')) logoFile = 'tataplay.svg';
-        else if (rawName.includes('airtel')) logoFile = 'airtel-dth.svg';
-        else if (rawName.includes('dish')) logoFile = 'dishtv.svg';
-        else if (rawName.includes('sun')) logoFile = 'sun-direct.svg';
-        else if (rawName.includes('videocon') || rawName.includes('d2h')) logoFile = 'videocon-d2h.svg';
+        if (rawName.includes('tata')) logoPath = '/operators/tataplay.svg';
+        else if (rawName.includes('airtel')) logoPath = '/operators/airtel-dth.svg';
+        else if (rawName.includes('dish')) logoPath = '/operators/dishtv.svg';
+        else if (rawName.includes('sun')) logoPath = '/operators/sun-direct.svg';
+        else if (rawName.includes('videocon') || rawName.includes('d2h')) logoPath = '/operators/videocon-d2h.svg';
       } else {
-        if (rawName.includes('airtel')) logoFile = 'airtel.svg';
-        else if (rawName.includes('jio')) logoFile = 'jio.svg';
-        else if (rawName.includes('vi') || rawName.includes('vodafone')) logoFile = 'vi.svg';
-        else if (rawName.includes('bsnl')) logoFile = 'bsnl.svg';
+        if (rawName.includes('airtel')) logoPath = '/operators/airtel.svg';
+        else if (rawName.includes('jio')) logoPath = '/operators/jio.svg';
+        else if (rawName.includes('vi') || rawName.includes('vodafone')) logoPath = '/operators/vi.svg';
+        else if (rawName.includes('bsnl')) logoPath = '/logos/bsnl_new.png';
       }
 
       return {
@@ -78,7 +78,7 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
         name: op.operator_name,
         code: op.operator_id, // Using ID as unique code
         type: mappedType,
-        logo: logoFile ? `/operators/${logoFile}` : undefined
+        logo: logoPath
       };
     });
 

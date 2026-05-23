@@ -38,7 +38,7 @@ const POSTPAID_OPERATORS = [
   { id: '14', name: 'Airtel Postpaid', code: 'AIRTEL_POST', logo: '/logos/airtel_new.svg', color: '#eb2f3b', glow: 'shadow-red-500/10 hover:border-red-300' },
   { id: '172', name: 'Jio Postpaid', code: 'JIO_POST', logo: '/logos/jio_new.svg', color: '#002e6e', glow: 'shadow-blue-500/10 hover:border-blue-300' },
   { id: '22', name: 'Vi Postpaid', code: 'VI_POST', logo: '/logos/vi_new.svg', color: '#eb2f3b', glow: 'shadow-rose-500/10 hover:border-rose-300' },
-  { id: '29', name: 'BSNL Postpaid', code: 'BSNL_POST', logo: '/logos/bsnl_new.svg', color: '#004f9f', glow: 'shadow-sky-500/10 hover:border-sky-300' }
+  { id: '29', name: 'BSNL Postpaid', code: 'BSNL_POST', logo: '/logos/bsnl_new.png', color: '#004f9f', glow: 'shadow-sky-500/10 hover:border-sky-300' }
 ];
 
 export function PostpaidBillForm() {
