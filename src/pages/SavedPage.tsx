@@ -49,7 +49,8 @@ const SavedPage = () => {
             return { 
                 text: "No due date", 
                 colorClass: "text-slate-400 font-black uppercase tracking-wider", 
-                bgClass: "bg-slate-50 border-slate-100 text-slate-400" 
+                bgClass: "bg-slate-50 border-slate-100 text-slate-400",
+                status: 'none'
             };
         }
         
@@ -67,19 +68,29 @@ const SavedPage = () => {
             return {
                 text: `Overdue by ${absDays} ${absDays === 1 ? 'Day' : 'Days'}`,
                 colorClass: "text-rose-600 font-black uppercase tracking-wider",
-                bgClass: "bg-rose-50/50 border-rose-200 text-rose-800"
+                bgClass: "bg-rose-50/50 border-rose-200 text-rose-800",
+                status: 'overdue'
             };
         } else if (diffDays === 0) {
+            const now = new Date();
+            const hoursLeft = 23 - now.getHours();
+            const minLeft = 59 - now.getMinutes();
+            let timeLeftStr = `${hoursLeft}h left`;
+            if (hoursLeft === 0) {
+                timeLeftStr = `${minLeft}m left`;
+            }
             return {
-                text: "Due Today",
+                text: `Due Today (${timeLeftStr})`,
                 colorClass: "text-amber-600 font-black uppercase tracking-wider animate-pulse",
-                bgClass: "bg-amber-50/50 border-amber-200 text-amber-800"
+                bgClass: "bg-amber-50/50 border-amber-200 text-amber-800",
+                status: 'today'
             };
         } else {
             return {
                 text: `${diffDays} ${diffDays === 1 ? 'Day' : 'Days'} Left`,
                 colorClass: "text-[#046A38] font-black uppercase tracking-wider",
-                bgClass: "bg-emerald-50/50 border-emerald-200 text-emerald-800"
+                bgClass: "bg-emerald-50/50 border-emerald-200 text-emerald-800",
+                status: 'upcoming'
             };
         }
     };
@@ -111,9 +122,18 @@ const SavedPage = () => {
     };
 
     const handleUpdateDueDate = async (item: SavedItem, dateStr: string) => {
+        if (!dateStr) {
+            toast({
+                title: "Date Required",
+                description: "Payment Due Date is compulsory and cannot be empty.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         const updatedMetadata = {
             ...(item.metadata || {}),
-            due_date: dateStr || null
+            due_date: dateStr
         };
         
         // Optimistic UI Update
@@ -389,12 +409,35 @@ const SavedPage = () => {
 
                                                                 {/* Directly Visible Mobile-Friendly Actions */}
                                                                 <div className="flex flex-col gap-2 shrink-0 items-end">
-                                                                    <Button
-                                                                        onClick={() => handleAction(item)}
-                                                                        className="rounded-2xl bg-gradient-to-r from-[#046A38] to-green-700 text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 shadow-md shadow-green-700/10 h-10 px-4 transition-all flex items-center gap-1 active:scale-95"
-                                                                    >
-                                                                        Pay <Send className="w-3 h-3" />
-                                                                    </Button>
+                                                                    {(() => {
+                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                        let btnStyle = "from-[#046A38] to-green-700 shadow-green-700/10 hover:shadow-green-700/20";
+                                                                        let effects = "";
+                                                                        let label = "Pay";
+                                                                        
+                                                                        if (daysInfo.status === 'overdue') {
+                                                                            btnStyle = "from-red-600 to-rose-700 shadow-red-700/20 hover:shadow-red-700/30 animate-pulse border border-red-300/40";
+                                                                            effects = "animate-bounce hover:animate-none";
+                                                                            label = "Pay Overdue";
+                                                                        } else if (daysInfo.status === 'today') {
+                                                                            btnStyle = "from-amber-500 to-orange-600 shadow-amber-600/20 hover:shadow-amber-600/30 border border-amber-300/40";
+                                                                            effects = "animate-pulse";
+                                                                            label = "Pay Today";
+                                                                        }
+                                                                        
+                                                                        return (
+                                                                            <Button
+                                                                                onClick={() => handleAction(item)}
+                                                                                className={cn(
+                                                                                    "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
+                                                                                    btnStyle,
+                                                                                    effects
+                                                                                )}
+                                                                            >
+                                                                                {label} <Send className="w-3 h-3" />
+                                                                            </Button>
+                                                                        );
+                                                                    })()}
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
@@ -544,12 +587,35 @@ const SavedPage = () => {
 
                                                                 {/* Mobile Actions */}
                                                                 <div className="flex flex-col gap-2 shrink-0 items-end">
-                                                                    <Button
-                                                                        onClick={() => handleAction(item)}
-                                                                        className="rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 shadow-md shadow-orange-700/10 h-10 px-4 transition-all flex items-center gap-1 active:scale-95"
-                                                                    >
-                                                                        Repeat <ArrowRight className="w-3.5 h-3.5" />
-                                                                    </Button>
+                                                                    {(() => {
+                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                        let btnStyle = "from-[#FF671F] to-orange-600 shadow-orange-700/10 hover:shadow-orange-700/20";
+                                                                        let effects = "";
+                                                                        let label = "Repeat";
+                                                                        
+                                                                        if (daysInfo.status === 'overdue') {
+                                                                            btnStyle = "from-red-600 to-rose-700 shadow-red-700/20 hover:shadow-red-700/30 animate-pulse border border-red-300/40";
+                                                                            effects = "animate-bounce hover:animate-none";
+                                                                            label = "Pay Overdue";
+                                                                        } else if (daysInfo.status === 'today') {
+                                                                            btnStyle = "from-amber-500 to-orange-600 shadow-amber-600/20 hover:shadow-amber-600/30 border border-amber-300/40";
+                                                                            effects = "animate-pulse";
+                                                                            label = "Pay Today";
+                                                                        }
+                                                                        
+                                                                        return (
+                                                                            <Button
+                                                                                onClick={() => handleAction(item)}
+                                                                                className={cn(
+                                                                                    "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
+                                                                                    btnStyle,
+                                                                                    effects
+                                                                                )}
+                                                                            >
+                                                                                {label} <ArrowRight className="w-3.5 h-3.5" />
+                                                                            </Button>
+                                                                        );
+                                                                    })()}
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"

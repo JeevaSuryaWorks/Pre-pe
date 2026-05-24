@@ -39,8 +39,8 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.service_type || !formData.account_id) {
-      toast({ title: 'Missing fields', description: 'Please fill all required fields.', variant: 'destructive' });
+    if (!formData.title || !formData.service_type || !formData.account_id || !formData.due_date) {
+      toast({ title: 'Missing fields', description: 'Please fill all required fields, including the Payment Due Date.', variant: 'destructive' });
       return;
     }
 
@@ -183,7 +183,7 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="due_date" className="text-xs font-bold text-slate-500 ml-1 uppercase">Payment Due Date (Optional)</Label>
+                <Label htmlFor="due_date" className="text-xs font-bold text-slate-500 ml-1 uppercase">Payment Due Date</Label>
                 <Input 
                     id="due_date"
                     type="date"
