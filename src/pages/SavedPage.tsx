@@ -81,8 +81,8 @@ const SavedPage = () => {
             }
             return {
                 text: `Due Today (${timeLeftStr})`,
-                colorClass: "text-amber-600 font-black uppercase tracking-wider animate-pulse",
-                bgClass: "bg-amber-50/50 border-amber-200 text-amber-800",
+                colorClass: "text-rose-600 font-black uppercase tracking-wider animate-pulse",
+                bgClass: "bg-rose-50/50 border-rose-200 text-rose-800",
                 status: 'today'
             };
         } else {
@@ -489,8 +489,7 @@ const SavedPage = () => {
                                                                         )}>
                                                                             <div className="flex items-center gap-2.5">
                                                                                 <Calendar className={cn("w-4.5 h-4.5 shrink-0", 
-                                                                                    daysInfo.text.includes("Overdue") ? "text-rose-500" : 
-                                                                                    daysInfo.text.includes("Today") ? "text-amber-500" : 
+                                                                                    daysInfo.text.includes("Overdue") || daysInfo.text.includes("Today") ? "text-rose-500" : 
                                                                                     daysInfo.text.includes("Left") ? "text-[#046A38]" : "text-slate-400"
                                                                                 )} />
                                                                                 <div className="flex flex-col text-left">
@@ -698,8 +697,7 @@ const SavedPage = () => {
                                                                             )}>
                                                                                 <div className="flex items-center gap-2">
                                                                                     <Calendar className={cn("w-4 h-4 shrink-0", 
-                                                                                        daysInfo.text.includes("Overdue") ? "text-rose-500" : 
-                                                                                        daysInfo.text.includes("Today") ? "text-amber-500" : 
+                                                                                        daysInfo.text.includes("Overdue") || daysInfo.text.includes("Today") ? "text-rose-500" : 
                                                                                         daysInfo.text.includes("Left") ? "text-[#FF671F]" : "text-slate-400"
                                                                                     )} />
                                                                                     <div className="flex flex-col text-left">
