@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/auth/LoginPage";
@@ -25,7 +25,7 @@ import { ElectricityEnterDetails } from "./pages/bills/ElectricityEnterDetails";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { AdminGuard } from "@/components/auth/AdminGuard";
-import AdminLogin from "./pages/admin/AdminLogin";
+// AdminLogin removed as it's no longer needed
 import { KYCRequests } from "./pages/admin/KYCRequests";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminLogs from "./pages/admin/AdminLogs";
@@ -176,8 +176,8 @@ const App = () => (
             </Route>
 
 
-            {/* Admin Auth */}
-            <Route path="/admin/login" element={<AdminLogin />} />
+            {/* Admin Auth - Redirect to usual Login */}
+            <Route path="/admin/login" element={<Navigate to="/login" replace />} />
 
             {/* Protected Admin Routes */}
             <Route element={<AdminGuard />}>
