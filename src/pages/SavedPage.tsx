@@ -293,31 +293,33 @@ const SavedPage = () => {
 
                 <div className="container max-w-xl mx-auto px-4 pt-6 space-y-6 relative z-10">
                     {/* Header Banner */}
-                    <div className="bg-white rounded-[32px] p-6 shadow-md border border-slate-100/50 backdrop-blur-xl relative overflow-hidden">
-                        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-gradient-to-br from-[#000080]/5 to-transparent rounded-full pointer-events-none" />
+                    <div className="bg-white rounded-[32px] p-7 shadow-xl shadow-slate-900/[0.03] border border-slate-100 backdrop-blur-xl relative overflow-hidden">
+                        {/* Dynamic Tricolor Accent Glowing Circles */}
+                        <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-gradient-to-br from-[#FF671F]/10 via-[#046A38]/5 to-transparent rounded-full pointer-events-none blur-xl animate-pulse" />
+                        <div className="absolute -left-10 top-0 w-24 h-24 bg-gradient-to-tr from-[#FF671F]/5 to-transparent rounded-full pointer-events-none blur-lg" />
                         
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3 py-1 rounded-full w-fit block">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                            <div className="space-y-1.5">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3.5 py-1.5 rounded-full w-fit block shadow-sm border border-[#FF671F]/10">
                                     Digital Directory
                                 </span>
-                                <h1 className="text-2xl font-black text-[#000080] tracking-tight mt-2">PrePe Circle</h1>
-                                <p className="text-xs text-slate-500 font-medium mt-1">Your family, friends & saved payment links</p>
+                                <h1 className="text-2xl font-black text-[#000080] tracking-tight leading-none pt-1">PrePe Circle</h1>
+                                <p className="text-xs text-slate-500 font-medium leading-relaxed">Your family, friends & saved payment links</p>
                             </div>
                             <Button
                                 onClick={() => setIsAddDialogOpen(true)}
-                                className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 hover:opacity-95 text-white font-black h-12 px-4 shadow-lg shadow-orange-500/20 active:scale-95 transition-all uppercase tracking-wider text-[9px] shrink-0"
+                                className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-[#FF671F] via-[#FF8040] to-orange-600 hover:scale-102 hover:shadow-xl shadow-lg shadow-orange-500/20 active:scale-98 transition-all duration-300 uppercase tracking-widest text-[9px] font-black h-13 px-5 shrink-0 flex items-center justify-center gap-1.5 border border-[#FF8040]/30 select-none animate-in fade-in zoom-in duration-500"
                             >
-                                <Plus className="w-4 h-4 mr-1.5" /> Add More & Get More Rewards
+                                <Plus className="w-4 h-4 text-white animate-pulse" strokeWidth={3} /> Add More & Get More Rewards
                             </Button>
                         </div>
 
-                        {/* High-visibility Search Input */}
-                        <div className="relative mt-6">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        {/* High-visibility Glassmorphic Search Input */}
+                        <div className="relative mt-7 group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 placeholder="Search by name, number, or category..."
-                                className="pl-11 h-12 bg-slate-50 border-none rounded-2xl text-slate-800 placeholder-slate-400 text-sm font-semibold focus:ring-4 focus:ring-[#000080]/5 focus:bg-white transition-all shadow-inner"
+                                className="pl-11.5 h-13 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-800 placeholder-slate-400 text-sm font-semibold focus:border-[#FF671F] focus:bg-white focus:ring-4 focus:ring-[#FF671F]/5 transition-all shadow-inner"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
