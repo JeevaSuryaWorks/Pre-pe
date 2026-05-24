@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Loader2, Sparkles, RefreshCcw, ArrowLeft, Star } from "lucide-react";
 import { getAIResponse } from "@/services/groqService";
 import { getPlans } from "@/services/plans.service";
+import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,6 +75,11 @@ const AIChat = () => {
   const [realPlans, setRealPlans] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Logical State Machine for Recharge Flow
+  const [rechargeStep, setRechargeStep] = useState<'idle' | 'awaiting_phone' | 'awaiting_operator' | 'showing_plans'>('idle');
+  const [rechargePhone, setRechargePhone] = useState<string>('');
+  const [rechargeOperator, setRechargeOperator] = useState<string>('');
+
   // Exit Feedback Modal States
   const [showExitModal, setShowExitModal] = useState(false);
   const [exitRating, setExitRating] = useState<number>(0);
@@ -83,7 +89,6 @@ const AIChat = () => {
   useEffect(() => {
     const loadDynamicPlans = async () => {
       try {
-        // Fetch Vi (operator 4) plans for Delhi circle (17) dynamically
         const result = await getPlans("4", "17");
         if (result.status === 'SUCCESS' && result.data && result.data.length > 0) {
           const mapped = result.data.slice(0, 10).map((plan: any) => ({
@@ -100,7 +105,6 @@ const AIChat = () => {
           }));
           setRealPlans(mapped);
         } else {
-          // Local fallback in case live API is not configured or offline
           setRealPlans(STATIC_FALLBACK_PACKS);
         }
       } catch (error) {
@@ -131,44 +135,131 @@ const AIChat = () => {
     if (!textToSend) setInput("");
     setIsLoading(true);
 
-    // Dynamic high-level response parsing
     setTimeout(async () => {
       const query = rawText.toLowerCase().trim();
       let botText = "";
       let showCarousel = false;
 
-      // Plan queries matching
-      if (query.includes("plan") || query.includes("pack") || query.includes("recharge offer") || query.includes("explore")) {
-        if (query.includes("84")) {
-          botText = "Here are our top recommended **84 Days** plans for you! 🌟 Select a plan to start your instant payment process.";
-        } else if (query.includes("28")) {
-          botText = "Here are our high-value **28 Days** plans! 📅 Tap a plan below.";
-        } else {
-          botText = "Here are some great recommendations for you! 🌟";
+      // Extract 10-digit phone number if present
+      const phoneMatch = query.match(/\b\d{10}\b/);
+      const matchedPhone = phoneMatch ? phoneMatch[0] : "";
+
+      // ----------------------------------------------------
+      // Logical State Machine for Recharge Flow
+      // ----------------------------------------------------
+      
+      // Step A: User initiates a recharge request
+      if (query.includes("recharge") || query.includes("topup") || query.includes("pack") || matchedPhone) {
+        
+        // If phone number is not yet captured
+        if (!rechargePhone && !matchedPhone) {
+          botText = "I don't recharge directly, due to Money Related issues, as per Prepe Policie.So I can guide you.\n\nPlease enter the **10-digit Mobile Number** you want to check plans for:";
+          setRechargeStep('awaiting_phone');
+          setMessages(prev => [...prev, { role: 'assistant', content: botText }]);
+          setIsLoading(false);
+          return;
         }
-        showCarousel = true;
-      } 
-      // Specific packs matching
-      else if (query.includes("859")) {
-        botText = "The **₹859 Pack** includes:\n- **Data**: 1.5 GB/Day\n- **Validity**: 84 Days\n- **Perks**: 12 AM to 6 AM free data, Weekend Data rollover, and Prepe VIP club access.\n\nWould you like to recharge this plan now?";
-      } else if (query.includes("979")) {
-        botText = "The **₹979 Premium Pack** includes:\n- **Data**: 2 GB/Day\n- **Validity**: 84 Days\n- **Perks**: 12 AM to 12 PM free data, Disney+ Hotstar subscription, and Weekend data roll-over.\n\nWould you like to select this pack?";
-      } else if (query.includes("380")) {
-        botText = "The **₹380 Pack** (your previous pack) includes:\n- **Data**: Unlimited Data\n- **Validity**: 28 Days\n- **Status**: Expired.\n\nYou can easily repeat this recharge by tapping the red button in the welcome message.";
+
+        // If phone number is extracted or captured in this turn
+        const activePhone = matchedPhone || rechargePhone;
+        if (activePhone && !rechargeOperator) {
+          if (matchedPhone) {
+            setRechargePhone(matchedPhone);
+          }
+          botText = `I don't recharge directly, due to Money Related issues, as per Prepe Policie.So I can guide you.\n\nGreat! I have saved **${activePhone}** as your target number. What operator is this SIM card? (Please type **Jio**, **Airtel**, **Vi**, or **BSNL**):`;
+          setRechargeStep('awaiting_operator');
+          setMessages(prev => [...prev, { role: 'assistant', content: botText }]);
+          setIsLoading(false);
+          return;
+        }
       }
-      // Commission structure
-      else if (query.includes("commission") || query.includes("earn") || query.includes("percentage") || query.includes("benefit")) {
+
+      // Step B: User is inside awaiting_phone state and inputs a phone number
+      if (rechargeStep === 'awaiting_phone') {
+        if (matchedPhone) {
+          setRechargePhone(matchedPhone);
+          botText = `Got it! Target number is set to **${matchedPhone}**.\n\nWhat operator is this SIM card? (Please type **Jio**, **Airtel**, **Vi**, or **BSNL**):`;
+          setRechargeStep('awaiting_operator');
+          setMessages(prev => [...prev, { role: 'assistant', content: botText }]);
+          setIsLoading(false);
+          return;
+        } else {
+          botText = "Please enter a valid **10-digit mobile number** (e.g. 8608412555) to continue:";
+          setMessages(prev => [...prev, { role: 'assistant', content: botText }]);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Step C: User is inside awaiting_operator state and inputs an operator
+      if (rechargeStep === 'awaiting_operator') {
+        const foundOp = ["jio", "airtel", "vi", "bsnl"].find(op => query.includes(op));
+        if (foundOp) {
+          const capitalizedOp = foundOp === "vi" ? "Vi" : foundOp === "bsnl" ? "BSNL" : foundOp.charAt(0).toUpperCase() + foundOp.slice(1);
+          setRechargeOperator(capitalizedOp);
+          setRechargeStep('showing_plans');
+
+          // Map operator name to database operator ID: Airtel=1, BSNL=2, Jio=3, Vi=4
+          const opIdMap: Record<string, string> = { "Airtel": "1", "BSNL": "2", "Jio": "3", "Vi": "4" };
+          const operatorId = opIdMap[capitalizedOp] || "4";
+
+          try {
+            const result = await getPlans(operatorId, "17");
+            if (result.status === 'SUCCESS' && result.data && result.data.length > 0) {
+              const mapped = result.data.slice(0, 10).map((plan: any) => ({
+                amount: plan.amount,
+                validity: plan.validity || "28 Days",
+                data: plan.data || plan.description?.match(/\d+(\.\d+)?\s?(GB|MB)/i)?.[0] || "1.5 GB/Day",
+                perks: [
+                  plan.description || "Unlimited Voice & Data",
+                  "PrePe Cashbacks active",
+                  "VIP Plan Rewards"
+                ],
+                tag: plan.category === 'unlimited' ? "Unlimited Plan" : "Special Offer",
+                isRecommended: plan.amount > 500
+              }));
+              setRealPlans(mapped);
+            }
+          } catch (err) {
+            console.error("Live plan fetch error:", err);
+          }
+
+          botText = `Perfect! I have fetched the active packs and dynamic offers for **${capitalizedOp}** on **${rechargePhone}**.\n\n*Note: I don't recharge directly due to Money Related issues as per Prepe Policies, but you can select your preferred plan below to complete it securely:*`;
+          showCarousel = true;
+          
+          setMessages(prev => [...prev, { role: 'assistant', content: botText, showCarousel: true }]);
+          setIsLoading(false);
+          return;
+        } else {
+          botText = `Please enter a valid operator for **${rechargePhone}** (type **Jio**, **Airtel**, **Vi**, or **BSNL**):`;
+          setMessages(prev => [...prev, { role: 'assistant', content: botText }]);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // If showing plans and they select or restart
+      if (query.includes("reset") || query.includes("restart") || query.includes("clear")) {
+        setRechargeStep('idle');
+        setRechargePhone('');
+        setRechargeOperator('');
+        botText = "Recharge assistant reset! I can help you with recharge packs, plan searches, commissions, or wallet queries. How can I help you today?";
+        setMessages(prev => [...prev, { role: 'assistant', content: botText }]);
+        setIsLoading(false);
+        return;
+      }
+
+      // ----------------------------------------------------
+      // Static Contextual Matching for Info / Commission / Wallets
+      // ----------------------------------------------------
+      if (query.includes("commission") || query.includes("earn") || query.includes("percentage") || query.includes("benefit")) {
         botText = "### PrePe High Commissions Structure 💰\nPrePe offers the best commissions for retailers and distributors:\n\n| Service Type | Basic Member | PrePe VIP Club |\n| :--- | :--- | :--- |\n| **Mobile Recharge** | Up to 3.5% | **Up to 5.0%** |\n| **DTH Recharges** | Up to 3.0% | **Up to 4.5%** |\n| **Electricity Bills** | Flat ₹2.00 | **Flat ₹5.00** |\n| **Fastag & Gas** | Flat ₹1.50 | **Flat ₹3.00** |\n\nUpgrade your account to PrePe VIP to instantly double your earnings! 📈";
-      }
-      // Wallet operations
-      else if (query.includes("wallet") || query.includes("fund") || query.includes("add") || query.includes("balance")) {
+      } else if (query.includes("wallet") || query.includes("fund") || query.includes("add") || query.includes("balance")) {
         botText = "To add funds to your wallet:\n1. Tap the **Wallet** icon in the navbar.\n2. Choose **Add Money / Fund Request**.\n3. Enter your amount and complete your payment via UPI intent launcher (GPay/PhonePe).\n4. Enter UTR inside the form and submit. Admins will verify your claim and notify you instantly via Telegram Bot alerts!";
-      }
-      // About queries
-      else if (query.includes("ceo") || query.includes("cto") || query.includes("founder") || query.includes("who are you") || query.includes("about") || query.includes("prepe")) {
+      } else if (query.includes("ceo") || query.includes("cto") || query.includes("founder") || query.includes("who are you") || query.includes("about") || query.includes("prepe")) {
         botText = "### About PrePe India Private Limited 🇮🇳\n- **Established**: 2026\n- **CEO & Founder**: **Mr. P. Boopathi Raja M.B.A**\n- **CTO & Developer**: **Mr. P. Jeevasurya B.Tech**\n- **Mission**: *We take care of your Payments & Bill Dues at Just a Click.*\n- **Developer Office**: PrePe Technologies, India.\n\nPrePe is a premium payment aggregator providing mobile recharges, instant utility bill payments, and bulk services.";
-      }
-      // Groq AI Fallback
+      } 
+      // Groq Dynamic API Fallback
       else {
         try {
           const chatHistory = [...messages, { role: 'user', content: rawText }];
@@ -176,7 +267,7 @@ const AIChat = () => {
           const dynamicResponse = await getAIResponse(apiHistory);
           botText = dynamicResponse;
         } catch (err) {
-          botText = "I am your Recharge Assistant. I can assist you with recharge packs, plan searches, commissions structure, and wallet recharges. Ask me 'Show recommended plans' or 'About PrePe' for instant answers! 🇮🇳";
+          botText = "I am your Prepe Recharge Assistant. I can assist you with recharge packs, plan searches, commissions, and wallet deposits. Let me know how I can help you today! 🇮🇳";
         }
       }
 
@@ -189,7 +280,7 @@ const AIChat = () => {
         }
       ]);
       setIsLoading(false);
-    }, 800);
+    }, 850);
   };
 
   const handlePackSelect = (amount: number) => {
@@ -203,6 +294,9 @@ const AIChat = () => {
 
   const clearChat = () => {
     setMessages([]);
+    setRechargeStep('idle');
+    setRechargePhone('');
+    setRechargeOperator('');
     toast.info("Chat screen refreshed!");
   };
 
@@ -211,10 +305,29 @@ const AIChat = () => {
     setShowExitModal(true);
   };
 
-  const handleConfirmExit = () => {
-    toast.success("Thank you for your valuable feedback!");
-    setShowExitModal(false);
-    navigate(-1);
+  const handleConfirmExit = async () => {
+    try {
+      // Save feedback report to DB table user_feedbacks
+      const { error } = await supabase
+        .from('user_feedbacks')
+        .insert({
+          user_id: user?.id || null,
+          email: user?.email || "Anonymous",
+          rating: exitRating,
+          feedback_pills: selectedPills
+        });
+
+      if (error) {
+        console.error("Error inserting feedback:", error);
+      }
+      toast.success("Thank you for your valuable feedback!");
+    } catch (err) {
+      console.error("Error saving feedback:", err);
+      toast.success("Thank you for your valuable feedback!");
+    } finally {
+      setShowExitModal(false);
+      navigate(-1);
+    }
   };
 
   const toggleFeedbackPill = (pill: string) => {
@@ -236,7 +349,7 @@ const AIChat = () => {
     <Layout hideHeader={true} showBottomNav={false} noScroll={true}>
       <div className="flex flex-col h-full bg-[#F5F5F7] relative">
         
-        {/* Prepe Recharge Assistant Header */}
+        {/* Prepe Green Styled Header */}
         <div className="bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 border-b border-slate-100 shrink-0 shadow-sm">
           <div className="flex items-center gap-3">
             <button onClick={handleBackClick} className="p-2 -ml-2 rounded-full hover:bg-slate-50 transition-colors">
@@ -246,7 +359,7 @@ const AIChat = () => {
             <h1 className="text-base font-extrabold text-slate-800 tracking-tight lowercase">recharge assistant</h1>
             <span className="bg-[#9B30FF] text-white text-[8px] font-black px-1.5 py-0.5 rounded tracking-wide leading-none uppercase shrink-0">BETA</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={clearChat} className="rounded-xl text-slate-400 hover:text-[#E31837] hover:bg-red-50 transition-colors">
+          <Button variant="ghost" size="icon" onClick={clearChat} className="rounded-xl text-slate-400 hover:text-[#046A38] hover:bg-emerald-50 transition-colors">
             <RefreshCcw className="w-4 h-4" />
           </Button>
         </div>
@@ -277,7 +390,7 @@ const AIChat = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-xs font-bold text-[#E31837] leading-none block mb-1">Your pack has expired</span>
+                    <span className="text-xs font-bold text-[#046A38] leading-none block mb-1">Your pack has expired</span>
                     <span className="text-4xl font-black text-slate-900 tracking-tight leading-none flex items-start">
                       <span className="text-xl font-bold mt-1 mr-0.5">₹</span>380
                     </span>
@@ -289,14 +402,14 @@ const AIChat = () => {
                 </div>
 
                 {/* Expired status pill */}
-                <div className="bg-gradient-to-r from-red-500/10 via-pink-500/5 to-transparent border border-red-200/40 rounded-2xl py-2.5 px-4 text-center">
-                  <span className="text-xs font-black text-[#E31837] uppercase tracking-wider">Pack expired...</span>
+                <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-200/40 rounded-2xl py-2.5 px-4 text-center">
+                  <span className="text-xs font-black text-[#046A38] uppercase tracking-wider">Pack expired...</span>
                 </div>
 
-                {/* Repeat Recharge Button */}
+                {/* Repeat Recharge Button (Green) */}
                 <button 
                   onClick={() => handlePackSelect(380)}
-                  className="w-full py-3.5 bg-[#E31837] hover:bg-[#c6122e] text-white font-extrabold rounded-full shadow-lg shadow-[#E31837]/20 transition-all active:scale-[0.98]"
+                  className="w-full py-3.5 bg-[#046A38] hover:bg-[#03522b] text-white font-extrabold rounded-full shadow-lg shadow-[#046A38]/20 transition-all active:scale-[0.98]"
                 >
                   repeat recharge
                 </button>
@@ -307,7 +420,7 @@ const AIChat = () => {
             <div className="text-center">
               <button 
                 onClick={handleExplorePacks}
-                className="text-xs font-black text-slate-700 underline underline-offset-4 hover:text-[#E31837] transition-colors uppercase tracking-wider"
+                className="text-xs font-black text-slate-700 underline underline-offset-4 hover:text-[#046A38] transition-colors uppercase tracking-wider"
               >
                 explore other packs
               </button>
@@ -328,7 +441,7 @@ const AIChat = () => {
                   <button
                     key={cIdx}
                     onClick={() => handleSend(chip)}
-                    className="text-xs font-bold bg-white text-slate-800 border border-slate-200/80 px-3.5 py-2 rounded-2xl hover:border-[#E31837] hover:text-[#E31837] transition-all shadow-sm shadow-slate-100"
+                    className="text-xs font-bold bg-white text-slate-800 border border-slate-200/80 px-3.5 py-2 rounded-2xl hover:border-[#046A38] hover:text-[#046A38] transition-all shadow-sm shadow-slate-100"
                   >
                     {chip}
                   </button>
@@ -358,7 +471,7 @@ const AIChat = () => {
                     <div className={cn(
                       "p-4 rounded-[24px] text-sm leading-relaxed shadow-sm border",
                       msg.role === 'user' 
-                        ? 'bg-slate-950 border-slate-950 text-white rounded-tr-none' 
+                        ? 'bg-slate-900 border-slate-950 text-white rounded-tr-none' 
                         : 'bg-white border-slate-100 text-slate-800 rounded-tl-none'
                     )}>
                       <div className={cn(
@@ -367,7 +480,7 @@ const AIChat = () => {
                         "prose-th:bg-slate-50 prose-th:p-2.5 prose-th:border prose-th:border-slate-200 prose-th:text-slate-700 prose-th:font-extrabold prose-th:text-[10px] prose-th:uppercase",
                         "prose-td:p-2.5 prose-td:border prose-td:border-slate-100 prose-td:text-slate-600 prose-td:font-semibold",
                         "prose-p:leading-relaxed prose-li:my-1 prose-img:rounded-xl",
-                        msg.role === 'user' ? 'prose-invert prose-strong:text-amber-300' : 'prose-strong:text-[#E31837] prose-a:text-[#E31837] prose-a:underline'
+                        msg.role === 'user' ? 'prose-invert prose-strong:text-amber-300' : 'prose-strong:text-[#046A38] prose-a:text-[#046A38] prose-a:underline'
                       )}>
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                       </div>
@@ -394,7 +507,7 @@ const AIChat = () => {
                                 <span className="text-lg font-bold mr-0.5">₹</span>{pack.amount}
                               </span>
                               {pack.isRecommended && (
-                                <span className="bg-[#E31837] text-white text-[8px] font-black px-1.5 py-0.5 rounded leading-none shrink-0 uppercase tracking-wider">
+                                <span className="bg-[#046A38] text-white text-[8px] font-black px-1.5 py-0.5 rounded leading-none shrink-0 uppercase tracking-wider">
                                   VIP
                                 </span>
                               )}
@@ -409,12 +522,12 @@ const AIChat = () => {
                             <ul className="space-y-1.5 text-xs font-semibold text-slate-600 mb-4">
                               {pack.perks.slice(0, 3).map((perk, perkIdx) => (
                                 <li key={perkIdx} className="flex items-center gap-1.5">
-                                  <span className="text-[#E31837] font-bold text-xs shrink-0">⇅</span>
+                                  <span className="text-[#046A38] font-bold text-xs shrink-0">⇅</span>
                                   <span className="truncate">{perk}</span>
                                 </li>
                               ))}
                               <li className="flex items-center gap-1.5 pt-1 border-t border-slate-50">
-                                <span className="text-[#E31837] font-bold text-xs shrink-0">📅</span>
+                                <span className="text-[#046A38] font-bold text-xs shrink-0">📅</span>
                                 <span>{pack.validity}</span>
                               </li>
                             </ul>
@@ -422,7 +535,7 @@ const AIChat = () => {
 
                           <button 
                             onClick={() => handlePackSelect(pack.amount)}
-                            className="w-full py-2.5 bg-[#E31837] hover:bg-[#c6122e] text-white text-xs font-extrabold rounded-full shadow-sm transition-all active:scale-[0.97]"
+                            className="w-full py-2.5 bg-[#046A38] hover:bg-[#03522b] text-white text-xs font-extrabold rounded-full shadow-sm transition-all active:scale-[0.97]"
                           >
                             select plan
                           </button>
@@ -432,7 +545,7 @@ const AIChat = () => {
                     <div className="text-center mt-1">
                       <button 
                         onClick={() => handleSend("explore packs")} 
-                        className="text-[10px] font-black text-[#E31837] uppercase tracking-wider hover:underline"
+                        className="text-[10px] font-black text-[#046A38] uppercase tracking-wider hover:underline"
                       >
                         show more packs
                       </button>
@@ -449,9 +562,9 @@ const AIChat = () => {
               <div className="flex gap-3 max-w-[85%]">
                 <PrepeAvatar />
                 <div className="p-4 bg-white border border-slate-100 rounded-[24px] rounded-tl-none flex items-center gap-2 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#E31837] animate-bounce" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#E31837] animate-bounce [animation-delay:0.2s]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#E31837] animate-bounce [animation-delay:0.4s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#046A38] animate-bounce" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#046A38] animate-bounce [animation-delay:0.2s]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#046A38] animate-bounce [animation-delay:0.4s]" />
                 </div>
               </div>
             </div>
@@ -462,7 +575,7 @@ const AIChat = () => {
 
         {/* Input Area */}
         <div className="p-4 bg-white border-t border-slate-100 pb-6 shrink-0 z-30 shadow-lg">
-          <div className="flex gap-2 bg-slate-50 border border-slate-200 p-2 rounded-[24px] focus-within:ring-2 focus-within:ring-[#E31837]/20 transition-all shadow-inner">
+          <div className="flex gap-2 bg-slate-50 border border-slate-200 p-2 rounded-[24px] focus-within:ring-2 focus-within:ring-[#046A38]/20 transition-all shadow-inner">
             <Input 
               placeholder="search recharge packs..."
               value={input}
@@ -473,7 +586,7 @@ const AIChat = () => {
             <Button 
                 onClick={() => handleSend()} 
                 disabled={!input.trim() || isLoading}
-                className="rounded-full w-10 h-10 p-0 bg-[#E31837] hover:bg-[#c6122e] shadow-md active:scale-95 transition-all"
+                className="rounded-full w-10 h-10 p-0 bg-[#046A38] hover:bg-[#03522b] shadow-md active:scale-95 transition-all"
             >
               <Send className="w-4 h-4 text-white" />
             </Button>
@@ -550,7 +663,7 @@ const AIChat = () => {
                           className={cn(
                             "text-xs font-bold px-3.5 py-1.5 rounded-full border transition-all select-none",
                             isSelected 
-                              ? "bg-white border-[#E31837] text-[#E31837] shadow-sm font-extrabold" 
+                              ? "bg-white border-[#046A38] text-[#046A38] shadow-sm font-extrabold" 
                               : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                           )}
                         >
@@ -582,7 +695,7 @@ const AIChat = () => {
                       setExitRating(0);
                       setSelectedPills([]);
                     }}
-                    className="text-xs font-extrabold text-slate-700 underline underline-offset-4 hover:text-[#E31837] py-2 transition-colors uppercase tracking-wider"
+                    className="text-xs font-extrabold text-slate-700 underline underline-offset-4 hover:text-[#046A38] py-2 transition-colors uppercase tracking-wider"
                   >
                     go back
                   </button>

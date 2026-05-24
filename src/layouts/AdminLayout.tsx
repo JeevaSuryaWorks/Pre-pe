@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift, Globe, Home } from 'lucide-react';
+import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift, Globe, Home, Heart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ export const AdminLayout = () => {
         { path: '/admin/commissions', icon: Percent, label: 'Commissions' },
         { path: '/admin/logs', icon: Terminal, label: 'System Logs' },
         { path: '/admin/network', icon: Globe, label: 'Network Diagnostics' },
+        { path: '/admin/feedbacks', icon: Heart, label: 'User Feedbacks' },
     ];
 
     const NavLinks = () => (

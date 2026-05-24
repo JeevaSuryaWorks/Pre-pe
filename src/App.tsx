@@ -46,6 +46,7 @@ import DNPLPage from "./pages/DNPLPage";
 import NetworkDiagnostics from "./pages/admin/NetworkDiagnostics";
 import GiftVoucherManager from "./pages/admin/GiftVoucherManager";
 import GiftCardsPage from "./pages/GiftCardsPage";
+import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
 
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
@@ -201,6 +202,7 @@ const App = () => (
                 <Route path="banners/:id" element={<AdminBannerEditor />} />
                 <Route path="gift-vouchers" element={<GiftVoucherManager />} />
                 <Route path="network" element={<NetworkDiagnostics />} />
+                <Route path="feedbacks" element={<AdminFeedbacks />} />
               </Route>
             </Route>
 
