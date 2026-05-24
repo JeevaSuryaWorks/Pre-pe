@@ -26,6 +26,10 @@ async function getEncryptionKey() {
 }
 
 export async function encryptSensitiveData(text: string): Promise<string> {
+    if (!window.crypto || !window.crypto.subtle) {
+        console.warn("[Crypto] window.crypto.subtle is not available. Falling back to plain Base64 encoding for development/non-secure context.");
+        return btoa(text);
+    }
     const key = await getEncryptionKey();
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const encoder = new TextEncoder();
@@ -46,6 +50,14 @@ export async function encryptSensitiveData(text: string): Promise<string> {
 }
 
 export async function decryptSensitiveData(base64Data: string): Promise<string> {
+    if (!window.crypto || !window.crypto.subtle) {
+        console.warn("[Crypto] window.crypto.subtle is not available. Falling back to plain Base64 decoding.");
+        try {
+            return atob(base64Data);
+        } catch (e) {
+            return base64Data;
+        }
+    }
     try {
         const key = await getEncryptionKey();
         const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));

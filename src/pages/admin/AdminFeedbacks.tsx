@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, Search, Star, Trash2, ShieldAlert, Award, Calendar, ThumbsUp } from 'lucide-react';
+import { Heart, Search, Star, Trash2, ShieldAlert, Award, Calendar, ThumbsUp, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 

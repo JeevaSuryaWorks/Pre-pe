@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { startTelegramBotListener, stopTelegramBotListener } from "@/services/telegramBot.service";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -41,7 +42,26 @@ const AdminDashboard = () => {
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+        
+        // Listen to external telegram approval events to trigger instant updates
+        const handleInstantUpdate = () => {
+            console.log("Instant update event received from Telegram bot...");
+            fetchData();
+        };
+        window.addEventListener('admin_kyc_requests_updated', handleInstantUpdate);
+        window.addEventListener('admin_fund_requests_updated', handleInstantUpdate);
+        window.addEventListener('prepe_users_updated', handleInstantUpdate);
+        
+        // Start background Telegram Administrative Co-Pilot listener
+        startTelegramBotListener();
+        
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('admin_kyc_requests_updated', handleInstantUpdate);
+            window.removeEventListener('admin_fund_requests_updated', handleInstantUpdate);
+            window.removeEventListener('prepe_users_updated', handleInstantUpdate);
+            stopTelegramBotListener();
+        };
     }, []);
 
     const fetchData = async () => {

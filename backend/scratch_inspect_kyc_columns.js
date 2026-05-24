@@ -4,13 +4,12 @@ const prisma = new PrismaClient();
 async function main() {
   try {
     const cols = await prisma.$queryRaw`
-      SELECT table_name, column_name, is_nullable, column_default 
+      SELECT column_name, ordinal_position, is_nullable, data_type, column_default 
       FROM information_schema.columns 
-      WHERE table_schema = 'public'
-        AND column_name IN ('created_at', 'updated_at')
-      ORDER BY table_name, column_name;
+      WHERE table_name = 'kyc_verifications'
+      ORDER BY ordinal_position;
     `;
-    console.log('Timestamp Columns:');
+    console.log('kyc_verifications columns:');
     console.table(cols);
   } catch (err) {
     console.error('Error:', err);
@@ -20,4 +19,3 @@ async function main() {
 }
 
 main();
-

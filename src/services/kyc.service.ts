@@ -1,16 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export interface KYCData {
-    pan_number: string;
+    pan_number: string | null;
     aadhar_number: string;
     dob: string;
     gender: string;
     document_urls: {
-        aadhar_front: string;
-        aadhar_back: string;
-        pan_card: string;
-        selfie: string;
-        shop_photo: string;
+        aadhar_front: string | null;
+        aadhar_back: string | null;
+        pan_card: string | null;
+        selfie: string | null;
+        shop_photo: string | null;
     };
 }
 

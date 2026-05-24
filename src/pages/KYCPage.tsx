@@ -29,6 +29,8 @@ import { encryptSensitiveData } from '@/lib/crypto';
 import { Separator } from '@/components/ui/separator';
 import { ImageCropperModal } from '@/components/ui/ImageCropperModal';
 import { useProfile } from '@/hooks/useProfile';
+import { sendTelegramAdminKYCAlert } from '@/services/telegramBot.service';
+import { supabase } from '@/integrations/supabase/client';
 
 export const KYCPage = () => {
     const navigate = useNavigate();
@@ -144,8 +146,8 @@ export const KYCPage = () => {
     };
 
     const handleSubmit = async () => {
-        if (!user) return;
-
+        console.log("handleSubmit called. Current user state:", user, "termsAccepted:", termsAccepted);
+        
         if (!termsAccepted) {
             toast({
                 title: "Terms Required",
@@ -157,15 +159,29 @@ export const KYCPage = () => {
 
         setLoading(true);
         try {
+            // Retrieve fresh user session dynamically from Supabase
+            const { data: { user: freshUser }, error: sessionError } = await supabase.auth.getUser();
+
+            if (sessionError || !freshUser) {
+                console.error("[KYCPage] Supabase user session fetch error:", sessionError);
+                toast({
+                    title: "Authentication Required",
+                    description: "Your session has expired. Please log in again to verify your KYC.",
+                    variant: "destructive"
+                });
+                navigate('/auth/login');
+                return;
+            }
+
             let afPath = null, abPath = null, panPath = null, selfiePath = null, shopPath = null;
 
             if (!isBasic) {
                 // 1. Upload Documents
-                afPath = await uploadKYCDocument(user.id, aadharFront!, 'aadhar_front');
-                abPath = await uploadKYCDocument(user.id, aadharBack!, 'aadhar_back');
-                panPath = await uploadKYCDocument(user.id, panCard!, 'pan_card');
-                selfiePath = await uploadKYCDocument(user.id, selfie!, 'selfie');
-                shopPath = shopPhoto ? await uploadKYCDocument(user.id, shopPhoto, 'shop_photo') : null;
+                afPath = await uploadKYCDocument(freshUser.id, aadharFront!, 'aadhar_front');
+                abPath = await uploadKYCDocument(freshUser.id, aadharBack!, 'aadhar_back');
+                panPath = await uploadKYCDocument(freshUser.id, panCard!, 'pan_card');
+                selfiePath = await uploadKYCDocument(freshUser.id, selfie!, 'selfie');
+                shopPath = shopPhoto ? await uploadKYCDocument(freshUser.id, shopPhoto, 'shop_photo') : null;
             }
 
             // 2. Securely Encrypt Sensitive Numbers
@@ -173,7 +189,7 @@ export const KYCPage = () => {
             const encryptedAadhar = await encryptSensitiveData(aadharNumber.replace(/\s/g, ''));
 
             // 3. Submit Data
-            await submitKYC(user.id, {
+            await submitKYC(freshUser.id, {
                 pan_number: encryptedPan,
                 aadhar_number: encryptedAadhar,
                 dob,
@@ -185,23 +201,29 @@ export const KYCPage = () => {
                     selfie: selfiePath,
                     shop_photo: shopPath
                 }
-            }, isBasic ? 'APPROVED' : 'PENDING');
+            }, 'PENDING');
+
+            // Dispatch Telegram Alert Notification in background
+            try {
+                sendTelegramAdminKYCAlert(profile, planType, 'PENDING');
+            } catch (telegramErr) {
+                console.error("Failed to send KYC Telegram notification:", telegramErr);
+            }
 
             toast({
-                title: isBasic ? "KYC Approved! 🎉" : "KYC Submitted",
-                description: isBasic 
-                    ? "Your simple KYC is approved instantly. Welcome to PrePe!" 
-                    : "Your documents are under review. You can now access the dashboard.",
+                title: "KYC Submitted",
+                description: "Your verification request has been successfully submitted for review. It will be activated once approved by the administrator.",
             });
             localStorage.removeItem('kyc_draft');
             // Invalidate cache so ProtectedRoute sees the new status
-            await queryClient.invalidateQueries({ queryKey: ['kycStatus', user.id] });
+            await queryClient.invalidateQueries({ queryKey: ['kycStatus', freshUser.id] });
             navigate('/home', { replace: true });
         } catch (error: any) {
             console.error("KYC Submission Error:", error);
+            const errorMsg = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
             toast({
                 title: "Submission Failed",
-                description: error.message || "Failed to submit KYC. Please try again.",
+                description: errorMsg,
                 variant: "destructive"
             });
         } finally {

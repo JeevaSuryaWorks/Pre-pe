@@ -12,51 +12,11 @@ const generateUUID = () => {
     });
 };
 
-const TELEGRAM_BOT_TOKEN = "8941357558:AAHTSB5XpsKakVTicvv354Dt8nkrxXJf998";
+import { sendTelegramAdminFundClaimAlert } from "./telegramBot.service";
 
 async function sendTelegramAdminNotification(profile: any, amount: number, transactionId: string) {
     try {
-        let chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID || localStorage.getItem('prepe_telegram_chat_id') || "-1003746086174";
-        
-        if (!chatId || chatId === "-1003746086174") {
-            console.log("Checking for updated Telegram Chat ID via auto-discovery...");
-            const updatesRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates`);
-            const updates = await updatesRes.json();
-            if (updates.ok && updates.result && updates.result.length > 0) {
-                const lastUpdate = updates.result[updates.result.length - 1];
-                if (lastUpdate.message && lastUpdate.message.chat) {
-                    chatId = lastUpdate.message.chat.id.toString();
-                    localStorage.setItem('prepe_telegram_chat_id', chatId);
-                    console.log(`Auto-discovered Telegram Chat ID: ${chatId}`);
-                } else if (lastUpdate.channel_post && lastUpdate.channel_post.chat) {
-                    chatId = lastUpdate.channel_post.chat.id.toString();
-                    localStorage.setItem('prepe_telegram_chat_id', chatId);
-                    console.log(`Auto-discovered Telegram Channel Chat ID: ${chatId}`);
-                }
-            }
-        }
-
-        const text = `<b>🔔 Pre-pe Admin Alert</b>\n` +
-                     `<b>New Fund Claim Received</b>\n\n` +
-                     `👤 <b>User:</b> ${profile?.full_name || 'Anonymous'}\n` +
-                     `📧 <b>Email:</b> ${profile?.email || 'N/A'}\n` +
-                     `📞 <b>Phone:</b> ${profile?.phone || 'N/A'}\n` +
-                     `💵 <b>Amount:</b> ₹${amount}\n` +
-                     `🔢 <b>UTR / Txn ID:</b> <code>${transactionId}</code>\n` +
-                     `🕒 <b>Time:</b> ${new Date().toLocaleString('en-IN')}\n\n` +
-                     `🔗 <a href="https://pre-pe.com/admin/fund-requests">Direct Navigate to Admin Fund Requests Desk</a>\n\n` +
-                     `<i>Please review and approve this claim inside the Pre-pe Admin Desk.</i>`;
-
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text: text,
-                parse_mode: 'HTML'
-            })
-        });
-        console.log("Telegram admin claim notification sent successfully!");
+        await sendTelegramAdminFundClaimAlert(profile, amount, transactionId);
     } catch (err) {
         console.error("Failed to send Telegram admin notification:", err);
     }

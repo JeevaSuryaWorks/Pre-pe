@@ -57,7 +57,18 @@ export const ProtectedRoute = () => {
         return <Outlet />;
     }
 
-    // Force plan Selection FIRST
+    // 1. Capture phone numbers missing from OAuth signups
+    const hasPhone = user.phone || user.user_metadata?.phone;
+    if (!hasPhone && location.pathname !== '/auth/complete-profile') {
+        return <Navigate to="/auth/complete-profile" replace />;
+    }
+
+    // 2. Ensure Whatsapp consent is handled first
+    if (profile?.whatsapp_consent === null && location.pathname !== '/onboarding/consent') {
+        return <Navigate to="/onboarding/consent" replace />;
+    }
+
+    // 3. Force plan Selection AFTER consent is given
     if (!profileLoading && !profile?.plan_type && 
         location.pathname !== '/onboarding/plans' && 
         location.pathname !== '/onboarding/consent'
@@ -66,18 +77,7 @@ export const ProtectedRoute = () => {
         return <Navigate to="/onboarding/plans" replace />;
     }
 
-    // Capture phone numbers missing from OAuth signups
-    const hasPhone = user.phone || user.user_metadata?.phone;
-    if (!hasPhone && location.pathname !== '/auth/complete-profile') {
-        return <Navigate to="/auth/complete-profile" replace />;
-    }
-
-    // Ensure Whatsapp consent is handled
-    if (profile?.whatsapp_consent === null && location.pathname !== '/onboarding/consent' && location.pathname !== '/onboarding/plans') {
-        return <Navigate to="/onboarding/consent" replace />;
-    }
-
-    // Force KYC submission ONLY AFTER Plan is selected. 
+    // 4. Force KYC submission ONLY AFTER Plan is selected. 
     if (!kycLoading && kycStatus === null && location.pathname !== '/kyc' && location.pathname !== '/onboarding/plans' && location.pathname !== '/onboarding/consent') {
         console.log('[ProtectedRoute] Redirecting to /kyc (No kyc status found)');
         return <Navigate to="/kyc" replace />;

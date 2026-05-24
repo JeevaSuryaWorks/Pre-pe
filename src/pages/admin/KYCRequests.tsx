@@ -51,6 +51,15 @@ export const KYCRequests = () => {
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [planFilter, setPlanFilter] = useState<'ALL' | 'BASIC' | 'PRO' | 'BUSINESS'>('ALL');
+
+    useEffect(() => {
+        const handleKycUpdate = () => {
+            console.log("Instant KYC update event received from Telegram bot...");
+            queryClient.invalidateQueries({ queryKey: ['admin_kyc_requests'] });
+        };
+        window.addEventListener('admin_kyc_requests_updated', handleKycUpdate);
+        return () => window.removeEventListener('admin_kyc_requests_updated', handleKycUpdate);
+    }, [queryClient]);
     
     // Details Panel loading states
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});

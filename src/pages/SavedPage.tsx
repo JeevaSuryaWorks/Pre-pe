@@ -35,6 +35,16 @@ import { AddCircleMemberDialog } from '@/components/saved/AddCircleMemberDialog'
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SavedPage = () => {
     const { user } = useAuth();
@@ -43,8 +53,17 @@ const SavedPage = () => {
     const [loading, setLoading] = useState(true);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-    const calculateDaysLeft = (dueDateStr: string | null | undefined) => {
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const calculateDaysLeft = (dueDateStr: string | null | undefined, now: Date = new Date()) => {
         if (!dueDateStr) {
             return { 
                 text: "No due date", 
@@ -55,12 +74,14 @@ const SavedPage = () => {
         }
         
         const dueDate = new Date(dueDateStr);
-        dueDate.setHours(0, 0, 0, 0);
         
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const dueDateMidnight = new Date(dueDate);
+        dueDateMidnight.setHours(0, 0, 0, 0);
         
-        const diffTime = dueDate.getTime() - today.getTime();
+        const todayMidnight = new Date(now);
+        todayMidnight.setHours(0, 0, 0, 0);
+        
+        const diffTime = dueDateMidnight.getTime() - todayMidnight.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays < 0) {
@@ -72,13 +93,16 @@ const SavedPage = () => {
                 status: 'overdue'
             };
         } else if (diffDays === 0) {
-            const now = new Date();
             const hoursLeft = 23 - now.getHours();
             const minLeft = 59 - now.getMinutes();
-            let timeLeftStr = `${hoursLeft}h left`;
-            if (hoursLeft === 0) {
-                timeLeftStr = `${minLeft}m left`;
-            }
+            const secLeft = 59 - now.getSeconds();
+            
+            const formattedHours = String(hoursLeft).padStart(2, '0');
+            const formattedMin = String(minLeft).padStart(2, '0');
+            const formattedSec = String(secLeft).padStart(2, '0');
+            
+            const timeLeftStr = `${formattedHours}h ${formattedMin}m ${formattedSec}s left`;
+            
             return {
                 text: `Due Today (${timeLeftStr})`,
                 colorClass: "text-rose-600 font-black uppercase tracking-wider animate-pulse",
@@ -412,7 +436,7 @@ const SavedPage = () => {
                                                                 {/* Directly Visible Mobile-Friendly Actions */}
                                                                 <div className="flex flex-col gap-2 shrink-0 items-end">
                                                                     {(() => {
-                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                         let btnStyle = "from-[#046A38] to-green-700 shadow-green-700/10 hover:shadow-green-700/20";
                                                                         let effects = "";
                                                                         let label = "Pay";
@@ -443,7 +467,7 @@ const SavedPage = () => {
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        onClick={() => handleDelete(item.id)}
+                                                                        onClick={() => setItemToDelete(item.id)}
                                                                         className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
                                                                         title="Delete"
                                                                     >
@@ -472,16 +496,16 @@ const SavedPage = () => {
                                                                         <input
                                                                             type="date"
                                                                             value={item.metadata?.due_date || ""}
-                                                                            onChange={(e) => handleUpdateDueDate(item, e.target.value)}
+                                                                            disabled={true}
                                                                             onClick={(e) => e.stopPropagation()}
-                                                                            className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#046A38]/10 transition-all font-mono cursor-pointer"
+                                                                            className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none transition-all font-mono cursor-not-allowed"
                                                                         />
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Days Left Display */}
                                                                 {(() => {
-                                                                    const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                    const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                     return (
                                                                         <div className={cn(
                                                                             "flex items-center justify-between p-3 rounded-2xl border transition-all select-none",
@@ -498,8 +522,8 @@ const SavedPage = () => {
                                                                                 </div>
                                                                             </div>
                                                                             {item.metadata?.whatsapp_reminder_active && (
-                                                                                <Badge className="text-[8px] font-black uppercase tracking-wider bg-[#046A38] text-white border-none px-2 py-0.5 rounded-full flex items-center gap-0.5 select-none shrink-0 shadow-sm">
-                                                                                    <MessageSquare className="w-2.5 h-2.5 fill-white text-white" /> WhatsApp Active
+                                                                                <Badge className="bg-[#046A38]/10 text-[#046A38] border-none p-1.5 rounded-full flex items-center justify-center select-none shrink-0 w-6 h-6" title="WhatsApp Alerts Active">
+                                                                                    <MessageSquare className="w-3.5 h-3.5 fill-current" />
                                                                                 </Badge>
                                                                             )}
                                                                         </div>
@@ -589,7 +613,7 @@ const SavedPage = () => {
                                                                 {/* Mobile Actions */}
                                                                 <div className="flex flex-col gap-2 shrink-0 items-end">
                                                                     {(() => {
-                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                         let btnStyle = "from-[#FF671F] to-orange-600 shadow-orange-700/10 hover:shadow-orange-700/20";
                                                                         let effects = "";
                                                                         let label = "Repeat";
@@ -620,7 +644,7 @@ const SavedPage = () => {
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
-                                                                        onClick={() => handleDelete(item.id)}
+                                                                        onClick={() => setItemToDelete(item.id)}
                                                                         className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
                                                                         title="Delete"
                                                                     >
@@ -649,9 +673,9 @@ const SavedPage = () => {
                                                                         <input
                                                                             type="date"
                                                                             value={item.metadata?.due_date || ""}
-                                                                            onChange={(e) => handleUpdateDueDate(item, e.target.value)}
+                                                                            disabled={true}
                                                                             onClick={(e) => e.stopPropagation()}
-                                                                            className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#000080]/10 transition-all font-mono cursor-pointer"
+                                                                            className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none transition-all font-mono cursor-not-allowed"
                                                                         />
                                                                     </div>
                                                                 </div>                                                                {/* AutoPay and Days Left */}
@@ -689,7 +713,7 @@ const SavedPage = () => {
 
                                                                     {/* Days Left Display */}
                                                                     {(() => {
-                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date);
+                                                                        const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                         return (
                                                                             <div className={cn(
                                                                                 "flex items-center justify-between p-3 rounded-2xl border transition-all select-none",
@@ -706,8 +730,8 @@ const SavedPage = () => {
                                                                                     </div>
                                                                                 </div>
                                                                                 {item.metadata?.whatsapp_reminder_active && (
-                                                                                    <Badge className="text-[8px] font-black uppercase tracking-wider bg-emerald-500 text-white border-none px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0 shadow-sm">
-                                                                                        <MessageSquare className="w-2 h-2 fill-white text-white" /> WA
+                                                                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-none p-1 rounded-full flex items-center justify-center shrink-0 w-5 h-5" title="WhatsApp Alerts Active">
+                                                                                        <MessageSquare className="w-3 h-3 fill-current" />
                                                                                     </Badge>
                                                                                 )}
                                                                             </div>
@@ -734,6 +758,39 @@ const SavedPage = () => {
                 onSuccess={loadData}
                 userId={user?.id || ''}
             />
+
+            <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+                <AlertDialogContent className="rounded-[32px] p-8 border-none shadow-2xl bg-white max-w-sm">
+                    <AlertDialogHeader className="flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mb-4">
+                            <Trash2 className="w-8 h-8 text-rose-600 animate-bounce" />
+                        </div>
+                        <AlertDialogTitle className="text-xl font-black text-slate-900 tracking-tight">Delete Circle Member?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500 font-medium text-xs leading-relaxed mt-2 text-center">
+                            Are you absolutely sure you want to remove this member from your circle? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-row gap-3 pt-4 justify-center w-full">
+                        <AlertDialogCancel 
+                            onClick={() => setItemToDelete(null)}
+                            className="flex-1 rounded-xl font-bold text-slate-500 border-slate-200 hover:bg-slate-50 h-12"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={async () => {
+                                if (itemToDelete) {
+                                    await handleDelete(itemToDelete);
+                                    setItemToDelete(null);
+                                }
+                            }}
+                            className="flex-1 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black h-12 shadow-lg shadow-rose-600/10"
+                        >
+                            Confirm Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Layout>
     );
 };

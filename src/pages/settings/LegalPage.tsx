@@ -70,10 +70,15 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
                                 <p>
                                     We shall not be held responsible for any content that appears in the app. No link(s) should appear in any context that may be interpreted as libelous, obscene, or criminal.
                                 </p>
-
+ 
                                 <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">5. Third-Party Data</h3>
                                 <p className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs italic">
                                     We use third-party sources to provide plan details. Before making any recharge, please verify the plan directly with the official operator. We are not responsible for discrepancies in third-party information.
+                                </p>
+
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">6. WhatsApp Billing Alerts & Consent</h3>
+                                <p className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/30 text-xs text-slate-700 leading-relaxed">
+                                    By using <strong>PrePe</strong>, you consent to receive automated billing notifications, payment reminders, and circle alerts directly on your registered mobile number via WhatsApp. This consent is integrated directly into our platform terms to guarantee secure and timely payment alerts. Reminders can be monitored within the My Circle settings page.
                                 </p>
                             </div>
                         )}

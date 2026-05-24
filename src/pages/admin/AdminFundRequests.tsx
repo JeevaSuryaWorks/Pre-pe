@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -103,6 +103,15 @@ export const AdminFundRequests = () => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [rejectDialog, setRejectDialog] = useState<{ open: boolean; id: string | null; userId: string | null; amount: number }>({ open: false, id: null, userId: null, amount: 0 });
     const [rejectReason, setRejectReason] = useState('');
+
+    useEffect(() => {
+        const handleFundUpdate = () => {
+            console.log("Instant Fund update event received from Telegram bot...");
+            queryClient.invalidateQueries({ queryKey: ['admin_fund_requests'] });
+        };
+        window.addEventListener('admin_fund_requests_updated', handleFundUpdate);
+        return () => window.removeEventListener('admin_fund_requests_updated', handleFundUpdate);
+    }, [queryClient]);
 
     const { data: requests, isLoading } = useQuery<FundRequest[]>({
         queryKey: ['admin_fund_requests'],
