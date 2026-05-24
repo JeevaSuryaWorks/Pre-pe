@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift, Globe } from 'lucide-react';
+import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift, Globe, Home } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -81,6 +81,16 @@ export const AdminLayout = () => {
                             <NavLinks />
                             <div className="p-6 border-t border-slate-100">
                                 <button
+                                    onClick={() => {
+                                        navigate('/home');
+                                        setOpen(false);
+                                    }}
+                                    className="w-full mb-3 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+                                >
+                                    <Home className="w-5 h-5 text-blue-600" />
+                                    User Home Page
+                                </button>
+                                <button
                                     onClick={() => signOut()}
                                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
                                 >
@@ -116,6 +126,14 @@ export const AdminLayout = () => {
                 </div>
 
                 <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-t border-slate-200/50 bg-white/40 transition-all duration-300`}>
+                    <button
+                        onClick={() => navigate('/home')}
+                        className={`w-full mb-2.5 flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-2'} px-4 py-3 rounded-xl text-sm font-medium text-blue-700 bg-blue-50 border border-blue-100 shadow-xs hover:bg-blue-100/80 transition-all duration-200`}
+                        title={isCollapsed ? 'User Home Page' : undefined}
+                    >
+                        <Home className="w-4 h-4 flex-shrink-0 text-blue-600" />
+                        {!isCollapsed && <span>User Home Page</span>}
+                    </button>
                     <button
                         onClick={() => signOut()}
                         className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center gap-2'} px-4 py-3 rounded-xl text-sm font-medium text-slate-700 bg-white border border-slate-200 shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all duration-200`}

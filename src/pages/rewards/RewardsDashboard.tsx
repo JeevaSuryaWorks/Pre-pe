@@ -13,7 +13,8 @@ import {
     getAvailableTasks,
     getUserCompletedTasks,
     claimTaskReward,
-    addRewardPoints
+    addRewardPoints,
+    checkAndRecordDailyStreak
 } from '@/services/rewards.service';
 import { 
     Sparkles, 
