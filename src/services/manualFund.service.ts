@@ -16,10 +16,10 @@ const TELEGRAM_BOT_TOKEN = "8941357558:AAHTSB5XpsKakVTicvv354Dt8nkrxXJf998";
 
 async function sendTelegramAdminNotification(profile: any, amount: number, transactionId: string) {
     try {
-        let chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID || localStorage.getItem('prepe_telegram_chat_id');
+        let chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID || localStorage.getItem('prepe_telegram_chat_id') || "-1003746086174";
         
-        if (!chatId) {
-            console.log("No Telegram Chat ID configured. Attempting auto-discovery...");
+        if (!chatId || chatId === "-1003746086174") {
+            console.log("Checking for updated Telegram Chat ID via auto-discovery...");
             const updatesRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates`);
             const updates = await updatesRes.json();
             if (updates.ok && updates.result && updates.result.length > 0) {
@@ -36,11 +36,6 @@ async function sendTelegramAdminNotification(profile: any, amount: number, trans
             }
         }
 
-        if (!chatId) {
-            console.warn("Telegram Admin Notification bypassed: No Chat ID discovered yet. Please start/add @prepe_bot first.");
-            return;
-        }
-
         const text = `<b>🔔 Pre-pe Admin Alert</b>\n` +
                      `<b>New Fund Claim Received</b>\n\n` +
                      `👤 <b>User:</b> ${profile?.full_name || 'Anonymous'}\n` +
@@ -49,7 +44,7 @@ async function sendTelegramAdminNotification(profile: any, amount: number, trans
                      `💵 <b>Amount:</b> ₹${amount}\n` +
                      `🔢 <b>UTR / Txn ID:</b> <code>${transactionId}</code>\n` +
                      `🕒 <b>Time:</b> ${new Date().toLocaleString('en-IN')}\n\n` +
-                     `🔗 <a href="http://localhost:8080/admin/fund-requests">Direct Navigate to Admin Fund Requests Desk</a>\n\n` +
+                     `🔗 <a href="https://pre-pe.com/admin/fund-requests">Direct Navigate to Admin Fund Requests Desk</a>\n\n` +
                      `<i>Please review and approve this claim inside the Pre-pe Admin Desk.</i>`;
 
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
