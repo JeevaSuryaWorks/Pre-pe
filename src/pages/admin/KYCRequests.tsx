@@ -456,7 +456,10 @@ export const KYCRequests = () => {
             <div className="flex-1 flex flex-col md:flex-row items-stretch gap-6 overflow-hidden min-h-0">
                 
                 {/* Left Side: Applicant Queue Panel */}
-                <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden shrink-0">
+                <div className={cn(
+                    "w-full md:w-[380px] lg:w-[420px] flex flex-col bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden shrink-0",
+                    selectedRequest ? "hidden md:flex" : "flex"
+                )}>
                     
                     {/* Search & Filter Controls */}
                     <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3 shrink-0">
@@ -582,7 +585,10 @@ export const KYCRequests = () => {
                 </div>
 
                 {/* Right Side: Active Workspace Reviewer */}
-                <div className="flex-1 bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden flex flex-col min-w-0">
+                <div className={cn(
+                    "flex-1 bg-white rounded-3xl border border-slate-200/70 shadow-sm overflow-hidden flex flex-col min-w-0",
+                    selectedRequest ? "flex animate-in slide-in-from-right duration-300" : "hidden md:flex"
+                )}>
                     
                     {!selectedRequest ? (
                         /* Empty State: Queue Analytics Board */
@@ -646,8 +652,17 @@ export const KYCRequests = () => {
                         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                             
                             {/* Request Sub-header / Profile Banner */}
-                            <div className="p-6 border-b border-slate-100 bg-slate-50/40 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-                                <div className="flex items-center gap-4">
+                            <div className="p-4 md:p-6 border-b border-slate-100 bg-slate-50/40 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+                                <div className="flex items-center gap-3 md:gap-4">
+                                    {/* Mobile Back button to return to applicant queue list */}
+                                    <button
+                                        onClick={() => setSelectedRequest(null)}
+                                        className="md:hidden p-2.5 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl transition-all mr-1 shrink-0"
+                                        title="Back to Queue"
+                                    >
+                                        <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                    </button>
+
                                     <div className="h-12 w-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                                         <User className="w-6 h-6 text-blue-600" />
                                     </div>
@@ -976,21 +991,21 @@ export const KYCRequests = () => {
                 <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-6 select-none animate-in fade-in duration-300">
                     
                     {/* Lightbox Top Header */}
-                    <div className="flex items-center justify-between w-full shrink-0 border-b border-white/10 pb-4 text-white">
+                    <div className="flex items-center justify-between w-full shrink-0 border-b border-white/10 pb-4 text-white gap-2">
                         <div>
-                            <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">Document Inspection</span>
-                            <h3 className="text-sm font-bold mt-0.5 tracking-wide text-blue-400">{activeLightboxImage.label}</h3>
+                            <span className="text-[8px] sm:text-[9px] font-black tracking-widest text-slate-400 uppercase">Document Inspection</span>
+                            <h3 className="text-xs sm:text-sm font-bold mt-0.5 tracking-wide text-blue-400 truncate max-w-[150px] sm:max-w-none">{activeLightboxImage.label}</h3>
                         </div>
                         
-                        <div className="flex items-center gap-3">
-                            <span className="text-slate-400 text-xs font-mono bg-white/5 border border-white/10 px-3 py-1 rounded-xl">
-                                {Object.keys(imageUrls).indexOf(activeLightboxImage.key) + 1} / {Object.keys(imageUrls).filter(k => imageUrls[k]).length} uploaded
+                        <div className="flex items-center gap-1.5 sm:gap-3">
+                            <span className="text-slate-400 text-[10px] sm:text-xs font-mono bg-white/5 border border-white/10 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg sm:rounded-xl shrink-0">
+                                {Object.keys(imageUrls).indexOf(activeLightboxImage.key) + 1} / {Object.keys(imageUrls).filter(k => imageUrls[k]).length}
                             </span>
                             <button
                                 onClick={() => setActiveLightboxImage(null)}
-                                className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         </div>
                     </div>
@@ -1002,10 +1017,10 @@ export const KYCRequests = () => {
                         {Object.keys(imageUrls).filter(k => imageUrls[k]).length > 1 && (
                             <button
                                 onClick={() => handleCycleImage('prev')}
-                                className="absolute left-6 z-10 p-4 rounded-full bg-black/60 border border-white/5 text-white hover:bg-blue-600 transition-all cursor-pointer shadow-lg"
+                                className="absolute left-2 sm:left-6 z-10 p-2.5 sm:p-4 rounded-full bg-black/60 border border-white/5 text-white hover:bg-blue-600 transition-all cursor-pointer shadow-lg"
                                 title="Previous document"
                             >
-                                <ChevronLeft className="w-6 h-6" />
+                                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         )}
 
@@ -1028,57 +1043,57 @@ export const KYCRequests = () => {
                         {Object.keys(imageUrls).filter(k => imageUrls[k]).length > 1 && (
                             <button
                                 onClick={() => handleCycleImage('next')}
-                                className="absolute right-6 z-10 p-4 rounded-full bg-black/60 border border-white/5 text-white hover:bg-blue-600 transition-all cursor-pointer shadow-lg"
+                                className="absolute right-2 sm:right-6 z-10 p-2.5 sm:p-4 rounded-full bg-black/60 border border-white/5 text-white hover:bg-blue-600 transition-all cursor-pointer shadow-lg"
                                 title="Next document"
                             >
-                                <ChevronRight className="w-6 h-6" />
+                                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         )}
                     </div>
 
                     {/* Lightbox Action controls toolbar */}
-                    <div className="flex items-center justify-center gap-3 shrink-0 border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-3 shrink-0 border-t border-white/10 pt-4 flex-wrap pb-2 sm:pb-0">
                         <button
                             onClick={() => handleZoom('in')}
-                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
                             title="Zoom In"
                         >
-                            <ZoomIn className="w-5 h-5" />
+                            <ZoomIn className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                         </button>
                         
                         <button
                             onClick={() => handleZoom('out')}
-                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
                             title="Zoom Out"
                         >
-                            <ZoomOut className="w-5 h-5" />
+                            <ZoomOut className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                         </button>
 
-                        <div className="h-6 w-px bg-white/10 mx-2" />
+                        <div className="h-6 w-px bg-white/10 mx-1 sm:mx-2" />
 
                         <button
                             onClick={() => handleRotate('ccw')}
-                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
                             title="Rotate 90° Counter-Clockwise"
                         >
-                            <RotateCcw className="w-5 h-5" />
+                            <RotateCcw className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                         </button>
 
                         <button
                             onClick={() => handleRotate('cw')}
-                            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
                             title="Rotate 90° Clockwise"
                         >
-                            <RotateCw className="w-5 h-5" />
+                            <RotateCw className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                         </button>
 
-                        <div className="h-6 w-px bg-white/10 mx-2" />
+                        <div className="h-6 w-px bg-white/10 mx-1 sm:mx-2" />
 
                         <button
                             onClick={handleResetLightbox}
-                            className="px-5 h-11 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
+                            className="px-3 sm:px-5 h-9 sm:h-11 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 text-[10px] sm:text-xs font-bold text-slate-300 hover:bg-white/15 hover:text-white transition-all cursor-pointer"
                         >
-                            Reset Canvas
+                            Reset
                         </button>
                     </div>
 

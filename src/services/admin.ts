@@ -332,6 +332,9 @@ export const adminService = {
             const isPro = id === 'pro';
             const isBusiness = id === 'business';
             
+            // Merge database config with defaults/fallbacks
+            const dbConfig = plan.config ? (typeof plan.config === 'string' ? JSON.parse(plan.config) : plan.config) : {};
+            
             return {
                 id: plan.id,
                 name: plan.name,
@@ -343,36 +346,40 @@ export const adminService = {
                 is_popular: plan.is_popular,
                 order_index: plan.order_index,
                 config: {
-                    dailyRechargeLimit: isBusiness || isPro ? 999999 : 5,
-                    dailyWalletAddLimit: isBusiness ? 999999 : (isPro ? 10000 : 500),
-                    maxWalletBalance: isBusiness ? 999999 : (isPro ? 25000 : 1000),
-                    bnplLimit: isBusiness ? 3000 : (isPro ? 1000 : 0),
-                    bnplCycleDays: isBusiness ? 30 : (isPro ? 15 : 0),
+                    dailyRechargeLimit: dbConfig.dailyRechargeLimit !== undefined ? Number(dbConfig.dailyRechargeLimit) : (isBusiness || isPro ? 999999 : 5),
+                    dailyWalletAddLimit: dbConfig.dailyWalletAddLimit !== undefined ? Number(dbConfig.dailyWalletAddLimit) : (isBusiness ? 999999 : (isPro ? 10000 : 500)),
+                    maxWalletBalance: dbConfig.maxWalletBalance !== undefined ? Number(dbConfig.maxWalletBalance) : (isBusiness ? 999999 : (isPro ? 25000 : 1000)),
+                    bnplLimit: dbConfig.bnplLimit !== undefined ? Number(dbConfig.bnplLimit) : (isBusiness ? 3000 : (isPro ? 1000 : 0)),
+                    bnplCycleDays: dbConfig.bnplCycleDays !== undefined ? Number(dbConfig.bnplCycleDays) : (isBusiness ? 30 : (isPro ? 15 : 0)),
+                    commissionMultiplier: dbConfig.commissionMultiplier !== undefined ? Number(dbConfig.commissionMultiplier) : 1.0,
+                    referralReward: dbConfig.referralReward !== undefined ? Number(dbConfig.referralReward) : 0,
                     features: {
-                        bnpl: isBusiness || isPro,
-                        cashback: isBusiness || isPro,
-                        ads: isBasic,
-                        prioritySupport: isBusiness || isPro,
-                        bulkTools: isBusiness,
-                        rewards: isBasic ? 'BASIC' : 'PREMIUM'
+                        kycRequired: dbConfig.features?.kycRequired !== undefined ? dbConfig.features.kycRequired : (isBasic ? false : true),
+                        bnpl: dbConfig.features?.bnpl !== undefined ? dbConfig.features.bnpl : (isBusiness || isPro),
+                        cashback: dbConfig.features?.cashback !== undefined ? dbConfig.features.cashback : (isBusiness || isPro),
+                        ads: dbConfig.features?.ads !== undefined ? dbConfig.features.ads : isBasic,
+                        prioritySupport: dbConfig.features?.prioritySupport !== undefined ? dbConfig.features.prioritySupport : (isBusiness || isPro),
+                        withdrawalAllowed: dbConfig.features?.withdrawalAllowed !== undefined ? dbConfig.features.withdrawalAllowed : (isBusiness || isPro),
+                        bulkTools: dbConfig.features?.bulkTools !== undefined ? dbConfig.features.bulkTools : isBusiness,
+                        rewards: dbConfig.features?.rewards !== undefined ? dbConfig.features.rewards : (isBasic ? 'BASIC' : 'PREMIUM')
                     }
                 }
             };
         });
     },
-
+ 
     async updatePlan(id: string, updates: any) {
-        const { config, features, ...dbUpdates } = updates;
+        const { features, ...dbUpdates } = updates;
         
         if (features !== undefined) {
             dbUpdates.features = features;
         }
-
+ 
         const { error } = await supabase
             .from('plans' as never)
             .update(dbUpdates)
             .eq('id', id);
-
+ 
         if (error) throw error;
         return true;
     },

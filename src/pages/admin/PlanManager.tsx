@@ -99,6 +99,7 @@ const PlanManager = () => {
                 bnplLimit: 0,
                 bnplCycleDays: 0,
                 features: {
+                    kycRequired: true,
                     bnpl: false,
                     cashback: false,
                     ads: true,
@@ -404,6 +405,7 @@ const PlanManager = () => {
 
                                         <div className="space-y-3 pt-2">
                                             {[
+                                                { label: "KYC Required", key: "kycRequired", icon: ShieldCheck },
                                                 { label: "BNPL Access", key: "bnpl", icon: Landmark },
                                                 { label: "Reward Cashback", key: "cashback", icon: Star },
                                                 { label: "Priority Support", key: "prioritySupport", icon: ShieldCheck },

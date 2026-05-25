@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { supportService } from "@/services/support.service";
@@ -14,6 +14,7 @@ const AdminLayout = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [pendingComplaints, setPendingComplaints] = useState(0);
     const [adminEmail, setAdminEmail] = useState("");
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         checkAdmin();
@@ -107,8 +108,102 @@ const AdminLayout = () => {
             <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-blue-100/30 blur-[120px] pointer-events-none -z-10" />
             <div className="absolute bottom-0 left-64 w-[600px] h-[600px] rounded-full bg-indigo-100/20 blur-[150px] pointer-events-none -z-10" />
 
-            {/* Sidebar */}
-            <aside className="w-72 bg-white/70 backdrop-blur-xl border-r border-slate-200/60 flex flex-col z-20 shadow-[4px_0_30px_rgba(0,0,0,0.015)] relative">
+            {/* Mobile Drawer Navigation Sidebar Drawer */}
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-40 lg:hidden flex">
+                    {/* Backdrop overlay */}
+                    <div 
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                    
+                    {/* Drawer Content */}
+                    <aside className="w-72 bg-white flex flex-col h-full z-50 shadow-[4px_0_30px_rgba(0,0,0,0.08)] relative animate-in slide-in-from-left duration-300">
+                        {/* Drawer Header Brand Panel */}
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                    <span className="text-white font-black text-xl tracking-tight">P</span>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-black bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
+                                        Pre-pe
+                                    </h1>
+                                    <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">ADMIN CONTROL</span>
+                                </div>
+                            </div>
+                            
+                            {/* Close drawer button */}
+                            <button 
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all"
+                            >
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
+
+                        {/* Sidebar Scroll Navigation List */}
+                        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+                            {navItems.map((item) => {
+                                const isActive = location.pathname === item.path;
+                                return (
+                                    <button
+                                        key={item.path}
+                                        onClick={() => {
+                                            navigate(item.path);
+                                            setIsMobileMenuOpen(false); // Close on selection
+                                        }}
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                            isActive
+                                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/10 scale-[1.02] font-semibold"
+                                                : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`} />
+                                            <span className="text-sm font-semibold tracking-tight">{item.label}</span>
+                                        </div>
+                                        {item.badge !== undefined && item.badge > 0 && (
+                                            <Badge className={`text-[10px] font-black border-0 px-2 py-0.5 rounded-full ${
+                                                isActive 
+                                                    ? "bg-white text-blue-600" 
+                                                    : "bg-rose-100 text-rose-700 border border-rose-200/50"
+                                            }`}>
+                                                {item.badge}
+                                            </Badge>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </nav>
+
+                        {/* Sidebar User profile footer */}
+                        <div className="p-4 border-t border-slate-100/80 bg-slate-50/50">
+                            <div className="flex items-center gap-3 px-2 py-3 rounded-xl mb-3">
+                                <div className="h-9 w-9 rounded-full bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm uppercase">
+                                    {adminEmail[0]}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-slate-800 truncate leading-none mb-1">Administrative Role</p>
+                                    <p className="text-[10px] font-medium text-slate-400 truncate leading-none">{adminEmail}</p>
+                                </div>
+                            </div>
+                            
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold h-11 border border-transparent hover:border-rose-100/50 transition-all duration-300"
+                                onClick={handleLogout}
+                            >
+                                <LogOut className="mr-2 h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
+                                Sign Out
+                            </Button>
+                        </div>
+                    </aside>
+                </div>
+            )}
+
+            {/* Permanent Sidebar (visible only on wide screens) */}
+            <aside className="w-72 bg-white/70 backdrop-blur-xl border-r border-slate-200/60 lg:flex flex-col z-20 shadow-[4px_0_30px_rgba(0,0,0,0.015)] relative hidden">
                 
                 {/* Sidebar Header Brand Panel */}
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between">
@@ -184,10 +279,19 @@ const AdminLayout = () => {
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 
                 {/* Dashboard Top Header Navigation Bar */}
-                <header className="h-20 bg-white/50 backdrop-blur-md border-b border-slate-200/60 px-8 flex items-center justify-between shrink-0">
+                <header className="h-20 bg-white/50 backdrop-blur-md border-b border-slate-200/60 px-4 md:px-8 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Admin Control</span>
-                        <ChevronRight className="h-3 w-3 text-slate-300" />
+                        {/* Hamburger Menu Icon for Mobile screens */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(true)}
+                            className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-all mr-1 shrink-0"
+                            title="Open Navigation"
+                        >
+                            <Menu className="h-5 w-5 text-slate-600" />
+                        </button>
+
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest hidden sm:inline">Admin Control</span>
+                        <ChevronRight className="h-3 w-3 text-slate-300 hidden sm:inline" />
                         <span className="text-sm font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-full border border-slate-200/50">
                             {currentActiveItem?.label || "Overview"}
                         </span>
@@ -196,7 +300,7 @@ const AdminLayout = () => {
                     <div className="flex items-center gap-4">
                         {/* Live Alert System */}
                         {pendingComplaints > 0 && (
-                            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200/60 text-amber-800 px-3 py-1.5 rounded-xl animate-pulse text-xs font-bold">
+                            <div className="hidden md:flex items-center gap-2 bg-amber-50 border border-amber-200/60 text-amber-800 px-3 py-1.5 rounded-xl animate-pulse text-xs font-bold">
                                 <span className="h-2 w-2 rounded-full bg-amber-500" />
                                 {pendingComplaints} live support requests pending attention
                             </div>
@@ -211,7 +315,7 @@ const AdminLayout = () => {
                 </header>
 
                 {/* Dashboard Screen Viewport */}
-                <main className="flex-1 overflow-y-auto p-8 relative">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
                     <div className="max-w-7xl mx-auto">
                         <Outlet />
                     </div>

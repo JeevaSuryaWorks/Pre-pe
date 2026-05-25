@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { decryptSensitiveData } from '@/lib/crypto';
 import { useToast } from './use-toast';
+import { useProfile } from './useProfile';
 
 // No module-level state needed for channels.
 
@@ -15,6 +16,7 @@ interface UseKYCOptions {
 export const useKYC = (options?: UseKYCOptions) => {
     const { user } = useAuth();
     const { toast } = useToast();
+    const { profile } = useProfile();
     const prevStatusRef = useRef<string | null>(null);
 
     const { data: kycData, isLoading, isFetching, error, refetch } = useQuery({
@@ -89,14 +91,15 @@ export const useKYC = (options?: UseKYCOptions) => {
         };
     }, [user?.id, refetch]);
 
-    const isApproved = status === 'APPROVED';
-    const isPending = status === 'PENDING';
-    const isRejected = status === 'REJECTED';
-
+    const isKycRequired = profile?.plans?.config?.features?.kycRequired !== false;
+    const isApproved = !isKycRequired || status === 'APPROVED';
+    const isPending = isKycRequired && status === 'PENDING';
+    const isRejected = isKycRequired && status === 'REJECTED';
+    const effectiveStatus = isKycRequired ? status : 'APPROVED';
 
     return {
         kycData,
-        status,
+        status: effectiveStatus,
         isApproved,
         isPending,
         isRejected,

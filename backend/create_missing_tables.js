@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.plans (
   price TEXT,
   price_amount NUMERIC NOT NULL DEFAULT 0,
   features JSONB DEFAULT '[]'::jsonb,
+  config JSONB,
   is_popular BOOLEAN DEFAULT false,
   order_index INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),

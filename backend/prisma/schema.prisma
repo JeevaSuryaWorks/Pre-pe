@@ -44,6 +44,7 @@ model profiles {
   plan_type         String?  @default("BASIC") @db.VarChar(20)
   whatsapp_consent  Boolean?
   custom_spin_limit Int?
+  sim_provider      String?
   created_at        DateTime @db.Timestamptz
   updated_at        DateTime @db.Timestamptz
 
