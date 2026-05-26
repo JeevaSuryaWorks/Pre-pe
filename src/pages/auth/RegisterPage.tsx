@@ -44,10 +44,6 @@ const RegisterPage = () => {
                             <RegisterForm />
                         </CardContent>
                     </Card>
-
-                    <p className="text-center text-xs text-slate-400 px-4">
-                        By continuing, you agree to our <Link to="/legal/terms" className="underline hover:text-[#FF671F] transition-colors">Terms of Service</Link> and <Link to="/legal/privacy" className="underline hover:text-[#FF671F] transition-colors">Privacy Policy</Link>.
-                    </p>
                 </div>
             </div>
         </Layout>
