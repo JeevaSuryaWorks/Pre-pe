@@ -419,7 +419,7 @@ const SavedPage = () => {
                                                                 {/* User and Account details */}
                                                                 <div className="flex-1 min-w-0 pr-1">
                                                                     <div className="flex flex-col">
-                                                                        <h4 className="text-base font-black text-slate-900 truncate leading-snug" title={item.title}>
+                                                                        <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
                                                                             {item.title}
                                                                         </h4>
                                                                         <div className="flex items-center gap-1.5 mt-1.5">
@@ -596,7 +596,7 @@ const SavedPage = () => {
 
                                                                 {/* Favorite Title & Amount Info */}
                                                                 <div className="flex-1 min-w-0 pr-1">
-                                                                    <h4 className="text-base font-black text-slate-900 truncate leading-snug" title={item.title}>
+                                                                    <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
                                                                         {item.title}
                                                                     </h4>
                                                                     
@@ -641,15 +641,6 @@ const SavedPage = () => {
                                                                             </Button>
                                                                         );
                                                                     })()}
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => setItemToDelete(item.id)}
-                                                                        className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-100 bg-slate-50/50"
-                                                                        title="Delete"
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                    </Button>
                                                                 </div>
                                                             </div>
 

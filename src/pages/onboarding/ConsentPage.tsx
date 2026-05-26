@@ -98,14 +98,6 @@ export default function ConsentPage() {
                             >
                                 {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Yes, Enable WhatsApp Reminders"}
                             </Button>
-                            <Button 
-                                onClick={() => handleConsent(false)} 
-                                disabled={submitting}
-                                variant="ghost" 
-                                className="w-full h-12 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                            >
-                                Skip for now
-                            </Button>
                         </CardFooter>
                     </Card>
                 </motion.div>

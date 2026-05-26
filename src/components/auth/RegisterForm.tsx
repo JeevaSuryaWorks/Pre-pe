@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Mail, Lock, User, Smartphone, ArrowRight, Signal, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -30,10 +31,11 @@ export function RegisterForm() {
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
     const [simProvider, setSimProvider] = useState('');
-    const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; phone?: string; simProvider?: string }>({});
+    const [acceptTerms, setAcceptTerms] = useState(false);
+    const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string; phone?: string; simProvider?: string; acceptTerms?: string }>({});
 
     const validateForm = () => {
-        const newErrors: { email?: string; password?: string; fullName?: string; phone?: string; simProvider?: string } = {};
+        const newErrors: { email?: string; password?: string; fullName?: string; phone?: string; simProvider?: string; acceptTerms?: string } = {};
 
         try {
             emailSchema.parse(email);
@@ -62,6 +64,10 @@ export function RegisterForm() {
 
         if (!simProvider) {
             newErrors.simProvider = 'Please select your SIM provider';
+        }
+
+        if (!acceptTerms) {
+            newErrors.acceptTerms = 'You must accept the Terms & Conditions to register';
         }
 
         setErrors(newErrors);
@@ -238,7 +244,20 @@ export function RegisterForm() {
                     </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full h-12 bg-[#FF671F] hover:bg-orange-600 text-base font-bold mt-2 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-orange-600/20">
+                <div className="flex items-start gap-2.5 mt-4 px-1">
+                    <Checkbox 
+                        id="accept-terms" 
+                        checked={acceptTerms} 
+                        onCheckedChange={(checked) => setAcceptTerms(!!checked)}
+                        className="mt-0.5 border-slate-300 data-[state=checked]:bg-[#FF671F] data-[state=checked]:border-[#FF671F]"
+                    />
+                    <Label htmlFor="accept-terms" className="text-xs text-slate-500 font-semibold leading-normal select-none cursor-pointer">
+                        I accept the <Link to="/legal/terms" target="_blank" className="underline font-bold text-slate-700 hover:text-[#FF671F] transition-colors">Terms of Service</Link> and <Link to="/legal/privacy" target="_blank" className="underline font-bold text-slate-700 hover:text-[#FF671F] transition-colors">Privacy Policy</Link>
+                    </Label>
+                </div>
+                {errors.acceptTerms && <p className="text-xs text-red-500 mt-1 px-1">{errors.acceptTerms}</p>}
+
+                <Button type="submit" disabled={loading} className="w-full h-12 bg-[#FF671F] hover:bg-orange-600 text-base font-bold mt-4 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-orange-600/20">
                     {loading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
