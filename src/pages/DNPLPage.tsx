@@ -60,7 +60,7 @@ const DNPLPage = () => {
             const { data: profile } = await supabase
                 .from("profiles")
                 .select("phone")
-                .eq("id", session.user.id)
+                .eq("user_id", session.user.id)
                 .single();
 
             const phone = profile?.phone || session.user.phone || "";
