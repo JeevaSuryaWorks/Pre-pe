@@ -49,7 +49,7 @@ import {
   getCircles,
   detectOperator,
 } from '@/services/operator.service';
-import { getPlans } from '@/services/plans.service';
+import { getPlans, getROffer } from '@/services/plans.service';
 import {
   processRecharge,
   getTransactionHistory,
@@ -170,6 +170,8 @@ export function MobileRechargeForm() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [circles, setCircles] = useState<Circle[]>([]);
   const [plans, setPlans] = useState<RechargePlan[]>([]);
+  const [suggestedPlans, setSuggestedPlans] = useState<RechargePlan[]>([]);
+  const [loadingSuggested, setLoadingSuggested] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [rewardsConfig, setRewardsConfig] = useState<any>(null);
   const [upiVpa, setUpiVpa] = useState(() => {
@@ -345,6 +347,28 @@ export function MobileRechargeForm() {
     };
     load();
   }, [selectedOperator, selectedCircle, planCategory, step]);
+
+  useEffect(() => {
+    if (!selectedOperator || !mobileNumber || step !== 'details') return;
+    const loadSuggested = async () => {
+      setLoadingSuggested(true);
+      const cleanNumber = mobileNumber.replace(/\s+/g, '');
+      try {
+        const result = await getROffer(selectedOperator, cleanNumber);
+        if (result.status === 'SUCCESS' && result.data && result.data.length > 0) {
+          setSuggestedPlans(result.data);
+        } else {
+          // Fallback to static AI suggestions if no R-offers are returned or not supported (e.g. Jio/BSNL)
+          setSuggestedPlans(getAISuggestedPlans(selectedOperator));
+        }
+      } catch (err) {
+        setSuggestedPlans(getAISuggestedPlans(selectedOperator));
+      } finally {
+        setLoadingSuggested(false);
+      }
+    };
+    loadSuggested();
+  }, [selectedOperator, mobileNumber, step]);
 
   const handlePlanSelect = (plan: RechargePlan) => {
     setSelectedPlan(plan);
@@ -782,10 +806,28 @@ export function MobileRechargeForm() {
         <div className="flex flex-col w-full">
           {/* Suggested Plans */}
           {!planSearchQuery && (() => {
-            const allSuggested = getAISuggestedPlans(selectedOperator);
+            if (loadingSuggested) {
+              return (
+                <div className="mb-6 shrink-0 animate-pulse">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500/20 animate-spin" />
+                      Resolving personalized offers...
+                    </h3>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-1">
+                    {[1, 2, 3].map((_, i) => (
+                      <div key={i} className="min-w-[155px] h-[120px] rounded-2xl bg-slate-100 border border-slate-200/50 relative overflow-hidden" />
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            const allSuggested = suggestedPlans;
             const suggested = planCategory === 'all'
               ? allSuggested
-              : allSuggested.filter(plan => plan.category === planCategory);
+              : allSuggested.filter(plan => plan.category === planCategory || plan.category === 'special');
             
             if (suggested.length === 0) return null;
 
