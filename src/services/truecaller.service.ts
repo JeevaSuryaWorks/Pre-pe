@@ -1,12 +1,4 @@
-/**
- * Truecaller SDK Integration Service (Simulated Mobile Web Flow)
- * ─────────────────────────────────────────────────────────────────────────────
- * Implements the user profile retrieval workflow for mobile websites.
- * Mimics fetching the verified user profile using the Authorization Access Token
- * returned after the user consents to verification via their Truecaller app.
- *
- * @link https://docs.truecaller.com/truecaller-sdk/mobile-websites/integrating-with-your-mobile-website/fetch-user-profile
- */
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TruecallerProfile {
   phoneNumbers: string[];
@@ -24,84 +16,77 @@ export interface TruecallerProfile {
 }
 
 /**
- * Simulates the Truecaller User Profile Fetch (/v1/default endpoint)
- * Returns deterministic profiles based on the phone number digit summary,
- * ensuring high-fidelity, predictable, and reproducible verified results during UAT.
+ * Fetches the real profile name associated with a phone number from the database.
+ * Matches profiles or past transactions to render verified names.
+ * If not available, returns null (does not show mock names) as per specification.
  *
  * @param {string} mobileNumber - 10-digit mobile number to resolve profile for
  * @returns {Promise<TruecallerProfile | null>}
  */
 export async function fetchTruecallerProfileSimulated(mobileNumber: string): Promise<TruecallerProfile | null> {
-  // Simulate network latency (mimicking standard web fetch)
-  await new Promise((resolve) => setTimeout(resolve, 850));
-
   const cleanNum = mobileNumber.replace(/\D/g, '');
   if (cleanNum.length < 10) return null;
 
-  // A list of realistic developer verified profiles for presentation and demo
-  const SAMPLE_PROFILES = [
-    {
-      first: "Rajat",
-      last: "Kapoor",
-      jobTitle: "CEO",
-      companyName: "ABC",
-      gender: "Male",
-      badges: ["verified", "premium"],
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-      first: "Jeeva",
-      last: "Surya",
-      jobTitle: "Chief Architect",
-      companyName: "Prepe Tech",
-      gender: "Male",
-      badges: ["verified"],
-      avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-      first: "Aditya",
-      last: "Sharma",
-      jobTitle: "Senior Developer",
-      companyName: "JS Corp",
-      gender: "Male",
-      badges: ["verified", "premium"],
-      avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-      first: "Priya",
-      last: "Patel",
-      jobTitle: "Lead UI Designer",
-      companyName: "DesignStudio",
-      gender: "Female",
-      badges: ["verified"],
-      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-    },
-    {
-      first: "Rohan",
-      last: "Verma",
-      jobTitle: "Product Manager",
-      companyName: "Finance Hub",
-      gender: "Male",
-      badges: ["verified"],
-      avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=100&q=80"
-    }
-  ];
+  try {
+    // 1. Try to find a registered user with this phone number in profiles
+    const possibleNumbers = [
+      cleanNum,
+      `+91${cleanNum}`,
+      `91${cleanNum}`,
+      `0${cleanNum}`
+    ];
 
-  // Map the clean number deterministically to one of the samples
-  const digitSum = cleanNum.split('').reduce((sum, char) => sum + parseInt(char || '0', 10), 0);
-  const selected = SAMPLE_PROFILES[digitSum % SAMPLE_PROFILES.length];
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .in('phone', possibleNumbers)
+      .maybeSingle();
 
-  return {
-    phoneNumbers: [cleanNum],
-    isActive: true,
-    gender: selected.gender,
-    badges: selected.badges,
-    jobTitle: selected.jobTitle,
-    companyName: selected.companyName,
-    avatarUrl: selected.avatarUrl,
-    name: {
-      first: selected.first,
-      last: selected.last
+    if (profile && profile.full_name) {
+      const parts = profile.full_name.trim().split(/\s+/);
+      const first = parts[0] || 'User';
+      const last = parts.slice(1).join(' ') || '';
+      
+      return {
+        phoneNumbers: [cleanNum],
+        isActive: true,
+        gender: 'Not specified',
+        badges: ['verified'],
+        name: { first, last }
+      };
     }
-  };
+
+    // 2. Fallback: Search the transactions record for any previous successful recharges or references to this number
+    const { data: txn } = await supabase
+      .from('transactions')
+      .select('metadata')
+      .eq('mobile_number', cleanNum)
+      .eq('status', 'SUCCESS')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (txn && txn.metadata) {
+      const metadata = txn.metadata as any;
+      if (metadata.customer_name || metadata.name) {
+        const fullName = metadata.customer_name || metadata.name;
+        const parts = fullName.trim().split(/\s+/);
+        const first = parts[0] || 'User';
+        const last = parts.slice(1).join(' ') || '';
+
+        return {
+          phoneNumbers: [cleanNum],
+          isActive: true,
+          gender: 'Not specified',
+          badges: ['verified'],
+          name: { first, last }
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching real truecaller profile:', err);
+  }
+
+  // If not available, don't show the name (return null)
+  return null;
 }
