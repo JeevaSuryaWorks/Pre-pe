@@ -138,7 +138,7 @@ export function TransactionHistory() {
           service_type: tx.service_type,
           account_id: tx.mobile_number || tx.dth_id || 'N/A',
           operator_name: tx.operator_name || undefined,
-          metadata: { transaction_id: tx.id, amount: tx.amount }
+          metadata: { transaction_id: tx.id, amount: tx.amount, operator_id: tx.operator_id }
         });
         
         if (newItem) {

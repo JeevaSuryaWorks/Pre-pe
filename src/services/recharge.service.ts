@@ -37,6 +37,15 @@ export async function processRecharge(
 
   // Working-level fallback payment mock to ensure payment completion
   const txId = 'TXN-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  const isDth = !!request.dth_id;
+  const isPostpaid = !isDth && (request.mobile_number?.length === 10 && !request.plan_id);
+  const serviceType = isDth ? 'DTH' : (isPostpaid ? 'MOBILE_POSTPAID' : 'MOBILE_PREPAID');
+  
+  const targetNumber = request.dth_id || request.mobile_number || 'N/A';
+  const displayDesc = isDth 
+    ? `DTH Recharge Paid - ID: ${targetNumber}` 
+    : (isPostpaid ? `Postpaid Bill Paid - Mob: ${targetNumber}` : `Prepaid Recharge - Mob: ${targetNumber}`);
+
   try {
     const { data: wallet } = await (supabase as any)
       .from('wallets')
@@ -61,7 +70,7 @@ export async function processRecharge(
             type: 'DEBIT',
             amount: Number(request.amount),
             balance_after: newBalance,
-            description: `Postpaid Bill Paid - Mob: ${request.mobile_number}`,
+            description: displayDesc,
             created_at: new Date().toISOString()
           });
 
@@ -71,11 +80,13 @@ export async function processRecharge(
           .insert({
             user_id: userId,
             type: 'DEBIT',
-            service_type: 'POSTPAID_BILL',
-            description: `Paid postpaid bill for Mob: ${request.mobile_number}`,
+            service_type: serviceType,
+            description: displayDesc,
             amount: Number(request.amount),
             status: 'SUCCESS',
             reference_id: txId,
+            dth_id: request.dth_id || null,
+            mobile_number: request.mobile_number || null,
             metadata: { operator_id: request.operator_id },
             created_at: new Date().toISOString()
           });

@@ -64,10 +64,11 @@ export class RechargeController {
             return await this.rechargeService.initiateRecharge(
                 userId,
                 Number(body.amount),
-                body.mobile_number,
+                body.mobile_number || body.dth_id,
                 body.operator_id,
                 body.circle_id,
                 body.plan_id,
+                body.dth_id,
             );
         } catch (error: any) {
             this.logger.error(`Recharge controller error: ${error.message}`);

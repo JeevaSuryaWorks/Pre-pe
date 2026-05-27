@@ -63,6 +63,11 @@ import { KYCNudgeDialog } from '@/components/kyc/KYCNudgeDialog';
 import { paymentService } from '@/services/payment.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
+import {
+  getAutonomousRewardsConfig,
+  getPointsForRechargeAmount,
+  triggerAutonomousRechargeRewards,
+} from '@/services/rewards.service';
 import { Capacitor } from '@capacitor/core';
 
 import type {
@@ -165,8 +170,25 @@ export function MobileRechargeForm() {
   const [circles, setCircles] = useState<Circle[]>([]);
   const [plans, setPlans] = useState<RechargePlan[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [rewardsConfig, setRewardsConfig] = useState<any>(null);
+  const [upiVpa, setUpiVpa] = useState(() => {
+    const vpas = ['prepetechnologies@okaxis', 'prepetechnologies@okicici'];
+    return vpas[Math.floor(Math.random() * vpas.length)];
+  });
   
   const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const loadRewards = async () => {
+      try {
+        const config = await getAutonomousRewardsConfig();
+        setRewardsConfig(config);
+      } catch (err) {
+        console.warn("Failed to load rewards config inside MobileRechargeForm:", err);
+      }
+    };
+    loadRewards();
+  }, []);
   const [detecting, setDetecting] = useState(false);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -318,6 +340,9 @@ export function MobileRechargeForm() {
       if (result.intent_url) {
         setTopupRefId(result.reference_id);
         setIntentUrl(result.intent_url);
+        if (result.upi_vpa) {
+          setUpiVpa(result.upi_vpa);
+        }
         
         // Open UPI Intent on mobile, or show QR on desktop
         if (isMobile) {
@@ -384,6 +409,13 @@ export function MobileRechargeForm() {
       });
 
       if (result.status === 'SUCCESS' || result.status === 'PENDING') {
+        // Trigger Autonomous Recharge Rewards asynchronously
+        try {
+          await triggerAutonomousRechargeRewards(user!.id, parseFloat(amount));
+        } catch (rewErr) {
+          console.error("Failed to credit autonomous recharge rewards:", rewErr);
+        }
+
         const operatorObj = operators.find(o => o.id === selectedOperator);
         navigate('/recharge/receipt', {
           state: {
@@ -728,7 +760,15 @@ export function MobileRechargeForm() {
                      >
                        <div className="absolute top-[-20%] right-[-10%] w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700" />
                        <div className="flex justify-between items-start mb-2 relative z-10">
-                         <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
+                         <div className="flex flex-col">
+                           <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
+                           {rewardsConfig && (() => {
+                             const pts = getPointsForRechargeAmount(plan.amount, rewardsConfig);
+                             return pts > 0 ? (
+                               <span className="text-[7.5px] font-black bg-emerald-500/30 border border-emerald-400/20 text-emerald-300 rounded px-1 mt-0.5 w-max">+{pts} Pts</span>
+                             ) : null;
+                           })()}
+                         </div>
                          <Star className="w-3 h-3 text-white/50 fill-white/20" />
                        </div>
                        <p className="text-[9.5px] font-bold leading-snug opacity-95 line-clamp-2 mb-2.5 min-h-[28px] relative z-10">{plan.description}</p>
@@ -816,7 +856,15 @@ export function MobileRechargeForm() {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex flex-col">
-                        <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">₹{plan.amount}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">₹{plan.amount}</span>
+                          {rewardsConfig && (() => {
+                            const pts = getPointsForRechargeAmount(plan.amount, rewardsConfig);
+                            return pts > 0 ? (
+                              <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 rounded-lg px-2 py-0.5 border border-emerald-100/60 shrink-0">+{pts} Pts</span>
+                            ) : null;
+                          })()}
+                        </div>
                         <span className="text-[9px] font-black text-blue-600 mt-1 uppercase tracking-widest">{plan.validity}</span>
                       </div>
                       <div className="w-7 h-7 bg-slate-50 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -950,7 +998,7 @@ export function MobileRechargeForm() {
             
             <div className="space-y-1 text-center">
               <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">VPA ID</p>
-              <p className="text-sm font-black text-emerald-600">bmsmobiles@barodampay</p>
+              <p className="text-sm font-black text-emerald-600 select-all">{upiVpa}</p>
             </div>
 
             <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">

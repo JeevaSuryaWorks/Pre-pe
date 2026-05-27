@@ -30,8 +30,9 @@ export class RechargeService {
     operator: string,
     circleId?: string,
     planId?: string,
+    dthId?: string,
   ) {
-    this.logger.log(`[RECHARGE:INIT] User: ${userId}, Amount: ${amount}, Mobile: ${mobileNumber}`);
+    this.logger.log(`[RECHARGE:INIT] User: ${userId}, Amount: ${amount}, Mobile/Subscriber: ${mobileNumber}, DTH: ${dthId}`);
 
     if (!this.isValidUuid(userId)) {
       this.logger.error(`[RECHARGE:VALIDATION_FAILED] Invalid User UUID: ${userId}`);
@@ -43,9 +44,16 @@ export class RechargeService {
 
     const referenceId = `${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`.substring(0, 18);
 
-    // Dynamic service type matching (Postpaid vs Prepaid)
+    // Dynamic service type matching (Postpaid vs Prepaid vs DTH)
+    let serviceType = 'MOBILE_PREPAID';
     const isPostpaid = ['14', '172', '22', '29', 'postpaid'].includes(operator.toLowerCase()) || operator.toLowerCase().includes('post');
-    const serviceType = isPostpaid ? 'MOBILE_POSTPAID' : 'MOBILE_PREPAID';
+    const isDth = dthId || ['11', '12', '13', '28', '16'].includes(operator) || operator.toLowerCase().includes('dth');
+    
+    if (isDth) {
+      serviceType = 'DTH';
+    } else if (isPostpaid) {
+      serviceType = 'MOBILE_POSTPAID';
+    }
 
     try {
       // ✅ WALLET CHECK
@@ -65,8 +73,12 @@ export class RechargeService {
       }
 
       // ✅ DEBIT
-      this.logger.log(`[RECHARGE:DEBIT] Debiting ₹${amount} from ${userId}`);
-      await this.walletService.debit(userId, amount, `${isPostpaid ? 'Postpaid Bill' : 'Prepaid Recharge'}: ${mobileNumber} (${referenceId})`);
+      let debitDescription = `${isPostpaid ? 'Postpaid Bill' : 'Prepaid Recharge'}: ${mobileNumber} (${referenceId})`;
+      if (serviceType === 'DTH') {
+        debitDescription = `DTH Recharge: ${dthId || mobileNumber} (${referenceId})`;
+      }
+      this.logger.log(`[RECHARGE:DEBIT] Debiting ₹${amount} from ${userId} - ${debitDescription}`);
+      await this.walletService.debit(userId, amount, debitDescription);
 
       // ✅ TRANSACTION RECORD
       this.logger.log(`[RECHARGE:TX_CREATE] Reference: ${referenceId}`);
@@ -77,6 +89,7 @@ export class RechargeService {
           service_type: serviceType,
           amount: new Decimal(amount),
           mobile_number: mobileNumber,
+          dth_id: dthId || null,
           operator_id: operator,
           circle_id: circleId || '0',
           plan_id: planId || '',
@@ -88,12 +101,13 @@ export class RechargeService {
       });
 
       // ✅ API CALL
-      this.logger.log(`[RECHARGE:API_CALL] Calling KwikAPI for ${mobileNumber} (Ref: ${referenceId})`);
+      this.logger.log(`[RECHARGE:API_CALL] Calling KwikAPI for ${dthId || mobileNumber} (Ref: ${referenceId})`);
       const result: any = await this.callKwikApiDirectly(
         amount,
         mobileNumber,
         operator,
         referenceId,
+        dthId,
       );
 
       this.logger.log(`[RECHARGE:API_RESULT] Result: ${JSON.stringify(result)}`);
@@ -278,6 +292,7 @@ export class RechargeService {
     mobileNumber: string,
     operator: string,
     orderId: string,
+    dthId?: string,
   ): Promise<{ success: boolean; message: string }> {
     const apiKey = this.configService.get<string>('KWIK_API_KEY');
     
@@ -300,7 +315,7 @@ export class RechargeService {
 
     const query = new URLSearchParams({
       api_key: apiKey,
-      number: mobileNumber,
+      number: dthId || mobileNumber,
       amount: amount.toString(),
       opid: kwikOpId,
       order_id: orderId,

@@ -285,11 +285,20 @@ const SavedPage = () => {
     const handleAction = (item: SavedItem) => {
         switch (item.service_type) {
             case 'MOBILE_PREPAID':
-                navigate('/mobile-recharge', { state: { mobileNumber: item.account_id } });
+                navigate('/mobile-recharge', { state: { mobileNumber: item.account_id, fromFavorite: true, favoriteId: item.id } });
                 break;
-            case 'DTH':
-                navigate('/dth-recharge', { state: { dthId: item.account_id } });
+            case 'MOBILE_POSTPAID':
+                navigate('/postpaid', { state: { mobileNumber: item.account_id, operatorId: item.metadata?.operator_id, fromFavorite: true, favoriteId: item.id } });
                 break;
+            case 'DTH': {
+                const operatorId = item.metadata?.operator_id || item.metadata?.operator || item.operator_id;
+                if (operatorId) {
+                    navigate(`/dth-recharge/enter-details?operator=${operatorId}`, { state: { dthId: item.account_id, fromFavorite: true, favoriteId: item.id } });
+                } else {
+                    navigate('/dth-recharge', { state: { dthId: item.account_id, fromFavorite: true, favoriteId: item.id } });
+                }
+                break;
+            }
             case 'ELECTRICITY':
                 navigate('/services/electricity', { state: { consumerId: item.account_id } });
                 break;
@@ -343,7 +352,7 @@ const SavedPage = () => {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400 group-focus-within:text-[#FF671F] transition-colors" />
                             <Input
                                 placeholder="Search by name, number, or category..."
-                                className="pl-11.5 h-13 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-800 placeholder-slate-400 text-sm font-semibold focus:border-[#FF671F] focus:bg-white focus:ring-4 focus:ring-[#FF671F]/5 transition-all shadow-inner"
+                                className="pl-12 h-13 bg-slate-50 border border-slate-200/60 rounded-2xl text-slate-800 placeholder-slate-400 text-sm font-semibold focus:border-[#FF671F] focus:bg-white focus:ring-4 focus:ring-[#FF671F]/5 transition-all shadow-inner"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />

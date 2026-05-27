@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface KYCData {
     pan_number: string | null;
-    aadhar_number: string;
+    aadhar_number: string | null;
     dob: string;
     gender: string;
     document_urls: {

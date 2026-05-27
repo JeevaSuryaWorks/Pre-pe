@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { adminService } from "@/services/admin";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,16 @@ const RewardsManager = () => {
     });
     const [telemetryLogs, setTelemetryLogs] = useState<AdTelemetryEvent[]>([]);
     const [savingAdConfig, setSavingAdConfig] = useState(false);
+
+    // New Autonomous Engine States
+    const [autoConfig, setAutoConfig] = useState<any>({
+        flatEnabled: true,
+        flatPoints: 20,
+        rateRules: []
+    });
+    const [newRuleAmount, setNewRuleAmount] = useState('');
+    const [newRulePoints, setNewRulePoints] = useState('');
+    const [savingAuto, setSavingAuto] = useState(false);
 
     useEffect(() => {
         fetchAllData();
@@ -140,6 +151,35 @@ const RewardsManager = () => {
             setGlobalSettings(settingsData || {});
             setAdConfig(activeAdConfig);
             setTelemetryLogs(activeLogs);
+
+            // Fetch autonomous rewards
+            let autoData = null;
+            try {
+                const { data: res } = await supabase
+                    .from('reward_settings' as never)
+                    .select('value')
+                    .eq('key', 'autonomous_rewards')
+                    .maybeSingle();
+                if (res && (res as any).value) {
+                    autoData = (res as any).value;
+                }
+            } catch (err) {
+                console.error("Failed to load autonomous rewards:", err);
+            }
+            if (!autoData) {
+                const cached = localStorage.getItem('prepe_autonomous_rewards');
+                autoData = cached ? JSON.parse(cached) : {
+                    flatEnabled: true,
+                    flatPoints: 20,
+                    rateRules: [
+                      { amount: 299, points: 10, enabled: true },
+                      { amount: 199, points: 5, enabled: true },
+                      { amount: 449, points: 15, enabled: true },
+                      { amount: 599, points: 20, enabled: true }
+                    ]
+                };
+            }
+            setAutoConfig(autoData);
         } catch (e) {
             toast.error("Failed to load reward configurations");
             console.error(e);
@@ -314,6 +354,12 @@ const RewardsManager = () => {
                         className="rounded-xl font-bold py-3 px-6 text-sm flex items-center gap-2 justify-center w-full md:w-auto"
                     >
                         <Tv className="w-4 h-4" /> Ads & Rewards Analytics
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="autonomous" 
+                        className="rounded-xl font-bold py-3 px-6 text-sm flex items-center gap-2 justify-center w-full md:w-auto"
+                    >
+                        <Zap className="w-4 h-4" /> Autonomous Engine
                     </TabsTrigger>
                 </TabsList>
 
@@ -547,6 +593,263 @@ const RewardsManager = () => {
                                     </CardContent>
                                 </Card>
                             ))}
+                        </div>
+                    </div>
+                </TabsContent>
+
+                {/* Tab 3: Autonomous Rewards Engine */}
+                <TabsContent value="autonomous" className="space-y-8 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Column 1 & 2: General & Rate Rules */}
+                        <div className="lg:col-span-2 space-y-8">
+                            {/* Flat Settings Card */}
+                            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[32px] overflow-hidden">
+                                <CardHeader className="p-8 pb-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                            <Zap className="w-5 h-5 text-indigo-600" />
+                                            General Flat Recharge Reward
+                                        </h3>
+                                        <Badge className="bg-blue-50 text-blue-700 font-bold px-3 py-1 border border-blue-100">GLOBAL RULE</Badge>
+                                    </div>
+                                    <p className="text-slate-500 text-sm font-medium mt-2">
+                                        Sets a default flat amount of points awarded for every single successful mobile or utility recharge.
+                                    </p>
+                                </CardHeader>
+                                <CardContent className="p-8 pt-0 space-y-6">
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-800">Enable Flat Recharge Reward</p>
+                                            <p className="text-xs text-slate-500">When enabled, every recharge grants this base points value.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setAutoConfig({ ...autoConfig, flatEnabled: !autoConfig.flatEnabled })}
+                                            className={`w-14 h-8 rounded-full transition-all relative flex items-center p-1 cursor-pointer ${
+                                                autoConfig.flatEnabled ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'
+                                            }`}
+                                        >
+                                            <motion.div layout className="w-6 h-6 bg-white rounded-full shadow-md" />
+                                        </button>
+                                    </div>
+
+                                    {autoConfig.flatEnabled && (
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-black text-slate-400 uppercase tracking-widest">Flat Points Awarded</Label>
+                                            <div className="relative group/input">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <Coins className="h-5 w-5 text-amber-500" />
+                                                </div>
+                                                <Input 
+                                                    type="number"
+                                                    value={autoConfig.flatPoints || 0}
+                                                    onChange={(e) => setAutoConfig({ ...autoConfig, flatPoints: parseInt(e.target.value) || 0 })}
+                                                    className="h-16 pl-12 rounded-2xl bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 transition-all font-black text-lg text-slate-900"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* Plan Specific Rate Rules Card */}
+                            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[32px] overflow-hidden">
+                                <CardHeader className="p-8 pb-4">
+                                    <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                        <Star className="w-5 h-5 text-amber-500" />
+                                        Plan Specific Rate Rules
+                                    </h3>
+                                    <p className="text-slate-500 text-sm font-medium">
+                                        Configure extra points credited based on the exact recharge amount (e.g. ₹299 gives 10 Points).
+                                    </p>
+                                </CardHeader>
+                                <CardContent className="p-8 pt-0 space-y-6">
+                                    {/* Add New Rule Form Inline */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 items-end">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recharge Amount (₹)</Label>
+                                            <Input
+                                                placeholder="e.g. 299"
+                                                type="number"
+                                                value={newRuleAmount}
+                                                onChange={(e) => setNewRuleAmount(e.target.value)}
+                                                className="bg-white border-slate-200 rounded-xl h-11 focus-visible:ring-indigo-500"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reward Points</Label>
+                                            <Input
+                                                placeholder="e.g. 10"
+                                                type="number"
+                                                value={newRulePoints}
+                                                onChange={(e) => setNewRulePoints(e.target.value)}
+                                                className="bg-white border-slate-200 rounded-xl h-11 focus-visible:ring-indigo-500"
+                                            />
+                                        </div>
+                                        <Button
+                                            onClick={() => {
+                                                const amt = parseInt(newRuleAmount);
+                                                const pts = parseInt(newRulePoints);
+                                                if (!amt || amt <= 0 || isNaN(pts)) {
+                                                    toast.error("Please enter a valid amount and points");
+                                                    return;
+                                                }
+                                                // Check for duplicate
+                                                if (autoConfig.rateRules?.some((r: any) => r.amount === amt)) {
+                                                    toast.error("Rule for this recharge amount already exists");
+                                                    return;
+                                                }
+                                                const newRules = [...(autoConfig.rateRules || []), { amount: amt, points: pts, enabled: true }];
+                                                setAutoConfig({ ...autoConfig, rateRules: newRules });
+                                                setNewRuleAmount('');
+                                                setNewRulePoints('');
+                                                toast.success(`Rule added: ₹${amt} -> ${pts} points`);
+                                            }}
+                                            className="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all active:scale-[0.98]"
+                                        >
+                                            Add Rule
+                                        </Button>
+                                    </div>
+
+                                    {/* Rules List Table */}
+                                    <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                                        <table className="w-full text-left text-sm border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50 text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-slate-100">
+                                                    <th className="p-4 pl-6">Recharge Amount</th>
+                                                    <th className="p-4">Points Awarded</th>
+                                                    <th className="p-4">Status</th>
+                                                    <th className="p-4 text-center pr-6">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {!autoConfig.rateRules || autoConfig.rateRules.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={4} className="p-8 text-center text-slate-400 italic">No specific plan rate rules configured yet.</td>
+                                                    </tr>
+                                                ) : autoConfig.rateRules.map((rule: any, idx: number) => (
+                                                    <tr key={idx} className="border-b border-slate-100/50 hover:bg-slate-50/30 transition-colors font-medium">
+                                                        <td className="p-4 pl-6 font-bold text-slate-800">₹{rule.amount} Plan</td>
+                                                        <td className="p-4 text-slate-900 font-mono font-black">{rule.points} Points</td>
+                                                        <td className="p-4">
+                                                            <Badge className={rule.enabled ? "bg-emerald-50 text-emerald-700 border-emerald-100 px-2 py-0.5" : "bg-slate-50 text-slate-400 px-2 py-0.5"}>
+                                                                {rule.enabled ? 'ACTIVE' : 'DISABLED'}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="p-4 pr-6 flex items-center justify-center gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    const updated = autoConfig.rateRules.map((r: any) => r.amount === rule.amount ? { ...r, enabled: !r.enabled } : r);
+                                                                    setAutoConfig({ ...autoConfig, rateRules: updated });
+                                                                }}
+                                                                className="h-8 text-[9px] font-black uppercase tracking-wider"
+                                                            >
+                                                                Toggle
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    const updated = autoConfig.rateRules.filter((r: any) => r.amount !== rule.amount);
+                                                                    setAutoConfig({ ...autoConfig, rateRules: updated });
+                                                                    toast.success(`Deleted rule for ₹${rule.amount}`);
+                                                                }}
+                                                                className="h-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 text-[9px] font-black uppercase tracking-wider"
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Column 3: Simulator Sandbox & Save Actions */}
+                        <div className="space-y-8">
+                            {/* Simulator Sandbox */}
+                            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-gradient-to-br from-indigo-950 to-slate-950 text-white rounded-[32px] overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.02] rounded-full -mr-8 -mt-8" />
+                                <CardHeader className="p-8">
+                                    <div className="flex items-center gap-2 text-indigo-400">
+                                        <Activity className="w-5 h-5 animate-pulse" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Engine Sandbox</span>
+                                    </div>
+                                    <CardTitle className="text-2xl font-black mt-3">Interactive Sandbox</CardTitle>
+                                    <CardDescription className="text-indigo-200/60 text-xs mt-1 leading-relaxed">
+                                        Simulate how the autonomous engine calculates rewards for users in real-time.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-8 pt-0 space-y-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[9px] font-black text-indigo-300 uppercase tracking-widest">Test Recharge Amount (₹)</Label>
+                                        <Input
+                                            type="number"
+                                            defaultValue="299"
+                                            id="test-sim-amount"
+                                            className="h-14 bg-white/5 border-white/10 rounded-2xl text-white font-black text-xl placeholder:text-white/20 focus:ring-indigo-500 focus:border-indigo-500 tabular-nums focus:bg-white/10"
+                                            onChange={(e) => {
+                                                const amt = parseInt(e.target.value) || 0;
+                                                const valEl = document.getElementById('sim-calculated-val');
+                                                const breakEl = document.getElementById('sim-calculated-breakdown');
+                                                if (valEl) {
+                                                    let flat = autoConfig.flatEnabled ? Number(autoConfig.flatPoints || 0) : 0;
+                                                    let spec = autoConfig.rateRules?.find((r: any) => r.enabled && r.amount === amt)?.points || 0;
+                                                    valEl.innerText = (flat + spec).toString() + ' Pts';
+                                                    if (breakEl) {
+                                                        breakEl.innerText = `Flat (${flat} pts) + Specific Rate (${spec} pts)`;
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="p-6 bg-white/5 rounded-2xl border border-white/10 text-center space-y-2">
+                                        <p className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.2em] leading-none mb-1">Calculated Reward</p>
+                                        <h1 id="sim-calculated-val" className="text-4xl font-black text-amber-400 leading-none">30 Pts</h1>
+                                        <p id="sim-calculated-breakdown" className="text-[9.5px] text-white/50 font-bold uppercase tracking-tight">Flat (20 pts) + Specific Rate (10 pts)</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Save Settings Action */}
+                            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[32px] p-8 space-y-6">
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800">Save Engine Config</p>
+                                    <p className="text-xs text-slate-400 mt-1">Saves all flat settings and rate mappings to database to update user plan listings instantly.</p>
+                                </div>
+                                <Button
+                                    onClick={async () => {
+                                        setSavingAuto(true);
+                                        try {
+                                            const { error } = await supabase
+                                                .from('reward_settings' as never)
+                                                .upsert({ 
+                                                    key: 'autonomous_rewards', 
+                                                    value: autoConfig, 
+                                                    updated_at: new Date().toISOString() 
+                                                } as any);
+                                            if (error) throw error;
+                                            localStorage.setItem('prepe_autonomous_rewards', JSON.stringify(autoConfig));
+                                            toast.success("Autonomous Reward rules saved successfully!");
+                                        } catch (e) {
+                                            toast.error("Failed to save rules to server");
+                                            console.error(e);
+                                        } finally {
+                                            setSavingAuto(false);
+                                        }
+                                    }}
+                                    className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-2 text-sm uppercase tracking-widest shadow-lg shadow-indigo-100/50 active:scale-[0.98] transition-all"
+                                    disabled={savingAuto}
+                                >
+                                    {savingAuto ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                    Save Autonomous Rules
+                                </Button>
+                            </Card>
                         </div>
                     </div>
                 </TabsContent>

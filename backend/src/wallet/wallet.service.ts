@@ -474,7 +474,15 @@ export class WalletService {
 
         const referenceId = `UPI_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-        const vpa = this.configService.get<string>('UPI_VPA') || 'bmsmobiles@barodampay';
+        let vpa = this.configService.get<string>('UPI_VPA');
+        const upiIds = [
+            'prepetechnologies@okaxis',
+            'prepetechnologies@okicici'
+        ];
+        if (!vpa || vpa === 'bmsmobiles@barodampay') {
+            vpa = upiIds[Math.floor(Math.random() * upiIds.length)];
+        }
+        
         const merchantCode = '5732'; // Electronics/Telecommunication (standard for mobile shops)
         const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
         const userName = profile?.full_name || 'User';
@@ -487,7 +495,7 @@ export class WalletService {
             this.logger.log(`📱 [INIT] Intent URL: ${intentUrl}`);
         }
 
-        this.logger.log(`📱 [INIT] Creating UPI Intent for user ${userId}, amount: ${amount}`);
+        this.logger.log(`📱 [INIT] Creating UPI Intent for user ${userId}, amount: ${amount} via VPA ${vpa}`);
 
         try {
             await this.prisma.upi_transactions.create({
@@ -508,6 +516,7 @@ export class WalletService {
                 intent_url: intentUrl,
                 reference_id: referenceId,
                 status: 'PENDING',
+                upi_vpa: vpa,
                 message: 'UPI payment initiated. Wallet will be credited only after confirmation.',
             };
         } catch (error: any) {

@@ -226,7 +226,7 @@ model kyc_verifications {
   id            String    @id @default(uuid()) @db.Uuid
   user_id       String    @db.Uuid
   pan_number    String?
-  aadhar_number String
+  aadhar_number String?
   dob           DateTime? @db.Date
   gender        String?
   document_urls Json?     @default("{}")

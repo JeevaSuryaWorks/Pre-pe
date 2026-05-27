@@ -118,20 +118,36 @@ export const KYCPage = () => {
             }
         }
         if (step === 2) {
-            if (!isBasic) {
+            if (isBasic) {
+                // For basic users, Aadhaar and PAN are optional.
+                // If they entered a PAN, validate it:
+                if (panNumber.trim() !== '') {
+                    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+                    if (!panRegex.test(panNumber)) {
+                        toast({ title: "Invalid PAN", description: "Please provide a valid 10-character PAN (e.g., BNJPV6685R)", variant: "destructive" });
+                        return;
+                    }
+                }
+                // If they entered Aadhaar, validate it:
+                if (aadharNumber.replace(/\D/g, '') !== '') {
+                    if (aadharNumber.length < 14) {
+                        toast({ title: "Invalid Aadhaar", description: "Please provide a valid 12-digit Aadhaar number", variant: "destructive" });
+                        return;
+                    }
+                }
+            } else {
+                // For PRO/BUSINESS plan users, both Aadhaar and PAN are strictly mandatory:
                 const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
                 if (!panRegex.test(panNumber)) {
                     toast({ title: "Invalid PAN", description: "Please provide a valid 10-character PAN (e.g., BNJPV6685R)", variant: "destructive" });
                     return;
                 }
-            }
-            
-            if (aadharNumber.length < 14) { // Including hyphens
-                toast({ title: "Invalid Aadhaar", description: "Please provide a valid 12-digit Aadhaar number", variant: "destructive" });
-                return;
-            }
+                
+                if (aadharNumber.length < 14) { // Including hyphens
+                    toast({ title: "Invalid Aadhaar", description: "Please provide a valid 12-digit Aadhaar number", variant: "destructive" });
+                    return;
+                }
 
-            if (!isBasic) {
                 if (!aadharFront || !aadharBack || !panCard || !selfie || (isBusiness && !shopPhoto)) {
                     toast({ title: "Documents Missing", description: "Please upload all required photos", variant: "destructive" });
                     return;
@@ -185,8 +201,9 @@ export const KYCPage = () => {
             }
 
             // 2. Securely Encrypt Sensitive Numbers
-            const encryptedPan = panNumber ? await encryptSensitiveData(panNumber) : null;
-            const encryptedAadhar = await encryptSensitiveData(aadharNumber.replace(/\s/g, ''));
+            const encryptedPan = panNumber && panNumber.trim() !== '' ? await encryptSensitiveData(panNumber) : null;
+            const cleanedAadhar = aadharNumber.replace(/\s/g, '');
+            const encryptedAadhar = cleanedAadhar && cleanedAadhar !== '' ? await encryptSensitiveData(cleanedAadhar) : null;
 
             // 3. Submit Data
             await submitKYC(freshUser.id, {
@@ -546,26 +563,28 @@ export const KYCPage = () => {
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                 {/* Numbers Section */}
                                 <div className="grid grid-cols-1 gap-4 p-4 bg-slate-50/50 rounded-[24px] border border-slate-100">
-                                    {!isBasic && (
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-end">
-                                                <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">PAN Number</Label>
-                                                <span className="text-[10px] text-[#FF671F] font-black font-mono">{panNumber.length}/10</span>
-                                            </div>
-                                            <Input
-                                                placeholder="BNJPV6685R"
-                                                maxLength={10}
-                                                value={panNumber}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.toUpperCase();
-                                                    if (val.length <= 10) setPanNumber(val);
-                                                }}
-                                                className="font-mono bg-white border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl uppercase tracking-widest text-lg h-12"
-                                            />
-                                        </div>
-                                    )}
                                     <div className="space-y-2">
-                                        <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">Aadhaar Number</Label>
+                                        <div className="flex justify-between items-end">
+                                            <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">
+                                                PAN Number {isBasic && <span className="text-slate-400 font-bold tracking-normal text-[9px] lowercase italic">(Optional)</span>}
+                                            </Label>
+                                            <span className="text-[10px] text-[#FF671F] font-black font-mono">{panNumber.length}/10</span>
+                                        </div>
+                                        <Input
+                                            placeholder="BNJPV6685R"
+                                            maxLength={10}
+                                            value={panNumber}
+                                            onChange={(e) => {
+                                                const val = e.target.value.toUpperCase();
+                                                if (val.length <= 10) setPanNumber(val);
+                                            }}
+                                            className="font-mono bg-white border-slate-200 focus:border-[#FF671F] focus:ring-[#FF671F]/20 rounded-xl uppercase tracking-widest text-lg h-12"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase text-slate-500 font-black tracking-[0.15em]">
+                                            Aadhaar Number {isBasic && <span className="text-slate-400 font-bold tracking-normal text-[9px] lowercase italic">(Optional)</span>}
+                                        </Label>
                                         <Input
                                             placeholder="1234-5678-9012"
                                             maxLength={14}

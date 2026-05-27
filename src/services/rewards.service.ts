@@ -737,3 +737,108 @@ export async function checkAndRecordDailyStreak(userId: string): Promise<void> {
   }
 }
 
+/**
+ * Fetch Autonomous Rewards configurations
+ */
+export async function getAutonomousRewardsConfig(): Promise<{
+  flatEnabled: boolean;
+  flatPoints: number;
+  rateRules: Array<{ amount: number; points: number; enabled: boolean }>;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('reward_settings' as never)
+      .select('value')
+      .eq('key', 'autonomous_rewards')
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data && (data as any).value) {
+      return (data as any).value;
+    }
+  } catch (err) {
+    console.error("Failed to load autonomous rewards config from Supabase:", err);
+  }
+
+  // Local storage fallback
+  const local = localStorage.getItem('prepe_autonomous_rewards');
+  if (local) {
+    try {
+      return JSON.parse(local);
+    } catch (e) {}
+  }
+
+  // Fallback defaults
+  const defaults = {
+    flatEnabled: true,
+    flatPoints: 20,
+    rateRules: [
+      { amount: 299, points: 10, enabled: true },
+      { amount: 199, points: 5, enabled: true },
+      { amount: 449, points: 15, enabled: true },
+      { amount: 599, points: 20, enabled: true }
+    ]
+  };
+  localStorage.setItem('prepe_autonomous_rewards', JSON.stringify(defaults));
+  return defaults;
+}
+
+/**
+ * Synchronously calculate reward points for a given recharge amount
+ */
+export function getPointsForRechargeAmount(amount: number, config: any): number {
+  if (!config) return 0;
+  let points = 0;
+  
+  // 1. Add Flat points if enabled
+  if (config.flatEnabled) {
+    points += Number(config.flatPoints || 0);
+  }
+  
+  // 2. Add Plan Specific Rate Points if enabled
+  if (Array.isArray(config.rateRules)) {
+    const match = config.rateRules.find((rule: any) => rule.enabled && Number(rule.amount) === amount);
+    if (match) {
+      points += Number(match.points || 0);
+    }
+  }
+  
+  return points;
+}
+
+/**
+ * Trigger Autonomous Rewards for a successful recharge
+ */
+export async function triggerAutonomousRechargeRewards(userId: string, amount: number, isFavorite: boolean = false): Promise<boolean> {
+  try {
+    const config = await getAutonomousRewardsConfig();
+    let points = getPointsForRechargeAmount(amount, config);
+    
+    // Circle Directory Favorite payments grant an extra 50 points!
+    const extraPoints = isFavorite ? 50 : 0;
+    points += extraPoints;
+    
+    if (points <= 0) return false;
+
+    // Build descriptive message
+    let description = `Earned from Recharge: Flat (${config.flatPoints} pts)`;
+    const match = config.rateRules?.find((rule: any) => rule.enabled && Number(rule.amount) === amount);
+    if (match) {
+      description += ` + Specific Plan Rate (${match.points} pts) for ₹${amount}`;
+    } else {
+      description += ` for ₹${amount}`;
+    }
+    
+    if (isFavorite) {
+      description += ` + Circle Favorite Bonus (${extraPoints} pts)`;
+    }
+
+    console.log(`[Autonomous Rewards] Crediting ${points} points to user ${userId}: ${description}`);
+    return await addRewardPoints(userId, points, 'CASHBACK_POINTS', description);
+  } catch (err) {
+    console.error("Failed to trigger autonomous recharge rewards:", err);
+    return false;
+  }
+}
+
+

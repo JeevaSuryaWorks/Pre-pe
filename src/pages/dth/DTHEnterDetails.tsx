@@ -1,9 +1,8 @@
-
 import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { getOperators } from '@/services/operator.service';
 import type { Operator } from '@/types/recharge.types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,10 +20,12 @@ import { upiService } from "@/services/upi";
 import { QRCodeSVG } from "qrcode.react";
 import { useKYC } from "@/hooks/useKYC";
 import { KYCNudgeDialog } from "@/components/kyc/KYCNudgeDialog";
+import { triggerAutonomousRechargeRewards } from "@/services/rewards.service";
 
 export const DTHEnterDetails = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const { availableBalance, refetch: refetchWallet } = useWallet();
     const { isApproved } = useKYC();
@@ -63,11 +64,12 @@ export const DTHEnterDetails = () => {
         loadOp();
     }, [operatorId]);
 
-    const fetchInfo = async () => {
-        if (!operator || dthId.length < 6) return;
+    const fetchInfo = async (overrideId?: string) => {
+        const idToQuery = overrideId || dthId;
+        if (!operator || idToQuery.length < 6) return;
         setFetchingInfo(true);
         try {
-            const result = await fetchDTHCustomerDetails(operator.id, dthId);
+            const result = await fetchDTHCustomerDetails(operator.id, idToQuery);
             if (result.status === 'SUCCESS' && result.response?.info?.length) {
                 setCustomerInfo(result.response.info[0]);
                 if (result.response.info[0].monthlyRecharge) {
@@ -79,6 +81,14 @@ export const DTHEnterDetails = () => {
         }
         setFetchingInfo(false);
     };
+
+    useEffect(() => {
+        if (operator && location.state?.dthId) {
+            const prefilledId = location.state.dthId;
+            setDthId(prefilledId);
+            fetchInfo(prefilledId);
+        }
+    }, [operator, location.state]);
 
     const handleConfirm = () => {
         if (!dthId) {
@@ -117,6 +127,12 @@ export const DTHEnterDetails = () => {
         setShowConfirm(false);
 
         if (result.status === 'SUCCESS' || result.status === 'PENDING') {
+            try {
+                const isFromFav = location.state?.fromFavorite || false;
+                await triggerAutonomousRechargeRewards(user.id, rechargeAmount, isFromFav);
+            } catch (rewErr) {
+                console.error("Failed to credit autonomous recharge rewards:", rewErr);
+            }
             toast({ title: 'Success', description: 'Recharge Successful!' });
             navigate('/recharge/receipt', { 
                 state: { 
@@ -199,6 +215,12 @@ export const DTHEnterDetails = () => {
             setShowConfirm(false);
 
             if (result.status === 'SUCCESS' || result.status === 'PENDING') {
+                try {
+                    const isFromFav = location.state?.fromFavorite || false;
+                    await triggerAutonomousRechargeRewards(user!.id, parseFloat(amount), isFromFav);
+                } catch (rewErr) {
+                    console.error("Failed to credit autonomous recharge rewards:", rewErr);
+                }
                 toast({ title: 'Success', description: 'Recharge Successful!' });
                 navigate('/recharge/receipt', { 
                     state: { 

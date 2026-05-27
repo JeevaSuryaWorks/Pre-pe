@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { triggerAutonomousRechargeRewards } from '@/services/rewards.service';
 
 import {
   fetchBillDetails,
@@ -47,6 +48,7 @@ export function PostpaidBillForm() {
   const { isApproved } = useKYC();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showKYCNudge, setShowKYCNudge] = useState(false);
   const [mobileNumber, setMobileNumber] = useState('');
@@ -54,6 +56,41 @@ export function PostpaidBillForm() {
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [fetchingBill, setFetchingBill] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.mobileNumber && location.state?.operatorId && user) {
+      const num = location.state.mobileNumber;
+      const op = location.state.operatorId;
+      setMobileNumber(num);
+      setSelectedOperator(op);
+      
+      // Auto-trigger fetch bill
+      const autoFetch = async () => {
+        setFetchingBill(true);
+        setBillDetails(null);
+        try {
+          const result = await fetchBillDetails(op, num, user.id);
+          if (result.status === 'SUCCESS' && result.data) {
+            setBillDetails(result.data);
+            toast({
+              title: '✅ Bill Fetched',
+              description: `Active bill for ₹${result.data.amount} loaded successfully.`,
+            });
+          }
+        } catch (err) {}
+        setFetchingBill(false);
+      };
+      
+      setTimeout(autoFetch, 200);
+    } else {
+      if (location.state?.mobileNumber) {
+        setMobileNumber(location.state.mobileNumber);
+      }
+      if (location.state?.operatorId) {
+        setSelectedOperator(location.state.operatorId);
+      }
+    }
+  }, [location.state, user]);
 
   /* --------------------------
      Fetch Bill
@@ -155,6 +192,12 @@ export function PostpaidBillForm() {
     setProcessing(false);
 
     if (result.status === 'SUCCESS' || result.status === 'PENDING') {
+      try {
+        const isFromFav = location.state?.fromFavorite || false;
+        await triggerAutonomousRechargeRewards(user.id, billDetails.amount, isFromFav);
+      } catch (rewErr) {
+        console.error("Failed to credit autonomous postpaid rewards:", rewErr);
+      }
       toast({
         title: '🎉 Payment Successful',
         description: `₹${billDetails.amount} postpaid bill paid successfully!`,

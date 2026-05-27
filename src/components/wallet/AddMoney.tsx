@@ -32,6 +32,10 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const [transactionId, setTransactionId] = useState('');
   const [isManualSuccess, setIsManualSuccess] = useState(false);
+  const [selectedUpiVpa, setSelectedUpiVpa] = useState(() => {
+    const vpas = ['prepetechnologies@okaxis', 'prepetechnologies@okicici'];
+    return vpas[Math.floor(Math.random() * vpas.length)];
+  });
   const { toast } = useToast();
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -131,6 +135,9 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
       const result = await paymentService.createUpiIntent(numAmount);
       if (result.intent_url) {
         setReferenceId(result.reference_id);
+        if (result.upi_vpa) {
+          setSelectedUpiVpa(result.upi_vpa);
+        }
         
         // Start polling in background to auto-confirm if they complete payment
         startPolling(result.reference_id);
@@ -293,6 +300,9 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
     }
   };
 
+  const fallbackIntentUrl = `upi://pay?pa=${selectedUpiVpa}&pn=${encodeURIComponent('PrePe Technologies')}&am=${amount || '0'}&cu=INR&mode=02`;
+  const activeQrUrl = manualIntentUrl || fallbackIntentUrl;
+
   return (
     <AnimatePresence mode="wait">
       {state === 'success' ? (
@@ -411,9 +421,9 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               <div className="bg-slate-50 p-4 sm:p-6 rounded-[32px] border-2 border-dashed border-slate-200">
                 <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm inline-block mb-3">
                   <div className="w-40 h-40 sm:w-48 sm:h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative mx-auto">
-                    {manualIntentUrl ? (
+                    {activeQrUrl ? (
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(manualIntentUrl)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(activeQrUrl)}`}
                         alt="Payment QR Code"
                         className="w-full h-full"
                       />
@@ -425,11 +435,11 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                 <div className="space-y-2">
                   <p className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Scan to Pay ₹{amount}</p>
                   <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                    <p className="text-sm sm:text-lg font-black text-emerald-600 select-all font-mono">bmsmobiles@barodampay</p>
+                    <p className="text-sm sm:text-lg font-black text-emerald-600 select-all font-mono">{selectedUpiVpa}</p>
                     <button 
                       onClick={() => {
-                        navigator.clipboard.writeText('bmsmobiles@barodampay');
-                        toast({ title: 'UPI ID Copied', description: 'bmsmobiles@barodampay copied to clipboard' });
+                        navigator.clipboard.writeText(selectedUpiVpa);
+                        toast({ title: 'UPI ID Copied', description: `${selectedUpiVpa} copied to clipboard` });
                       }}
                       className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 text-[8px] sm:text-[10px] font-black uppercase transition-all"
                     >

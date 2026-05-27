@@ -2,7 +2,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowRight, Sparkles, Tv, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getOperators } from '@/services/operator.service';
 import type { Operator } from '@/types/recharge.types';
 
@@ -12,6 +12,7 @@ export const DTHSelectProvider = () => {
     const [recentProviders, setRecentProviders] = useState<Operator[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const loadOps = async () => {
@@ -30,7 +31,7 @@ export const DTHSelectProvider = () => {
     );
 
     const handleProviderClick = (provider: Operator) => {
-        navigate(`/dth-recharge/enter-details?operator=${provider.id}`);
+        navigate(`/dth-recharge/enter-details?operator=${provider.id}`, { state: location.state });
     };
 
     return (
