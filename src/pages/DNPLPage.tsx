@@ -50,11 +50,21 @@ const DNPLPage = () => {
         },
     });
 
+    const hasCheckedRef = React.useRef(false);
+
     // Check customer eligibility and load profile phone
     useEffect(() => {
+        if (hasCheckedRef.current) return;
+
         const checkBnplStatus = async () => {
+            if (hasCheckedRef.current) return;
+            hasCheckedRef.current = true;
+
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user?.id) return;
+            if (!session?.user?.id) {
+                hasCheckedRef.current = false;
+                return;
+            }
 
             // Fetch phone from profile
             const { data: profile } = await supabase
@@ -73,8 +83,15 @@ const DNPLPage = () => {
                     setEligibility(res);
                 } catch (err) {
                     console.warn("Failed to check LazyPay eligibility:", err);
+                    hasCheckedRef.current = false; // allow retry on transient failures
                 } finally {
                     setCheckingEligibility(false);
+                }
+            } else {
+                // If eligibility check wasn't performed because features aren't enabled or active loan exists,
+                // reset hasCheckedRef so it can evaluate correctly once limits are loaded
+                if (!phone || !isFeatureEnabled('bnpl')) {
+                    hasCheckedRef.current = false;
                 }
             }
         };
