@@ -1,6 +1,9 @@
 const https = require('https');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3eWxocW5iamRzZXZ3YnNlY2p2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzQyMTM1MSwiZXhwIjoyMDgyOTk3MzUxfQ.7Kr6sNfI5vXKQkauuL-KtNGLbU5jAQkyzB_79NPHz_w';
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const apiKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_Zv7KPxJhC4mWki1s27rZvQ_6GVRT8WD';
 
 const data = JSON.stringify({
   user_id: '5cab5bf7-6756-4ca7-a056-6e503f050b7a',
@@ -15,7 +18,7 @@ const options = {
   path: '/rest/v1/reward_points_ledger',
   method: 'POST',
   headers: {
-    'apikey': 'sb_publishable_Zv7KPxJhC4mWki1s27rZvQ_6GVRT8WD',
+    'apikey': apiKey,
     'Authorization': `Bearer ${serviceRoleKey}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation'

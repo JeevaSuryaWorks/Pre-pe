@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const TELEGRAM_BOT_TOKEN = "8941357558:AAHTSB5XpsKakVTicvv354Dt8nkrxXJf998";
+const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
 const TELEGRAM_GROUP_CHAT_ID = "-1003746086174";
 
 // Safe UUID Generator for compatibility
