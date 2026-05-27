@@ -617,8 +617,10 @@ export function MobileRechargeForm() {
   if (step === 'details') {
     return (
       <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 w-full relative">
-        {/* Sticky/Frozen Header Console Panel */}
-        <div className="sticky top-[56px] z-30 bg-white/98 backdrop-blur-md pb-4 pt-2 space-y-4 shadow-sm -mx-4 px-4 border-b border-slate-200/50">
+        <div 
+          className="sticky bg-white/98 backdrop-blur-md pb-4 pt-2 space-y-4 shadow-sm -mx-4 px-4 border-b border-slate-200/50"
+          style={{ position: 'sticky', top: '60px', zIndex: 30 }}
+        >
           {/* Card containing Logo, Number, Truecaller Name lookup, and Change button */}
           <div className="flex items-center justify-between bg-white/95 backdrop-blur-md p-3 rounded-[24px] border border-slate-100 shadow-sm w-full">
             <div className="flex items-center gap-3 px-1">
@@ -652,10 +654,10 @@ export function MobileRechargeForm() {
                 </div>
                 {truecallerProfile ? (
                   <div className="space-y-0.5 mt-1">
-                    <p className="text-[11px] font-black text-slate-700 leading-none">
+                    <p className="text-[11px] font-black text-[#0087FF] leading-none">
                       {truecallerProfile.name.first} {truecallerProfile.name.last}
                     </p>
-                    <p className="text-[10.5px] text-amber-600 font-extrabold leading-none flex items-center gap-1 uppercase tracking-wider mt-1">
+                    <p className="text-[10.5px] text-[#0087FF] font-extrabold leading-none flex items-center gap-1 uppercase tracking-wider mt-1">
                       ⚠️ Name may be inaccurate
                     </p>
                   </div>

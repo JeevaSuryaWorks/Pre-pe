@@ -7,18 +7,32 @@ export class NetworkController {
     @Get('ip')
     async getPublicIP() {
         try {
-            // Fetch public IP from an external service
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data: any = await response.json();
-            const ip = data.ip;
+            let ip = "0.0.0.0";
+            try {
+                const response = await fetch('https://www.kwikapi.com/api/v2/ip_detect.php', {
+                    // @ts-ignore
+                    signal: AbortSignal.timeout(5000)
+                });
+                const data: any = await response.json();
+                if (data.success && data.your_ip) {
+                    ip = data.your_ip;
+                } else {
+                    throw new Error("KwikAPI response unsuccessful");
+                }
+            } catch (err) {
+                this.logger.warn(`Failed to fetch IP from KwikAPI, trying ipify: ${err.message}`);
+                const fallbackResponse = await fetch('https://api.ipify.org?format=json');
+                const fallbackData: any = await fallbackResponse.json();
+                ip = fallbackData.ip;
+            }
 
             return {
-                message: "DigitalOcean Outbound Network Info",
+                message: "KwikAPI / Outbound Network Info",
                 outbound_ip: ip,
                 proxy_configured: true,
                 proxy_active: true,
-                vercel_region: "DigitalOcean (Static)",
-                instruction: "This IP is static and should be whitelisted in KwikAPI."
+                vercel_region: "KwikAPI (Detected)",
+                instruction: "This IP is what KwikAPI sees and must be whitelisted in your KwikAPI portal."
             };
         } catch (error) {
             this.logger.error(`Failed to fetch public IP: ${error.message}`);

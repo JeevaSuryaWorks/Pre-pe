@@ -330,3 +330,102 @@ export const validateBankAccount = async (request: KwikValidationRequest): Promi
         return { success: false, status: 'FAILED', message: 'Network Error', order_id: request.order_id };
     }
 };
+
+export interface KwikBillFetchRequest {
+    number: string;
+    operator_id: string;
+    order_id: string;
+    mobile: string;
+    opt1?: string;
+    opt2?: string;
+    opt3?: string;
+    opt4?: string;
+    opt5?: string;
+    opt6?: string;
+    opt7?: string;
+    opt8?: string;
+    opt9?: string;
+    opt10?: string;
+}
+
+export interface KwikBillFetchResponse {
+    status: 'SUCCESS' | 'FAILED' | 'PENDING' | 'ERROR';
+    message: string;
+    response?: {
+        due_amount?: string;
+        customer_name?: string;
+        bill_date?: string;
+        due_date?: string;
+        ref_id?: string;
+        [key: string]: any;
+    };
+}
+
+export const fetchBill = async (request: KwikBillFetchRequest): Promise<KwikBillFetchResponse> => {
+    try {
+        return await callProxy('/bills/validation.php', {
+            number: request.number,
+            opid: request.operator_id,
+            order_id: request.order_id,
+            mobile: request.mobile,
+            ...(request.opt1 ? { opt1: request.opt1 } : {}),
+            ...(request.opt2 ? { opt2: request.opt2 } : {}),
+            ...(request.opt3 ? { opt3: request.opt3 } : {}),
+            ...(request.opt4 ? { opt4: request.opt4 } : {}),
+            ...(request.opt5 ? { opt5: request.opt5 } : {}),
+            ...(request.opt6 ? { opt6: request.opt6 } : {}),
+            ...(request.opt7 ? { opt7: request.opt7 } : {}),
+            ...(request.opt8 ? { opt8: request.opt8 } : {}),
+            ...(request.opt9 ? { opt9: request.opt9 } : {}),
+            ...(request.opt10 ? { opt10: request.opt10 } : {})
+        }, 'GET');
+    } catch (error) {
+        return { status: 'FAILED', message: 'Network Error' };
+    }
+};
+
+export interface KwikBillerDetailsResponse {
+    success: boolean;
+    message: string;
+    details?: any;
+}
+
+export const fetchBillerDetails = async (operatorId: string): Promise<KwikBillerDetailsResponse> => {
+    try {
+        return await callProxy('/operatorFetch.php', { opid: operatorId }, 'POST');
+    } catch (error) {
+        return { success: false, message: 'Network Error' };
+    }
+};
+
+export interface KwikCircleCodesResponse {
+    status: string;
+    response?: {
+        circle_code: string;
+        circle_name: string;
+    }[];
+    message?: string;
+}
+
+export const fetchCircleCodes = async (): Promise<KwikCircleCodesResponse> => {
+    try {
+        return await callProxy('/circle_codes.php', {}, 'GET');
+    } catch (error) {
+        return { status: 'FAILED', message: 'Network Error' };
+    }
+};
+
+export interface KwikIPDetectResponse {
+    success: boolean;
+    your_ip?: string;
+    message?: string;
+}
+
+export const detectIP = async (): Promise<KwikIPDetectResponse> => {
+    try {
+        return await callProxy('/ip_detect.php', {}, 'GET');
+    } catch (error) {
+        return { success: false, message: 'Network Error' };
+    }
+};
+

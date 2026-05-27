@@ -23,7 +23,7 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
   const isKYCPage = window.location.pathname === '/kyc';
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] flex justify-center w-full overflow-x-hidden app-native-container">
+    <div className="min-h-screen bg-[#F1F5F9] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] flex justify-center w-full overflow-x-clip app-native-container">
       <div className={`w-full ${isFullWidth ? 'max-w-none' : 'max-w-[448px]'} bg-white shadow-[0_0_50px_rgba(0,0,0,0.1)] ${noScroll ? 'h-screen overflow-hidden' : 'min-h-screen'} relative flex flex-col mx-auto safe-area-pt`}>
         
         {/* KYC Warning Banner */}
