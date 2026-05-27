@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CreditCard, Smartphone, CheckCircle, XCircle, Zap, ShieldCheck } from 'lucide-react';
+import { Loader2, CreditCard, Smartphone, CheckCircle, XCircle, Zap, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { paymentService } from '@/services/payment.service';
 import { manualFundService } from '@/services/manualFund.service';
+import { bnplService } from '@/services/bnpl.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +39,17 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   });
   const { toast } = useToast();
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // S2S PayU LazyPay State hooks
+  const [bnplEligible, setBnplEligible] = useState<boolean | null>(null);
+  const [checkingBnpl, setCheckingBnpl] = useState(false);
+  const [bnplLinked, setBnplLinked] = useState(false);
+  const [bnplOtpRequired, setBnplOtpRequired] = useState(false);
+  const [bnplOtpCode, setBnplOtpCode] = useState('');
+  const [bnplReferenceId, setBnplReferenceId] = useState('');
+  const [bnplOtpError, setBnplOtpError] = useState('');
+  const [submittingBnplOtp, setSubmittingBnplOtp] = useState(false);
+  const [initiatingBnpl, setInitiatingBnpl] = useState(false);
 
   // Load Razorpay Script
   useEffect(() => {
@@ -300,6 +312,109 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
     }
   };
 
+  const handleLazyPaySelect = async () => {
+    const numAmount = parseFloat(amount);
+    if (!numAmount || numAmount < 1) {
+      toast({ title: 'Invalid amount', description: 'Enter at least ₹1', variant: 'destructive' });
+      return;
+    }
+
+    const phone = profile?.phone || user?.phone || '';
+    if (!phone) {
+      toast({ title: 'Mobile Number Missing', description: 'Please update your mobile number in Profile first.', variant: 'destructive' });
+      return;
+    }
+
+    setCheckingBnpl(true);
+    setBnplEligible(null);
+    try {
+      const res = await bnplService.checkEligibility(numAmount, phone);
+      setBnplEligible(res.eligible);
+      setBnplLinked(res.customerLinked);
+
+      if (!res.eligible) {
+        toast({ 
+          title: 'Not Eligible', 
+          description: res.message || 'LazyPay is currently not eligible for this transaction.', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      await handleLazyPayPayment(numAmount, phone);
+    } catch (err: any) {
+      toast({ 
+        title: 'Eligibility Check Failed', 
+        description: err.message || 'Unable to check LazyPay eligibility.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setCheckingBnpl(false);
+    }
+  };
+
+  const handleLazyPayPayment = async (numAmount: number, phone: string) => {
+    setInitiatingBnpl(true);
+    setState('processing');
+    setFailureMessage('');
+
+    try {
+      const res = await bnplService.initiatePayment(numAmount, phone, 'topup');
+      if (res.requiresOtp) {
+        setBnplReferenceId(res.referenceId || '');
+        setBnplOtpRequired(true);
+        setBnplOtpError('');
+        setState('idle');
+        toast({
+          title: 'Linking Required',
+          description: res.otpMessage || 'LazyPay sent an OTP to verify your account.'
+        });
+      } else if (res.success) {
+        setState('success');
+        toast({
+          title: 'Payment Success',
+          description: `₹${numAmount} added to wallet via LazyPay 1-Tap checkout.`
+        });
+        if (onSuccess) onSuccess();
+        await refetchWallet();
+      }
+    } catch (err: any) {
+      setState('failed');
+      setFailureMessage(err.message || 'Failed to initiate LazyPay payment.');
+    } finally {
+      setInitiatingBnpl(false);
+    }
+  };
+
+  const handleVerifyBnplOtp = async () => {
+    const cleanOtp = bnplOtpCode.trim();
+    if (cleanOtp.length < 6) {
+      setBnplOtpError('Please enter a 6-digit OTP code');
+      return;
+    }
+
+    setSubmittingBnplOtp(true);
+    setBnplOtpError('');
+
+    try {
+      const res = await bnplService.submitOtp(bnplReferenceId, cleanOtp, parseFloat(amount), user!.id);
+      if (res.success) {
+        setState('success');
+        setBnplOtpRequired(false);
+        toast({
+          title: 'Account Linked & Cash Added!',
+          description: `₹${amount} added successfully to your wallet.`
+        });
+        if (onSuccess) onSuccess();
+        await refetchWallet();
+      }
+    } catch (err: any) {
+      setBnplOtpError(err.message || 'OTP Verification failed');
+    } finally {
+      setSubmittingBnplOtp(false);
+    }
+  };
+
   const fallbackIntentUrl = `upi://pay?pa=${selectedUpiVpa}&pn=${encodeURIComponent('PrePe Technologies')}&am=${amount || '0'}&cu=INR&mode=02`;
   const activeQrUrl = manualIntentUrl || fallbackIntentUrl;
 
@@ -329,6 +444,57 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
           <Button onClick={() => { setState('idle'); setAmount(''); setTransactionId(''); setIsManualSuccess(false); }} className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black text-lg">
             Return to Dashboard
           </Button>
+        </motion.div>
+      ) : bnplOtpRequired ? (
+        <motion.div 
+          key="bnpl-otp"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="space-y-6 text-center bg-orange-50/50 p-6 rounded-[32px] border-2 border-orange-200"
+        >
+          <div className="flex items-center gap-3 justify-center">
+            <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black text-xs tracking-tighter">LP</div>
+            <div className="text-left">
+              <h3 className="text-sm font-black text-orange-900 uppercase tracking-wide">LazyPay Verification</h3>
+              <p className="text-[9px] font-bold text-orange-600/70 uppercase tracking-widest mt-0.5 leading-none">OTP Link Consent</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Input
+              type="text"
+              maxLength={6}
+              placeholder="Enter 6-digit OTP code"
+              value={bnplOtpCode}
+              onChange={(e) => setBnplOtpCode(e.target.value.replace(/\D/g, ''))}
+              className="h-14 text-center text-2xl font-black border-2 border-orange-200 bg-white rounded-xl focus-visible:ring-orange-500 focus-visible:border-orange-500 font-mono tracking-[0.2em]"
+            />
+            <p className="text-[10px] text-orange-600/80 leading-snug font-medium text-left">
+              ⚠️ PayU Sandbox Mock: LazyPay requires a validation check. Enter <strong>123456</strong> to successfully verify.
+            </p>
+            {bnplOtpError && (
+              <p className="text-xs font-bold text-rose-600 mt-1 flex items-center gap-1 justify-center">
+                <AlertCircle className="w-3.5 h-3.5" /> {bnplOtpError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => { setBnplOtpRequired(false); setBnplOtpCode(''); }} 
+              variant="outline"
+              className="flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest border-orange-200 text-orange-700 hover:bg-orange-100"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleVerifyBnplOtp}
+              disabled={submittingBnplOtp}
+              className="flex-1 h-12 bg-orange-600 hover:bg-orange-700 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-100 text-white"
+            >
+              {submittingBnplOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify & Link"}
+            </Button>
+          </div>
         </motion.div>
       ) : (
         <motion.div 
@@ -403,6 +569,28 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                     <span className="text-[10px] opacity-75 font-bold uppercase tracking-widest mt-1 text-amber-600">Includes 2% gateway surcharge</span>
                   </div>
                 </Button>
+
+                {/* 3. LazyPay S2S Link & Pay Button */}
+                <div className="relative pt-1">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleLazyPaySelect} 
+                    className="w-full h-20 border-2 border-slate-100 rounded-[30px] font-black text-slate-700 hover:bg-orange-50/20 hover:border-orange-200 transition-all active:scale-95 flex items-center justify-center gap-3 relative group"
+                    disabled={!amount || parseFloat(amount) < 1 || checkingBnpl || initiatingBnpl}
+                  >
+                    {checkingBnpl || initiatingBnpl ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center font-black text-orange-600 text-[10px] tracking-tighter shrink-0 font-sans">LP</div>
+                    )}
+                    <div className="flex flex-col items-start leading-none text-left">
+                      <span>Pay Later via LazyPay</span>
+                      <span className="text-[10px] opacity-75 font-bold uppercase tracking-widest mt-1 text-orange-600">
+                        PayU S2S Link & Pay • 0% Extra Fees
+                      </span>
+                    </div>
+                  </Button>
+                </div>
 
                 <div className="flex flex-col items-center gap-2 text-center pt-2">
                   <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">

@@ -69,6 +69,7 @@ import {
   triggerAutonomousRechargeRewards,
 } from '@/services/rewards.service';
 import { Capacitor } from '@capacitor/core';
+import { fetchTruecallerProfileSimulated, type TruecallerProfile } from '@/services/truecaller.service';
 
 import type {
   Operator,
@@ -177,6 +178,8 @@ export function MobileRechargeForm() {
   });
   
   const [loading, setLoading] = useState(true);
+  const [truecallerProfile, setTruecallerProfile] = useState<TruecallerProfile | null>(null);
+  const [fetchingTruecaller, setFetchingTruecaller] = useState(false);
   
   useEffect(() => {
     const loadRewards = async () => {
@@ -298,18 +301,37 @@ export function MobileRechargeForm() {
     if (rawNumber.length === 10) {
       const run = async () => {
         setDetecting(true);
+        setFetchingTruecaller(true);
+        setTruecallerProfile(null);
         try {
           const result = await detectOperator(rawNumber);
           if (result.status === 'SUCCESS' && result.data) {
             setSelectedOperator(result.data.operator.id);
             setSelectedCircle(result.data.circle.id);
+            
+            // Truecaller async lookup
+            fetchTruecallerProfileSimulated(rawNumber).then((profile) => {
+              setTruecallerProfile(profile);
+              setFetchingTruecaller(false);
+            }).catch(() => {
+              setFetchingTruecaller(false);
+            });
+
             setTimeout(() => setStep('details'), 500);
+          } else {
+            setFetchingTruecaller(false);
           }
+        } catch (e) {
+          setDetecting(false);
+          setFetchingTruecaller(false);
         } finally {
           setDetecting(false);
         }
       };
       run();
+    } else {
+      setTruecallerProfile(null);
+      setFetchingTruecaller(false);
     }
   }, [mobileNumber]);
 
@@ -594,115 +616,140 @@ export function MobileRechargeForm() {
 
   if (step === 'details') {
     return (
-      <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 w-full">
-        <div className="flex items-center justify-between bg-slate-50/80 p-3 rounded-[24px] border border-slate-100 shrink-0 w-full">
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm p-1.5 overflow-hidden">
-              {selectedOperator && OPERATOR_LOGOS[selectedOperator] ? (
-                <img 
-                  src={OPERATOR_LOGOS[selectedOperator]} 
-                  alt="Operator Logo" 
-                  className="w-full h-full object-contain animate-in zoom-in-50 duration-300"
-                  onError={(e) => { 
-                    (e.target as any).style.display = 'none'; 
-                    if ((e.target as any).nextSibling) {
-                      (e.target as any).nextSibling.style.display = 'block';
-                    }
-                  }} 
-                />
-              ) : null}
-              <Phone className={`w-4 h-4 text-blue-600 ${selectedOperator && OPERATOR_LOGOS[selectedOperator] ? 'hidden' : 'block'}`} />
+      <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 w-full relative">
+        {/* Sticky/Frozen Header Console Panel */}
+        <div className="sticky top-[56px] z-30 bg-white/98 backdrop-blur-md pb-4 pt-2 space-y-4 shadow-sm -mx-4 px-4 border-b border-slate-200/50">
+          {/* Card containing Logo, Number, Truecaller Name lookup, and Change button */}
+          <div className="flex items-center justify-between bg-white/95 backdrop-blur-md p-3 rounded-[24px] border border-slate-100 shadow-sm w-full">
+            <div className="flex items-center gap-3 px-1">
+              <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm p-1.5 overflow-hidden">
+                {selectedOperator && OPERATOR_LOGOS[selectedOperator] ? (
+                  <img 
+                     src={OPERATOR_LOGOS[selectedOperator]} 
+                     alt="Operator Logo" 
+                     className="w-full h-full object-contain animate-in zoom-in-50 duration-300"
+                     onError={(e) => { 
+                       (e.target as any).style.display = 'none'; 
+                       if ((e.target as any).nextSibling) {
+                         (e.target as any).nextSibling.style.display = 'block';
+                       }
+                     }} 
+                   />
+                ) : null}
+                <Phone className={`w-4 h-4 text-blue-600 ${selectedOperator && OPERATOR_LOGOS[selectedOperator] ? 'hidden' : 'block'}`} />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-lg font-black text-slate-900 tracking-tighter leading-none">{mobileNumber}</p>
+                  {truecallerProfile && (
+                    <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[8px] font-black border border-blue-100/50 animate-in zoom-in duration-300 shadow-3xs uppercase tracking-wider">
+                      ⚡ TC Verified
+                    </span>
+                  )}
+                  {fetchingTruecaller && (
+                    <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+                  )}
+                </div>
+                {truecallerProfile ? (
+                  <div className="space-y-0.5 mt-1">
+                    <p className="text-[11px] font-black text-slate-700 leading-none">
+                      {truecallerProfile.name.first} {truecallerProfile.name.last}
+                    </p>
+                    <p className="text-[10.5px] text-amber-600 font-extrabold leading-none flex items-center gap-1 uppercase tracking-wider mt-1">
+                      ⚠️ Name may be inaccurate
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Select a Plan</p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-black text-slate-900 tracking-tighter leading-none">{mobileNumber}</p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Select a Plan</p>
+            <Button variant="ghost" size="sm" onClick={() => setStep('number')} className="h-8 rounded-lg text-blue-600 text-xs font-bold hover:bg-blue-50 px-3">Change</Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full px-1">
+            <div className="space-y-1.5">
+              <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operator</Label>
+              <Select value={selectedOperator} onValueChange={setSelectedOperator}>
+                <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
+                  <SelectValue placeholder="Operator" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {operators.map((op) => (
+                    <SelectItem key={op.id} value={op.id} className="font-bold py-2 text-sm">{op.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Circle</Label>
+              <Select value={selectedCircle} onValueChange={setSelectedCircle}>
+                <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
+                  <SelectValue placeholder="Circle" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {circles.map((circle) => (
+                    <SelectItem key={circle.id} value={circle.id} className="font-bold py-2 text-sm">{circle.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setStep('number')} className="h-8 rounded-lg text-blue-600 text-xs font-bold hover:bg-blue-50 px-3">Change</Button>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3 shrink-0 w-full px-1">
-          <div className="space-y-1.5">
-            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operator</Label>
-            <Select value={selectedOperator} onValueChange={setSelectedOperator}>
-              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
-                <SelectValue placeholder="Operator" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {operators.map((op) => (
-                  <SelectItem key={op.id} value={op.id} className="font-bold py-2 text-sm">{op.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Circle</Label>
-            <Select value={selectedCircle} onValueChange={setSelectedCircle}>
-              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
-                <SelectValue placeholder="Circle" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {circles.map((circle) => (
-                  <SelectItem key={circle.id} value={circle.id} className="font-bold py-2 text-sm">{circle.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Unified Search & Custom Amount Input Box */}
-        <div className="relative group shrink-0 w-full px-1">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[30px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
-          <div className="relative bg-white border-2 border-slate-100 rounded-[24px] p-4 focus-within:border-blue-500 transition-all shadow-md shadow-slate-100/5 w-full">
-            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Search Plans or Enter Amount</Label>
-            <div className="flex items-center gap-3 h-10 w-full">
-              {/^\d+$/.test(planSearchQuery) ? (
-                <span className="text-xl font-black text-blue-600 select-none shrink-0 animate-in zoom-in-50 duration-200">₹</span>
-              ) : (
-                <Search className="h-5 w-5 text-slate-400 shrink-0" />
-              )}
-              <div className="w-px h-5 bg-slate-100 shrink-0" />
-              <input
-                type="text"
-                className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0 font-sans"
-                placeholder="Search plan or enter amount (e.g. 2GB, 239)"
-                value={planSearchQuery}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setPlanSearchQuery(val);
-                  
-                  const isNumber = /^\d+$/.test(val);
-                  if (isNumber && parseFloat(val) > 0) {
-                    setAmount(val);
-                    setSelectedPlan({
-                      id: 'custom',
-                      amount: parseFloat(val) || 0,
-                      validity: 'As per operator',
-                      description: 'Custom Recharge Amount',
-                      category: 'custom'
-                    } as any);
-                  } else {
-                    setAmount("");
-                    if (selectedPlan?.id === 'custom') {
-                      setSelectedPlan(null);
-                    }
-                  }
-                }}
-              />
-              {planSearchQuery && (
-                <button
-                  onClick={() => {
-                    setPlanSearchQuery("");
-                    setAmount("");
-                    if (selectedPlan?.id === 'custom') {
-                      setSelectedPlan(null);
+          {/* Unified Search & Custom Amount Input Box */}
+          <div className="relative group w-full px-1">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[30px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
+            <div className="relative bg-white border-2 border-slate-100 rounded-[24px] p-4 focus-within:border-blue-500 transition-all shadow-md shadow-slate-100/5 w-full">
+              <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Search Plans or Enter Amount</Label>
+              <div className="flex items-center gap-3 h-10 w-full">
+                {/^\d+$/.test(planSearchQuery) ? (
+                  <span className="text-xl font-black text-blue-600 select-none shrink-0 animate-in zoom-in-50 duration-200">₹</span>
+                ) : (
+                  <Search className="h-5 w-5 text-slate-400 shrink-0" />
+                )}
+                <div className="w-px h-5 bg-slate-100 shrink-0" />
+                <input
+                  type="text"
+                  className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0 font-sans"
+                  placeholder="Search plan or enter amount (e.g. 2GB, 239)"
+                  value={planSearchQuery}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPlanSearchQuery(val);
+                    
+                    const isNumber = /^\d+$/.test(val);
+                    if (isNumber && parseFloat(val) > 0) {
+                      setAmount(val);
+                      setSelectedPlan({
+                        id: 'custom',
+                        amount: parseFloat(val) || 0,
+                        validity: 'As per operator',
+                        description: 'Custom Recharge Amount',
+                        category: 'custom'
+                      } as any);
+                    } else {
+                      setAmount("");
+                      if (selectedPlan?.id === 'custom') {
+                        setSelectedPlan(null);
+                      }
                     }
                   }}
-                  className="w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-                >
-                  <XCircle className="w-4 h-4" />
-                </button>
-              )}
+                />
+                {planSearchQuery && (
+                  <button
+                    onClick={() => {
+                      setPlanSearchQuery("");
+                      setAmount("");
+                      if (selectedPlan?.id === 'custom') {
+                        setSelectedPlan(null);
+                      }
+                    }}
+                    className="w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { HubbleModule } from './hubble/hubble.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { SupportModule } from './support/support.module';
+import { PayuModule } from './payu/payu.module';
 import * as path from 'path';
 
 @Module({
@@ -29,7 +30,8 @@ import * as path from 'path';
         HubbleModule,
         NotificationsModule,
         AiModule,
-        SupportModule
+        SupportModule,
+        PayuModule
     ],
     controllers: [],
     providers: [],
