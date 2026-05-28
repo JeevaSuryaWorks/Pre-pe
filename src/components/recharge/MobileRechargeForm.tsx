@@ -853,12 +853,6 @@ export function MobileRechargeForm() {
                        <div className="flex justify-between items-start mb-2 relative z-10">
                          <div className="flex flex-col">
                            <span className="text-xl font-black tracking-tighter">₹{plan.amount}</span>
-                           {rewardsConfig && (() => {
-                             const pts = getPointsForRechargeAmount(plan.amount, rewardsConfig);
-                             return pts > 0 ? (
-                               <span className="text-[7.5px] font-black bg-emerald-500/30 border border-emerald-400/20 text-emerald-300 rounded px-1 mt-0.5 w-max">+{pts} Pts</span>
-                             ) : null;
-                           })()}
                          </div>
                          <Star className="w-3 h-3 text-white/50 fill-white/20" />
                        </div>
@@ -949,12 +943,6 @@ export function MobileRechargeForm() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">₹{plan.amount}</span>
-                          {rewardsConfig && (() => {
-                            const pts = getPointsForRechargeAmount(plan.amount, rewardsConfig);
-                            return pts > 0 ? (
-                              <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 rounded-lg px-2 py-0.5 border border-emerald-100/60 shrink-0">+{pts} Pts</span>
-                            ) : null;
-                          })()}
                         </div>
                         <span className="text-[9px] font-black text-blue-600 mt-1 uppercase tracking-widest">{plan.validity}</span>
                       </div>

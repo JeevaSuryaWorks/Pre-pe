@@ -811,26 +811,21 @@ export function getPointsForRechargeAmount(amount: number, config: any): number 
  */
 export async function triggerAutonomousRechargeRewards(userId: string, amount: number, isFavorite: boolean = false): Promise<boolean> {
   try {
-    const config = await getAutonomousRewardsConfig();
-    let points = getPointsForRechargeAmount(amount, config);
-    
-    // Circle Directory Favorite payments grant an extra 50 points!
-    const extraPoints = isFavorite ? 50 : 0;
-    points += extraPoints;
-    
-    if (points <= 0) return false;
+    let points = 25; // Default flat points for successful recharge
+    let description = `Earned 25 points from successful Recharge of ₹${amount}`;
 
-    // Build descriptive message
-    let description = `Earned from Recharge: Flat (${config.flatPoints} pts)`;
-    const match = config.rateRules?.find((rule: any) => rule.enabled && Number(rule.amount) === amount);
-    if (match) {
-      description += ` + Specific Plan Rate (${match.points} pts) for ₹${amount}`;
-    } else {
-      description += ` for ₹${amount}`;
-    }
+    // Check if there are pending favorite bonus points from the SavedPage (PrePe Circle)
+    const pendingFavPointsStr = sessionStorage.getItem('prepe_pending_favorite_bonus_points');
+    const pendingFavId = sessionStorage.getItem('prepe_pending_favorite_id');
     
-    if (isFavorite) {
-      description += ` + Circle Favorite Bonus (${extraPoints} pts)`;
+    if (isFavorite || pendingFavId) {
+      const bonus = pendingFavPointsStr ? parseInt(pendingFavPointsStr, 10) : 30;
+      points = bonus;
+      description = `PrePe Circle Bonus: Earned ${points} points for successful payment of saved item ₹${amount}`;
+      
+      // Clear sessionStorage once consumed
+      sessionStorage.removeItem('prepe_pending_favorite_bonus_points');
+      sessionStorage.removeItem('prepe_pending_favorite_id');
     }
 
     console.log(`[Autonomous Rewards] Crediting ${points} points to user ${userId}: ${description}`);
@@ -840,5 +835,3 @@ export async function triggerAutonomousRechargeRewards(userId: string, amount: n
     return false;
   }
 }
-
-

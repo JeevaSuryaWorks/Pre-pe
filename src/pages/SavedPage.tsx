@@ -283,6 +283,18 @@ const SavedPage = () => {
     };
 
     const handleAction = (item: SavedItem) => {
+        let bonusPoints = 30; // Default flat 30 points when due date is more or none
+        const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
+        if (daysInfo.status === 'today') {
+            bonusPoints = 25;
+        } else if (daysInfo.status === 'overdue') {
+            bonusPoints = 20;
+        }
+
+        // Set pending favorite bonus points in sessionStorage
+        sessionStorage.setItem('prepe_pending_favorite_bonus_points', bonusPoints.toString());
+        sessionStorage.setItem('prepe_pending_favorite_id', item.id);
+
         switch (item.service_type) {
             case 'MOBILE_PREPAID':
                 navigate('/mobile-recharge', { state: { mobileNumber: item.account_id, fromFavorite: true, favoriteId: item.id } });
