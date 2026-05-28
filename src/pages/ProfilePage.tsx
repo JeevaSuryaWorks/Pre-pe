@@ -7,7 +7,8 @@ import {
     FileText, Headphones, Share2, Tag, FileCheck,
     History, LogOut, Facebook, Youtube, Send, Instagram,
     Twitter, ChevronLeft, Loader2, ShieldCheck, Sparkles,
-    Settings, Bell, CreditCard, Wallet, Crown, ArrowRight
+    Settings, Bell, CreditCard, Wallet, Crown, ArrowRight,
+    ShoppingBag, ShoppingCart, Package
 } from "lucide-react";
 import { useKYC } from "@/hooks/useKYC";
 import { useProfile } from "@/hooks/useProfile";
@@ -288,6 +289,45 @@ const ProfilePage = () => {
                             bgClass="bg-rose-50" 
                             onClick={() => navigate('/profile/security')} 
                         />
+                    </div>
+
+                    {/* Prepe Accessories Store */}
+                    <SectionHeader title="Prepe Store" />
+                    <div className="space-y-1">
+                        <SettingItem 
+                            icon={ShoppingBag} 
+                            title="Shop Accessories" 
+                            subtitle="Vibrant cases, GaN chargers & audio" 
+                            colorClass="text-orange-600 font-semibold" 
+                            bgClass="bg-orange-50/50" 
+                            onClick={() => navigate('/shop')} 
+                        />
+                        <SettingItem 
+                            icon={ShoppingCart} 
+                            title="My Shopping Cart" 
+                            subtitle="Checkout your selected accessories" 
+                            colorClass="text-indigo-600" 
+                            bgClass="bg-indigo-50/50" 
+                            onClick={() => navigate('/cart')} 
+                        />
+                        <SettingItem 
+                            icon={Package} 
+                            title="My Orders" 
+                            subtitle="Track shipments & invoices" 
+                            colorClass="text-emerald-600" 
+                            bgClass="bg-emerald-50/50" 
+                            onClick={() => navigate('/orders')} 
+                        />
+                        {isAdmin && (
+                            <SettingItem 
+                                icon={ShoppingBag} 
+                                title="Buyers Directory" 
+                                subtitle="Admin: Manage buyers & wallets" 
+                                colorClass="text-rose-600 font-bold" 
+                                bgClass="bg-rose-50/50" 
+                                onClick={() => navigate('/admin/buyers')} 
+                            />
+                        )}
                     </div>
 
                     {/* App Settings */}

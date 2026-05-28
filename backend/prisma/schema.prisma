@@ -1,25 +1,404 @@
-//////////////////////////////////////
-// Prisma Generator
-//////////////////////////////////////
 generator client {
   provider = "prisma-client-js"
 }
 
-//////////////////////////////////////
-// Database (Supabase PostgreSQL)
-//////////////////////////////////////
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-//////////////////////////////////////
-// ENUMS
-//////////////////////////////////////
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model profiles {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String                 @unique @db.Uuid
+  email                String?
+  full_name            String?
+  phone                String?
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
+  plan_type            String?                @db.VarChar(20)
+  whatsapp_consent     Boolean?
+  custom_spin_limit    Int?
+  sim_provider         String?
+  gift_card_vouchers   gift_card_vouchers[]
+  kyc_verifications    kyc_verifications[]
+  loans                loans[]
+  manual_fund_requests manual_fund_requests[]
+  reward_points        reward_points_ledger[]
+  saved_items          saved_items[]
+  scratch_cards        scratch_cards[]
+  support_tickets      support_tickets[]
+  transactions         transactions[]
+  upi_transactions     upi_transactions[]
+  user_completed_tasks user_completed_tasks[]
+  user_roles           user_roles[]
+  wallets              wallets?
+
+  @@map("profiles")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model user_roles {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  role       AppRole
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  profile    profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("user_roles")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model wallets {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String          @unique @db.Uuid
+  balance        Decimal         @db.Decimal
+  locked_balance Decimal         @db.Decimal
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @db.Timestamptz(6)
+  wallet_ledger  wallet_ledger[]
+  profile        profiles        @relation(fields: [user_id], references: [user_id])
+
+  @@map("wallets")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model wallet_ledger {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wallet_id      String   @db.Uuid
+  transaction_id String?  @db.Uuid
+  type           String
+  amount         Decimal  @db.Decimal
+  balance_after  Decimal  @db.Decimal
+  description    String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  reference_id   String?  @unique
+  wallet         wallets  @relation(fields: [wallet_id], references: [id])
+
+  @@map("wallet_ledger")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model transactions {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String            @db.Uuid
+  type               String
+  service_type       String
+  amount             Decimal           @db.Decimal
+  operator_id        String?
+  operator_name      String?
+  mobile_number      String?
+  dth_id             String?
+  reference_id       String?
+  api_transaction_id String?
+  commission         Decimal?
+  metadata           Json?
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime          @default(now()) @db.Timestamptz(6)
+  circle_id          String?
+  plan_id            String?
+  status             RechargeStatus    @default(PENDING)
+  support_tickets    support_tickets[]
+  profile            profiles          @relation(fields: [user_id], references: [user_id])
+
+  @@map("transactions")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model upi_transactions {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String   @db.Uuid
+  amount              Decimal  @db.Decimal
+  upi_ref_id          String?  @unique
+  gateway_status      String?
+  app_used            String?
+  intent_url          String?
+  qr_code             String?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+  payment_method      String?
+  razorpay_payment_id String?  @unique
+  failure_reason      String?
+  failure_message     String?
+  raw_response        Json?
+  profile             profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("upi_transactions")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model commission_slabs {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  operator_id      String
+  service_type     String
+  min_amount       Decimal  @db.Decimal
+  max_amount       Decimal  @db.Decimal
+  commission_type  String
+  commission_value Decimal  @db.Decimal
+  is_active        Boolean
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("commission_slabs")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model loans {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String   @db.Uuid
+  amount         Decimal  @db.Decimal
+  repayment_date DateTime @db.Timestamptz(6)
+  bounce_charges Decimal  @db.Decimal
+  status         String   @default("ACTIVE")
+  nbfc_name      String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  profile        profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("loans")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model admin_audit_logs {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_id    String   @db.Uuid
+  action_type String
+  target_id   String?  @db.Uuid
+  details     Json?
+  ip_address  String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("admin_audit_logs")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model kyc_verifications {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  pan_number       String?
+  aadhar_number    String?
+  dob              DateTime? @db.Date
+  gender           String?
+  document_urls    Json?     @default("{}")
+  status           String    @default("PENDING")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  rejection_reason String?
+  profile          profiles  @relation(fields: [user_id], references: [user_id])
+
+  @@map("kyc_verifications")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model manual_fund_requests {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String   @db.Uuid
+  amount         Decimal  @db.Decimal
+  transaction_id String
+  status         String   @default("PENDING")
+  admin_notes    String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+  profile        profiles @relation(fields: [user_id], references: [user_id])
+
+  @@map("manual_fund_requests")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model reward_points_ledger {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String   @db.Uuid
+  points      Int
+  event_type  String   @db.VarChar(50)
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  profile     profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("reward_points_ledger")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model scratch_cards {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                String   @db.Uuid
+  type                   String   @db.VarChar(50)
+  status                 String   @default("LOCKED") @db.VarChar(20)
+  title                  String
+  description            String?
+  reward_value           Decimal  @default(0) @db.Decimal(15, 2)
+  min_recharge_threshold Decimal? @default(0) @db.Decimal(15, 2)
+  created_at             DateTime @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  profile                profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("scratch_cards")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model gift_card_vouchers {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String    @db.Uuid
+  brand_name     String
+  brand_logo_url String?
+  amount         Decimal   @db.Decimal(15, 2)
+  status         String    @default("ACTIVE") @db.VarChar(20)
+  voucher_code   String?
+  voucher_pin    String?
+  reference_id   String?
+  provider       String    @default("HUBBLE") @db.VarChar(50)
+  expiry_date    DateTime? @db.Timestamptz(6)
+  purchase_type  String    @default("POINTS") @db.VarChar(20)
+  purchase_cost  Decimal   @db.Decimal(15, 2)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  profile        profiles  @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("gift_card_vouchers")
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
+model support_tickets {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String       @db.Uuid
+  transaction_id String       @db.Uuid
+  reason         String       @db.VarChar(100)
+  details        String?
+  status         String       @default("PENDING") @db.VarChar(20)
+  admin_notes    String?
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  transaction    transactions @relation(fields: [transaction_id], references: [id])
+  profile        profiles     @relation(fields: [user_id], references: [user_id])
+
+  @@map("support_tickets")
+}
+
+model banners {
+  id         String    @id
+  title      String
+  subtitle   String?
+  tag        String?
+  cta_text   String?
+  cta_link   String?
+  grad_from  String?
+  grad_to    String?
+  icon_name  String?
+  status     String?   @default("draft")
+  type       String?   @default("banner")
+  style      String?   @default("card")
+  sort_order Int?      @default(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model gift_vouchers {
+  id          String    @id
+  name        String
+  provider    String?
+  amount      Decimal   @db.Decimal
+  price       Decimal?  @db.Decimal
+  discount    Decimal?  @db.Decimal
+  code        String?
+  bannerUrl   String?
+  banner_url  String?
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model plans {
+  id           String    @id
+  name         String
+  subtitle     String?
+  description  String?
+  price        String?
+  price_amount Decimal   @default(0) @db.Decimal
+  features     Json?     @default("[]")
+  is_popular   Boolean?  @default(false)
+  order_index  Int?      @default(0)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+  config       Json?
+}
+
+model reward_settings {
+  key        String    @id
+  value      Json
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model rewards_tasks {
+  id                String    @id
+  title             String
+  description       String?
+  reward_points     Int?      @default(0)
+  icon_name         String?
+  requirement_type  String?
+  requirement_value Decimal?  @default(0) @db.Decimal
+  button_text       String?
+  target_url        String?
+  is_active         Boolean?  @default(true)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saved_items {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String   @db.Uuid
+  category      String
+  title         String
+  service_type  String
+  account_id    String
+  operator_name String?
+  metadata      Json?    @default("{}")
+  created_at    DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  profiles      profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+}
+
+model user_completed_tasks {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String    @db.Uuid
+  task_id       String
+  earned_points Int?      @default(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  profiles      profiles  @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_feedbacks {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?   @db.Uuid
+  email          String?
+  rating         Int
+  feedback_pills String[]  @default([])
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// ///////////////////////////////////
+/// ///////////////////////////////////
 enum AppRole {
-  USER        @map("user")
   ADMIN       @map("admin")
+  USER        @map("user")
   DISTRIBUTOR @map("distributor")
   RETAILER    @map("retailer")
 
@@ -32,309 +411,262 @@ enum RechargeStatus {
   FAILED
 }
 
-//////////////////////////////////////
-// PROFILES (Supabase user profile)
-//////////////////////////////////////
-model profiles {
-  id                String   @id @default(uuid()) @db.Uuid
-  user_id           String   @unique @db.Uuid
-  email             String?
-  full_name         String?
-  phone             String?
-  plan_type         String?  @default("BASIC") @db.VarChar(20)
-  whatsapp_consent  Boolean?
-  custom_spin_limit Int?
-  sim_provider      String?
-  created_at        DateTime @db.Timestamptz
-  updated_at        DateTime @db.Timestamptz
+// ==========================================
+// E-COMMERCE: CATEGORIES
+// ==========================================
+model ecommerce_categories {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  image_url   String?  @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  wallets              wallets[]
-  user_roles           user_roles[]
-  transactions         transactions[]
-  upi_transactions     upi_transactions[]
-  loans                loans[]
-  manual_fund_requests manual_fund_requests[]
-  kyc_verifications    kyc_verifications[]
-  reward_points        reward_points_ledger[]
-  scratch_cards        scratch_cards[]
-  gift_card_vouchers   gift_card_vouchers[]
-  support_tickets      support_tickets[]
+  products    ecommerce_products[]
 
-  @@map("profiles")
+  @@map("ecommerce_categories")
 }
 
-//////////////////////////////////////
-// USER ROLES
-//////////////////////////////////////
-model user_roles {
-  id         String   @id @default(uuid()) @db.Uuid
-  user_id    String   @db.Uuid
-  role       AppRole
-  created_at DateTime @db.Timestamptz
-
-  profile profiles @relation(fields: [user_id], references: [user_id])
-
-  @@map("user_roles")
-}
-
-//////////////////////////////////////
-// WALLETS
-//////////////////////////////////////
-model wallets {
+// ==========================================
+// E-COMMERCE: VENDORS / SELLERS
+// ==========================================
+model ecommerce_sellers {
   id             String   @id @default(uuid()) @db.Uuid
   user_id        String   @unique @db.Uuid
-  balance        Decimal  @db.Decimal
-  locked_balance Decimal  @db.Decimal
-  created_at     DateTime @db.Timestamptz
-  updated_at     DateTime @db.Timestamptz
-
-  profile       profiles        @relation(fields: [user_id], references: [user_id])
-  wallet_ledger wallet_ledger[]
-
-  @@map("wallets")
-}
-
-//////////////////////////////////////
-// WALLET LEDGER (CR / DR)
-//////////////////////////////////////
-model wallet_ledger {
-  id             String   @id @default(uuid()) @db.Uuid
-  wallet_id      String   @db.Uuid
-  transaction_id String?  @db.Uuid
-  reference_id   String?  @unique
-  type           String
-  amount         Decimal  @db.Decimal
-  balance_after  Decimal  @db.Decimal
-  description    String?
-  created_at     DateTime @db.Timestamptz
-
-  wallet wallets @relation(fields: [wallet_id], references: [id])
-
-  @@map("wallet_ledger")
-}
-
-//////////////////////////////////////
-// MAIN TRANSACTIONS (Recharge / DTH / Bill)
-//////////////////////////////////////
-model transactions {
-  id                 String         @id @default(uuid()) @db.Uuid
-  user_id            String         @db.Uuid
-  type               String
-  service_type       String
-  amount             Decimal        @db.Decimal
-  status             RechargeStatus @default(PENDING)
-  operator_id        String?
-  operator_name      String?
-  mobile_number      String?
-  circle_id          String?
-  plan_id            String?
-  dth_id             String?
-  reference_id       String?
-  api_transaction_id String?
-  commission         Decimal?
-  metadata           Json?
-  created_at         DateTime       @db.Timestamptz
-  updated_at         DateTime       @db.Timestamptz
-
-  profile profiles @relation(fields: [user_id], references: [user_id])
-  support_tickets support_tickets[]
-
-  @@map("transactions")
-}
-
-//////////////////////////////////////
-// UPI TRANSACTIONS (Wallet Topups)
-//////////////////////////////////////
-model upi_transactions {
-  id                  String   @id @default(uuid()) @db.Uuid
-  user_id             String   @db.Uuid
-  amount              Decimal  @db.Decimal
-  upi_ref_id          String?  @unique
-  razorpay_payment_id String?  @unique
-  gateway_status      String?
-  failure_reason      String?
-  failure_message     String?
-  app_used            String?
-  intent_url          String?
-  qr_code             String?
-  payment_method      String?
-  raw_response        Json?
-  created_at          DateTime @db.Timestamptz
-  updated_at          DateTime @db.Timestamptz
-
-  profile profiles @relation(fields: [user_id], references: [user_id])
-
-  @@map("upi_transactions")
-}
-
-//////////////////////////////////////
-// COMMISSION SLABS
-//////////////////////////////////////
-model commission_slabs {
-  id               String   @id @default(uuid()) @db.Uuid
-  operator_id      String
-  service_type     String
-  min_amount       Decimal  @db.Decimal
-  max_amount       Decimal  @db.Decimal
-  commission_type  String
-  commission_value Decimal  @db.Decimal
-  is_active        Boolean
-  created_at       DateTime @db.Timestamptz
-  updated_at       DateTime @db.Timestamptz
-
-  @@map("commission_slabs")
-}
-
-//////////////////////////////////////
-// LOANS (Do Now Pay Later)
-//////////////////////////////////////
-model loans {
-  id             String   @id @default(uuid()) @db.Uuid
-  user_id        String   @db.Uuid
-  amount         Decimal  @db.Decimal
-  repayment_date DateTime @db.Timestamptz
-  bounce_charges Decimal  @db.Decimal
-  status         String   @default("ACTIVE")
-  nbfc_name      String?
+  company_name   String   @db.VarChar(150)
+  gstin          String?  @db.VarChar(15)
+  business_phone String   @db.VarChar(20)
+  address        String   @db.Text
+  kyc_status     String   @default("PENDING") @db.VarChar(20) // PENDING, APPROVED, REJECTED
+  status         String   @default("INACTIVE") @db.VarChar(20) // INACTIVE, ACTIVE, BANNED
+  commission_fee Decimal  @default(10.00) @db.Decimal(5, 2)
   created_at     DateTime @default(now()) @db.Timestamptz
-  updated_at     DateTime @updatedAt @db.Timestamptz
+  updated_at     DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  profile profiles @relation(fields: [user_id], references: [user_id])
+  products    ecommerce_products[]
+  withdrawals ecommerce_withdrawals[]
 
-  @@map("loans")
+  @@map("ecommerce_sellers")
 }
 
-//////////////////////////////////////
-// ADMIN AUDIT LOGS
-//////////////////////////////////////
-model admin_audit_logs {
-  id          String   @id @default(uuid()) @db.Uuid
-  admin_id    String   @db.Uuid
-  action_type String
-  target_id   String?  @db.Uuid
-  details     Json?
-  ip_address  String?
-  created_at  DateTime @db.Timestamptz
+// ==========================================
+// E-COMMERCE: PRODUCTS
+// ==========================================
+model ecommerce_products {
+  id                String   @id @default(uuid()) @db.Uuid
+  seller_id         String   @db.Uuid
+  category_id       String   @db.Uuid
+  title             String   @db.VarChar(200)
+  description       String   @db.Text
+  price             Decimal  @db.Decimal(15, 2)
+  compare_at_price  Decimal? @db.Decimal(15, 2)
+  brand             String   @db.VarChar(100)
+  images            Json     @default("[]") // Array of string URLs
+  rating            Decimal  @default(0.00) @db.Decimal(3, 2)
+  is_active         Boolean  @default(true)
+  specifications    Json     @default("{}") // Key-value parameters
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  @@map("admin_audit_logs")
+  seller      ecommerce_sellers      @relation(fields: [seller_id], references: [id], onDelete: Cascade)
+  category    ecommerce_categories   @relation(fields: [category_id], references: [id])
+  variants    ecommerce_variants[]
+  cart_items  ecommerce_cart[]
+  order_items ecommerce_order_items[]
+  reviews     ecommerce_reviews[]
+  wishlists   ecommerce_wishlists[]
+
+  @@map("ecommerce_products")
 }
 
-//////////////////////////////////////
-// KYC VERIFICATIONS
-//////////////////////////////////////
-model kyc_verifications {
-  id            String    @id @default(uuid()) @db.Uuid
-  user_id       String    @db.Uuid
-  pan_number    String?
-  aadhar_number String?
-  dob           DateTime? @db.Date
-  gender        String?
-  document_urls Json?     @default("{}")
-  status        String    @default("PENDING")
-  rejection_reason String?
-  created_at    DateTime  @default(now()) @db.Timestamptz
-  updated_at    DateTime  @default(now()) @db.Timestamptz
-
-  profile profiles @relation(fields: [user_id], references: [user_id])
-
-  @@map("kyc_verifications")
-}
-
-//////////////////////////////////////
-// MANUAL FUND REQUESTS
-//////////////////////////////////////
-model manual_fund_requests {
+// ==========================================
+// E-COMMERCE: PRODUCT VARIANTS
+// ==========================================
+model ecommerce_variants {
   id             String   @id @default(uuid()) @db.Uuid
-  user_id        String   @db.Uuid
-  amount         Decimal  @db.Decimal
-  transaction_id String
-  status         String   @default("PENDING")
-  admin_notes    String?
+  product_id     String   @db.Uuid
+  name           String   @db.VarChar(100)
+  price_override Decimal? @db.Decimal(15, 2)
+  stock          Int      @default(0)
+  sku            String   @unique @db.VarChar(100)
   created_at     DateTime @default(now()) @db.Timestamptz
-  updated_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  profile profiles @relation(fields: [user_id], references: [user_id])
+  product     ecommerce_products      @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  cart_items  ecommerce_cart[]
+  order_items ecommerce_order_items[]
 
-  @@map("manual_fund_requests")
+  @@map("ecommerce_variants")
 }
 
-//////////////////////////////////////
-// GAMIFICATION: REWARDS
-//////////////////////////////////////
-model reward_points_ledger {
+// ==========================================
+// E-COMMERCE: CART
+// ==========================================
+model ecommerce_cart {
   id          String   @id @default(uuid()) @db.Uuid
   user_id     String   @db.Uuid
-  points      Int
-  event_type  String   @db.VarChar(50)
-  description String?
+  product_id  String   @db.Uuid
+  variant_id  String?  @db.Uuid
+  quantity    Int      @default(1)
   created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  product ecommerce_products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  variant ecommerce_variants? @relation(fields: [variant_id], references: [id], onDelete: Cascade)
 
-  @@map("reward_points_ledger")
+  @@map("ecommerce_cart")
 }
 
-//////////////////////////////////////
-// GAMIFICATION: SCRATCH CARDS
-//////////////////////////////////////
-model scratch_cards {
-  id                     String   @id @default(uuid()) @db.Uuid
-  user_id                String   @db.Uuid
-  type                   String   @db.VarChar(50)
-  status                 String   @default("LOCKED") @db.VarChar(20)
-  title                  String
-  description            String?
-  reward_value           Decimal  @default(0) @db.Decimal(15, 2)
-  min_recharge_threshold Decimal? @default(0) @db.Decimal(15, 2)
-  created_at             DateTime @default(now()) @db.Timestamptz
-  updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz
+// ==========================================
+// E-COMMERCE: SAVED ADDRESSES
+// ==========================================
+model ecommerce_addresses {
+  id          String   @id @default(uuid()) @db.Uuid
+  user_id     String   @db.Uuid
+  full_name   String   @db.VarChar(100)
+  phone       String   @db.VarChar(20)
+  street      String   @db.Text
+  landmark    String?  @db.VarChar(100)
+  city        String   @db.VarChar(100)
+  state       String   @db.VarChar(100)
+  postal_code String   @db.VarChar(10)
+  is_default  Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  orders ecommerce_orders[]
 
-  @@map("scratch_cards")
+  @@map("ecommerce_addresses")
 }
 
-//////////////////////////////////////
-// GIFT CARD VOUCHERS (Hubble etc)
-//////////////////////////////////////
-model gift_card_vouchers {
-  id             String    @id @default(uuid()) @db.Uuid
-  user_id        String    @db.Uuid
-  brand_name     String
-  brand_logo_url String?
-  amount         Decimal   @db.Decimal(15, 2)
-  status         String    @default("ACTIVE") @db.VarChar(20) // ACTIVE, REDEEMED, EXPIRED
-  voucher_code   String? // The actual gift card code
-  voucher_pin    String? // The actual gift card PIN
-  reference_id   String? // Provider reference ID
-  provider       String    @default("HUBBLE") @db.VarChar(50)
-  expiry_date    DateTime? @db.Timestamptz
-  purchase_type  String    @default("POINTS") @db.VarChar(20) // POINTS, WALLET
-  purchase_cost  Decimal   @db.Decimal(15, 2) // The points or wallet amount deducted
-  created_at     DateTime  @default(now()) @db.Timestamptz
-  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz
+// ==========================================
+// E-COMMERCE: COUPONS / DISCOUNTS
+// ==========================================
+model ecommerce_coupons {
+  id               String    @id @default(uuid()) @db.Uuid
+  code             String    @unique @db.VarChar(50)
+  discount_type    String    @db.VarChar(20) // PERCENTAGE, FLAT
+  value            Decimal   @db.Decimal(15, 2)
+  min_order_value  Decimal   @default(0.00) @db.Decimal(15, 2)
+  max_discount     Decimal?  @db.Decimal(15, 2)
+  is_active        Boolean   @default(true)
+  start_date       DateTime  @db.Timestamptz
+  end_date         DateTime  @db.Timestamptz
+  created_at       DateTime  @default(now()) @db.Timestamptz
 
-  profile profiles @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  orders ecommerce_orders[]
 
-  @@map("gift_card_vouchers")
+  @@map("ecommerce_coupons")
 }
 
-//////////////////////////////////////
-// SUPPORT TICKETS (Complaints Desk)
-//////////////////////////////////////
-model support_tickets {
-  id             String   @id @default(uuid()) @db.Uuid
-  user_id        String   @db.Uuid
-  transaction_id String   @db.Uuid
-  reason         String   @db.VarChar(100)
-  details        String?  @db.Text
-  status         String   @default("PENDING") @db.VarChar(20)
-  admin_notes    String?  @db.Text
-  created_at     DateTime @default(now()) @db.Timestamptz
-  updated_at     DateTime @default(now()) @db.Timestamptz
+// ==========================================
+// E-COMMERCE: ORDERS
+// ==========================================
+model ecommerce_orders {
+  id              String   @id @default(uuid()) @db.Uuid
+  user_id         String   @db.Uuid
+  address_id      String   @db.Uuid
+  coupon_id       String?  @db.Uuid
+  status          String   @default("PENDING") @db.VarChar(20) // PENDING, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED, RETURNED
+  subtotal        Decimal  @db.Decimal(15, 2)
+  tax             Decimal  @db.Decimal(15, 2)
+  shipping        Decimal  @db.Decimal(15, 2)
+  discount        Decimal  @default(0.00) @db.Decimal(15, 2)
+  total_amount    Decimal  @db.Decimal(15, 2)
+  payment_method  String   @default("ONLINE") @db.VarChar(20) // ONLINE, COD
+  razorpay_order  String?  @db.VarChar(100)
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  profile        profiles     @relation(fields: [user_id], references: [user_id])
-  transaction    transactions @relation(fields: [transaction_id], references: [id])
+  address     ecommerce_addresses  @relation(fields: [address_id], references: [id])
+  coupon      ecommerce_coupons?   @relation(fields: [coupon_id], references: [id])
+  order_items ecommerce_order_items[]
+  refunds     ecommerce_refunds[]
 
-  @@map("support_tickets")
+  @@map("ecommerce_orders")
+}
+
+// ==========================================
+// E-COMMERCE: ORDER LINE ITEMS
+// ==========================================
+model ecommerce_order_items {
+  id         String   @id @default(uuid()) @db.Uuid
+  order_id   String   @db.Uuid
+  product_id String   @db.Uuid
+  variant_id String?  @db.Uuid
+  quantity   Int      @default(1)
+  unit_price Decimal  @db.Decimal(15, 2)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  order   ecommerce_orders   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product ecommerce_products @relation(fields: [product_id], references: [id])
+  variant ecommerce_variants? @relation(fields: [variant_id], references: [id])
+
+  @@map("ecommerce_order_items")
+}
+
+// ==========================================
+// E-COMMERCE: RATINGS & REVIEWS
+// ==========================================
+model ecommerce_reviews {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  product_id String   @db.Uuid
+  rating     Int      @default(5)
+  comment    String?  @db.Text
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  product ecommerce_products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@map("ecommerce_reviews")
+}
+
+// ==========================================
+// E-COMMERCE: WISHLISTS
+// ==========================================
+model ecommerce_wishlists {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  product_id String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  product ecommerce_products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@map("ecommerce_wishlists")
+}
+
+// ==========================================
+// E-COMMERCE: REFUNDS
+// ==========================================
+model ecommerce_refunds {
+  id                 String   @id @default(uuid()) @db.Uuid
+  order_id           String   @db.Uuid
+  amount             Decimal  @db.Decimal(15, 2)
+  status             String   @default("PENDING") @db.VarChar(20) // PENDING, PROCESSED, REJECTED
+  reason             String?  @db.Text
+  razorpay_refund_id String?  @db.VarChar(100)
+  created_at         DateTime @default(now()) @db.Timestamptz
+  updated_at         DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  order ecommerce_orders @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@map("ecommerce_refunds")
+}
+
+// ==========================================
+// E-COMMERCE: SELLER WITHDRAWALS
+// ==========================================
+model ecommerce_withdrawals {
+  id          String   @id @default(uuid()) @db.Uuid
+  seller_id   String   @db.Uuid
+  amount      Decimal  @db.Decimal(15, 2)
+  status      String   @default("PENDING") @db.VarChar(20) // PENDING, APPROVED, REJECTED
+  admin_notes String?  @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  seller ecommerce_sellers @relation(fields: [seller_id], references: [id], onDelete: Cascade)
+
+  @@map("ecommerce_withdrawals")
 }

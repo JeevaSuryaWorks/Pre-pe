@@ -82,6 +82,20 @@ import NotificationsPage from "./pages/NotificationsPage";
 import AIChat from "./pages/AIChat";
 import SafetyPage from "./pages/SafetyPage";
 
+// Accessories E-Commerce Page Imports
+import ShopListingPage from "./pages/shop/ShopListingPage";
+import ProductDetailsPage from "./pages/shop/ProductDetailsPage";
+import CartPage from "./pages/shop/CartPage";
+import CheckoutPage from "./pages/shop/CheckoutPage";
+import OrderHistoryPage from "./pages/shop/OrderHistoryPage";
+import SellerOnboardingPage from "./pages/shop/SellerOnboardingPage";
+import SellerDashboardPage from "./pages/shop/SellerDashboardPage";
+import SellerInventoryPage from "./pages/shop/SellerInventoryPage";
+import AdminSellers from "./pages/admin/AdminSellers";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminBuyers from "./pages/admin/AdminBuyers";
+
 import { useMobileFeatures } from "./hooks/useMobileFeatures";
 import { usePushNotifications } from "./hooks/usePushNotifications";
 import { useAppUpdate } from "./hooks/useAppUpdate";
@@ -174,6 +188,16 @@ const App = () => (
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/ai-chat" element={<AIChat />} />
               <Route path="/safety" element={<SafetyPage />} />
+
+              {/* Accessories E-Commerce Routes */}
+              <Route path="/shop" element={<ShopListingPage />} />
+              <Route path="/product/:id" element={<ProductDetailsPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/orders" element={<OrderHistoryPage />} />
+              <Route path="/seller/onboarding" element={<SellerOnboardingPage />} />
+              <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
+              <Route path="/seller/inventory" element={<SellerInventoryPage />} />
             </Route>
 
 
@@ -187,6 +211,12 @@ const App = () => (
                 <Route path="kyc" element={<KYCRequests />} />
                 <Route path="complaints" element={<AdminComplaints />} />
                 <Route path="logs" element={<AdminLogs />} />
+
+                {/* Accessories E-Commerce Admin Moderation */}
+                <Route path="sellers" element={<AdminSellers />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="buyers" element={<AdminBuyers />} />
 
                 {/* Placeholders for future */}
                 <Route path="users" element={<UserManagement />} />
