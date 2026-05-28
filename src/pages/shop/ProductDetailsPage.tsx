@@ -5,7 +5,7 @@ import { shopService, ProductItem, ProductVariant } from "@/services/shop.servic
 import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft, ShoppingCart, Star, Plus, Minus, ShieldCheck, Truck, RotateCcw,
-  Sparkles, Heart, Share2, Award, Clock, ArrowRight, CornerDownRight, Check
+  Sparkles, Heart, Share2, Award, Clock, ArrowRight, CornerDownRight, Check, Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
