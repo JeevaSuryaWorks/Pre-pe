@@ -20,7 +20,8 @@ const AdminLayout = () => {
     const isEcomPath = location.pathname.startsWith('/admin/buyers') || 
                        location.pathname.startsWith('/admin/products') || 
                        location.pathname.startsWith('/admin/orders') || 
-                       location.pathname.startsWith('/admin/sellers');
+                       location.pathname.startsWith('/admin/sellers') ||
+                       location.pathname.startsWith('/seller/dashboard');
     const [isStoreExpanded, setIsStoreExpanded] = useState(isEcomPath);
 
     useEffect(() => {
@@ -117,6 +118,7 @@ const AdminLayout = () => {
         { icon: Package, label: "Products", path: "/admin/products" },
         { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
         { icon: Store, label: "Sellers", path: "/admin/sellers" },
+        { icon: ExternalLink, label: "Seller Portal", path: "/seller/dashboard" },
     ];
 
     const allNavItems = [...navItems, ...ecomItems];

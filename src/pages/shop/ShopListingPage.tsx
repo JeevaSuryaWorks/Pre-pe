@@ -4,8 +4,9 @@ import { Layout } from "@/components/layout/Layout";
 import { shopService, ProductItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import {
-  Search, ShoppingCart, Star, Filter, ArrowUpDown, ChevronRight,
+  Search, ShoppingCart, Star, Filter, ArrowUpDown, ChevronRight, ArrowRight,
   Package, Smartphone, HelpCircle, Shield, Award, Sparkles, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +18,7 @@ export default function ShopListingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { profile } = useProfile();
   
   const AUTHORIZED_ADMINS = [
     'connect.prepe@gmail.com',
@@ -26,11 +28,16 @@ export default function ShopListingPage() {
   ];
 
   const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+  const isBusinessUser = profile?.plan_type?.toUpperCase() === 'BUSINESS';
   
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
+
+  // Market and access states
+  const [marketTab, setMarketTab] = useState<'retail' | 'wholesale'>('retail');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -47,7 +54,7 @@ export default function ShopListingPage() {
 
   useEffect(() => {
     loadProducts();
-  }, [selectedCategory, sortBy]);
+  }, [selectedCategory, sortBy, marketTab]);
 
   const loadCategories = async () => {
     try {
@@ -67,7 +74,13 @@ export default function ShopListingPage() {
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         sortBy
       });
-      setProducts(data);
+      
+      const filtered = data.filter(product => {
+        const isProductWholesale = (product.specifications as any)?.target_market === 'wholesale';
+        return marketTab === 'wholesale' ? isProductWholesale : !isProductWholesale;
+      });
+
+      setProducts(filtered);
     } catch (err) {
       console.error("Products fetch failed:", err);
       toast({
@@ -120,6 +133,14 @@ export default function ShopListingPage() {
     loadProducts();
   };
 
+  const handleWholesaleTabClick = () => {
+    if (!isBusinessUser) {
+      setShowUpgradeModal(true);
+    } else {
+      setMarketTab('wholesale');
+    }
+  };
+
   return (
     <Layout showBottomNav={true} hideHeader={true}>
       <div className="min-h-screen bg-[#F8FAFC] pb-24 relative overflow-x-hidden">
@@ -154,6 +175,37 @@ export default function ShopListingPage() {
             </Link>
           </div>
         </header>
+
+        {/* Market Segment Selector */}
+        <div className="px-5 mt-5">
+          <div className="bg-slate-100/80 p-1 rounded-2xl border border-slate-200/50 flex w-full h-12 shadow-inner">
+            <button
+              onClick={() => setMarketTab('retail')}
+              className={cn(
+                "flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5",
+                marketTab === 'retail' 
+                  ? "bg-[#046A38] text-white shadow-md shadow-green-700/10 scale-[1.02]" 
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Retail Shop
+            </button>
+            <button
+              onClick={handleWholesaleTabClick}
+              className={cn(
+                "flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-1.5 relative",
+                marketTab === 'wholesale' 
+                  ? "bg-[#FF671F] text-white shadow-md shadow-orange-600/10 scale-[1.02]" 
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Wholesale (B2B)
+              {!isBusinessUser && (
+                <span className="text-[7px] font-black tracking-widest text-[#FF671F] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full uppercase scale-90">PRO</span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Categories Horizontal Carousel */}
         <div className="px-5 mt-6">
@@ -383,6 +435,63 @@ export default function ShopListingPage() {
             </div>
           </div>
         </div>
+
+        {/* Business Upgrade Promotion Modal */}
+        <AnimatePresence>
+          {showUpgradeModal && (
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowUpgradeModal(false)}
+                className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
+              />
+              {/* Content Panel */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-[2.5rem] border border-slate-100 p-7 shadow-2xl relative w-full max-w-sm flex flex-col items-center text-center space-y-6 overflow-hidden z-30"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-orange-500/10 to-transparent rounded-full pointer-events-none" />
+                
+                <div className="w-16 h-16 bg-gradient-to-tr from-[#FF671F] to-orange-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20 relative animate-bounce">
+                  <Award className="w-8 h-8" />
+                </div>
+                
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#FF671F] bg-orange-50 border border-orange-100 px-3 py-1 rounded-full w-fit mx-auto">
+                    Business Plan Exclusive
+                  </span>
+                  <h3 className="text-xl font-black text-[#000080] tracking-tight pt-1">Wholesale Shop Restricted</h3>
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-[240px] mx-auto">
+                    Wholesale B2B lower rates, bulk packings, and direct reseller benefits are exclusive to our **Business Plan** partners.
+                  </p>
+                </div>
+
+                <div className="w-full space-y-2">
+                  <Button 
+                    onClick={() => {
+                      setShowUpgradeModal(false);
+                      navigate('/upgrade');
+                    }}
+                    className="w-full rounded-2xl bg-gradient-to-r from-[#FF671F] to-orange-600 hover:scale-102 active:scale-98 shadow-md text-white font-black text-xs uppercase tracking-widest h-12 flex items-center justify-center gap-1.5"
+                  >
+                    Upgrade Plan Now <ArrowRight className="w-4 h-4" />
+                  </Button>
+                  <button 
+                    onClick={() => setShowUpgradeModal(false)}
+                    className="w-full py-2.5 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 tracking-wider"
+                  >
+                    Maybe Later
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </div>
     </Layout>

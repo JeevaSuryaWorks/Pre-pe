@@ -32,6 +32,7 @@ export default function SellerInventoryPage() {
   const [brand, setBrand] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [submittingProduct, setSubmittingProduct] = useState(false);
+  const [targetMarket, setTargetMarket] = useState("retail");
 
   // Dynamic Specs additions
   const [specKey, setSpecKey] = useState("");
@@ -143,6 +144,11 @@ export default function SellerInventoryPage() {
     try {
       const imagesList = imageUrl ? [imageUrl] : ["https://placehold.co/400x400/png?text=Premium+Gear"];
       
+      const mergedSpecs = {
+        ...specifications,
+        target_market: targetMarket
+      };
+
       await shopService.createProduct({
         title,
         description,
@@ -151,7 +157,7 @@ export default function SellerInventoryPage() {
         compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
         brand: brand || "Generic",
         images: imagesList,
-        specifications,
+        specifications: mergedSpecs,
         variants: variantsList
       });
 
@@ -170,6 +176,7 @@ export default function SellerInventoryPage() {
       setImageUrl("");
       setSpecifications({});
       setVariantsList([]);
+      setTargetMarket("retail");
       setShowAddForm(false);
 
       loadInventory();
@@ -297,6 +304,19 @@ export default function SellerInventoryPage() {
                       {categories.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Target Market *</label>
+                    <select
+                      className="w-full bg-slate-50 border-none rounded-xl h-11 px-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF671F]/10"
+                      value={targetMarket}
+                      onChange={(e) => setTargetMarket(e.target.value)}
+                      required
+                    >
+                      <option value="retail">Retail (B2C) User</option>
+                      <option value="wholesale">Wholesale (B2B) Partner</option>
                     </select>
                   </div>
 
@@ -458,10 +478,18 @@ export default function SellerInventoryPage() {
                   <div className="flex-1 min-w-0 flex flex-col justify-center text-xs font-bold">
                     <p className="text-[8px] font-black uppercase text-[#FF671F] tracking-widest">{item.brand}</p>
                     <h4 className="text-slate-800 line-clamp-1 leading-snug mt-0.5">{item.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="text-[#000080] font-black text-sm">₹{item.price.toFixed(2)}</span>
                       <span className="text-[8px] font-black uppercase tracking-widest bg-slate-50 border border-slate-100 text-slate-400 px-2 py-0.5 rounded-md">
                         {item.category?.name}
+                      </span>
+                      <span className={cn(
+                        "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border",
+                        (item.specifications as any)?.target_market === 'wholesale' 
+                          ? "bg-orange-50 border-orange-200 text-[#FF671F]" 
+                          : "bg-emerald-50 border-emerald-200 text-[#046A38]"
+                      )}>
+                        {(item.specifications as any)?.target_market === 'wholesale' ? "Wholesale B2B" : "Retail B2C"}
                       </span>
                     </div>
                   </div>
