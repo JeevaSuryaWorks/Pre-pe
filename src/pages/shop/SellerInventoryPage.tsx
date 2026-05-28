@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { shopService, ProductItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   ChevronLeft, Package, Plus, Trash2, Edit2, Star, CheckCircle2,
   ListPlus, Sparkles, Image, Settings, DollarSign, Loader2, Save, X
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input";
 export default function SellerInventoryPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -48,8 +50,28 @@ export default function SellerInventoryPage() {
   const [savingStock, setSavingStock] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    const AUTHORIZED_ADMINS = [
+      'connect.prepe@gmail.com',
+      'prepeindia@outlook.com',
+      'prepeindia@zohomail.in',
+      'jeevasuriya2007@gmail.com'
+    ];
+    const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+
+    if (!isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Seller portal is restricted to authorized administrators.",
+        variant: "destructive"
+      });
+      navigate("/shop");
+      return;
+    }
+
     loadInventory();
-  }, []);
+  }, [user, authLoading]);
 
   const loadInventory = async () => {
     setLoading(true);
@@ -193,6 +215,17 @@ export default function SellerInventoryPage() {
       setSavingStock(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <Layout showBottomNav={true} hideHeader={true}>
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-[#000080]" />
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Opening Payout Portal...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout showBottomNav={true} hideHeader={true}>

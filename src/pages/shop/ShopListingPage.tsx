@@ -141,7 +141,7 @@ export default function ShopListingPage() {
           <div className="flex items-center gap-2">
             {isAdmin && (
               <Link to="/seller/dashboard" className="text-[9px] font-black uppercase tracking-widest px-3 py-2 bg-slate-50 border border-slate-150 rounded-xl hover:bg-slate-100 text-slate-600 transition-all">
-                Seller Portal
+                Wholesale
               </Link>
             )}
             <Link to="/cart" className="h-10 w-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-700 relative active:scale-95 transition-all shadow-sm">

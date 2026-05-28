@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { shopService } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   ChevronLeft, Smartphone, Building, ShieldCheck, Clock,
   FileText, ArrowRight, Clipboard, Award, ShieldAlert, Loader2
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input";
 export default function SellerOnboardingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   const [checking, setChecking] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -27,8 +29,28 @@ export default function SellerOnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    const AUTHORIZED_ADMINS = [
+      'connect.prepe@gmail.com',
+      'prepeindia@outlook.com',
+      'prepeindia@zohomail.in',
+      'jeevasuriya2007@gmail.com'
+    ];
+    const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+
+    if (!isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Seller portal is restricted to authorized administrators.",
+        variant: "destructive"
+      });
+      navigate("/shop");
+      return;
+    }
+
     checkProfile();
-  }, []);
+  }, [user, authLoading]);
 
   const checkProfile = async () => {
     setChecking(true);
@@ -93,7 +115,7 @@ export default function SellerOnboardingPage() {
     }
   };
 
-  if (checking) {
+  if (checking || authLoading) {
     return (
       <Layout showBottomNav={true} hideHeader={true}>
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center gap-4">
