@@ -505,13 +505,21 @@ const SavedPage = () => {
                                                                                 <AlertCircle className="w-3.5 h-3.5" /> Overdue
                                                                             </span>
                                                                         )}
-                                                                        <input
-                                                                            type="date"
-                                                                            value={item.metadata?.due_date || ""}
-                                                                            disabled={true}
+                                                                        <div 
                                                                             onClick={(e) => e.stopPropagation()}
-                                                                            className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none transition-all font-mono cursor-not-allowed"
-                                                                        />
+                                                                            className="text-xs font-black text-slate-600 bg-slate-100 border border-slate-200/80 rounded-xl px-3.5 py-1.5 focus:outline-none transition-all font-mono select-all cursor-default"
+                                                                        >
+                                                                            {item.metadata?.due_date 
+                                                                                ? (() => {
+                                                                                    const parts = item.metadata.due_date.split('-');
+                                                                                    if (parts.length === 3) {
+                                                                                        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                                                                    }
+                                                                                    return format(new Date(item.metadata.due_date), 'dd-MM-yyyy');
+                                                                                })()
+                                                                                : "N/A"
+                                                                            }
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
@@ -673,13 +681,21 @@ const SavedPage = () => {
                                                                                 <AlertCircle className="w-3.5 h-3.5" /> Overdue
                                                                             </span>
                                                                         )}
-                                                                        <input
-                                                                            type="date"
-                                                                            value={item.metadata?.due_date || ""}
-                                                                            disabled={true}
+                                                                        <div 
                                                                             onClick={(e) => e.stopPropagation()}
-                                                                            className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none transition-all font-mono cursor-not-allowed"
-                                                                        />
+                                                                            className="text-xs font-black text-slate-600 bg-slate-100 border border-slate-200/80 rounded-xl px-3.5 py-1.5 focus:outline-none transition-all font-mono select-all cursor-default"
+                                                                        >
+                                                                            {item.metadata?.due_date 
+                                                                                ? (() => {
+                                                                                    const parts = item.metadata.due_date.split('-');
+                                                                                    if (parts.length === 3) {
+                                                                                        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                                                                                    }
+                                                                                    return format(new Date(item.metadata.due_date), 'dd-MM-yyyy');
+                                                                                })()
+                                                                                : "N/A"
+                                                                            }
+                                                                        </div>
                                                                     </div>
                                                                 </div>                                                                {/* AutoPay and Days Left */}
                                                                 <div className="grid grid-cols-2 gap-3 mt-1">
