@@ -1,4 +1,4 @@
-import { Home, Heart, BadgePercent, Zap, Bot } from "lucide-react";
+import { Home, Heart, BadgePercent, ShoppingBag, Bot } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ export const BottomNav = () => {
         { icon: Heart, label: "Favorites", path: "/saved" },
         { icon: Bot, label: "AI", path: "/ai-chat", isAI: true },
         { icon: BadgePercent, label: "Rewards", path: "/rewards" },
-        { icon: Zap, label: "Upgrade", path: "/upgrade" },
+        { icon: ShoppingBag, label: "Shop", path: "/shop" },
     ];
 
     return (

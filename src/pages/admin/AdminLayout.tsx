@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, Menu, X, ShoppingBag, Package, ShoppingCart, Store, ExternalLink } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, ChevronDown, Menu, X, ShoppingBag, Package, ShoppingCart, Store, ExternalLink } from "lucide-react";
 import { BrandLoader } from "@/components/ui/BrandLoader";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -16,6 +16,18 @@ const AdminLayout = () => {
     const [pendingComplaints, setPendingComplaints] = useState(0);
     const [adminEmail, setAdminEmail] = useState("");
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const isEcomPath = location.pathname.startsWith('/admin/buyers') || 
+                       location.pathname.startsWith('/admin/products') || 
+                       location.pathname.startsWith('/admin/orders') || 
+                       location.pathname.startsWith('/admin/sellers');
+    const [isStoreExpanded, setIsStoreExpanded] = useState(isEcomPath);
+
+    useEffect(() => {
+        if (isEcomPath) {
+            setIsStoreExpanded(true);
+        }
+    }, [location.pathname]);
 
     useEffect(() => {
         checkAdmin();
@@ -185,36 +197,48 @@ const AdminLayout = () => {
                                 );
                             })}
 
-                            {/* E-Commerce Section */}
-                            <div className="pt-3 pb-1">
-                                <div className="flex items-center gap-2 px-2">
-                                    <div className="h-px flex-1 bg-slate-100" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">E-Commerce</span>
-                                    <div className="h-px flex-1 bg-slate-100" />
-                                </div>
+                            {/* E-Commerce Collapsible Section */}
+                            <div className="space-y-1 pt-2">
+                                <button
+                                    onClick={() => setIsStoreExpanded(!isStoreExpanded)}
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                        isEcomPath 
+                                            ? "bg-orange-50 text-orange-950 font-bold border border-orange-100" 
+                                            : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Store className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isEcomPath ? "text-orange-600" : "text-slate-400 group-hover:text-slate-600"}`} />
+                                        <span className="text-sm font-semibold tracking-tight">Store</span>
+                                    </div>
+                                    <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isStoreExpanded ? "rotate-180 text-orange-600" : ""}`} />
+                                </button>
+
+                                {isStoreExpanded && (
+                                    <div className="pl-4 space-y-1.5 mt-1.5 border-l border-slate-100 ml-6 animate-in slide-in-from-top-1 duration-200">
+                                        {ecomItems.map((item) => {
+                                            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                                            return (
+                                                <button
+                                                    key={item.path}
+                                                    onClick={() => {
+                                                        navigate(item.path);
+                                                        setIsMobileMenuOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group ${
+                                                        isActive
+                                                            ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20 scale-[1.02] font-semibold"
+                                                            : "text-slate-600 hover:bg-orange-50/40 hover:text-slate-900"
+                                                    }`}
+                                                >
+                                                    <item.icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-400 group-hover:text-orange-600"}`} />
+                                                    <span className="text-xs font-semibold tracking-tight">{item.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                            {ecomItems.map((item) => {
-                                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                                return (
-                                    <button
-                                        key={item.path}
-                                        onClick={() => {
-                                            navigate(item.path);
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
-                                            isActive
-                                                ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20 scale-[1.02] font-semibold"
-                                                : "text-slate-600 hover:bg-orange-50/60 hover:text-slate-900"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-400 group-hover:text-orange-600"}`} />
-                                            <span className="text-sm font-semibold tracking-tight">{item.label}</span>
-                                        </div>
-                                    </button>
-                                );
-                            })}
                         </nav>
 
                         {/* Sidebar User profile footer */}
@@ -291,31 +315,45 @@ const AdminLayout = () => {
                         );
                     })}
 
-                    {/* E-Commerce Section */}
-                    <div className="pt-3 pb-1">
-                        <div className="flex items-center gap-2 px-2">
-                            <div className="h-px flex-1 bg-slate-100" />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">E-Commerce</span>
-                            <div className="h-px flex-1 bg-slate-100" />
-                        </div>
+                    {/* E-Commerce Collapsible Section */}
+                    <div className="space-y-1 pt-2">
+                        <button
+                            onClick={() => setIsStoreExpanded(!isStoreExpanded)}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                isEcomPath 
+                                    ? "bg-orange-50 text-orange-950 font-bold border border-orange-100" 
+                                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                            }`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Store className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isEcomPath ? "text-orange-600" : "text-slate-400 group-hover:text-slate-600"}`} />
+                                <span className="text-sm font-semibold tracking-tight">Store</span>
+                            </div>
+                            <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isStoreExpanded ? "rotate-180 text-orange-600" : ""}`} />
+                        </button>
+
+                        {isStoreExpanded && (
+                            <div className="pl-4 space-y-1.5 mt-1.5 border-l border-slate-100 ml-6 animate-in slide-in-from-top-1 duration-200">
+                                {ecomItems.map((item) => {
+                                    const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                                    return (
+                                        <button
+                                            key={item.path}
+                                            onClick={() => navigate(item.path)}
+                                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group ${
+                                                isActive
+                                                    ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-sm shadow-orange-500/10 scale-[1.02] font-semibold"
+                                                    : "text-slate-600 hover:bg-orange-50/40 hover:text-slate-900"
+                                            }`}
+                                        >
+                                            <item.icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-400 group-hover:text-orange-600"}`} />
+                                            <span className="text-xs font-semibold tracking-tight">{item.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
-                    {ecomItems.map((item) => {
-                        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                        return (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
-                                    isActive
-                                        ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20 scale-[1.02]"
-                                        : "text-slate-600 hover:bg-orange-50/60 hover:text-slate-900"
-                                }`}
-                            >
-                                <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-400 group-hover:text-orange-600"}`} />
-                                <span className="text-sm font-semibold tracking-tight">{item.label}</span>
-                            </button>
-                        );
-                    })}
                 </nav>
 
 

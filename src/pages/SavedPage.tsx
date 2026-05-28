@@ -25,7 +25,8 @@ import {
     ArrowRight,
     Calendar,
     AlertCircle,
-    MessageSquare
+    MessageSquare,
+    Gift
 } from 'lucide-react';
 import { getSavedItems, removeSavedItem, updateSavedItem, type SavedItem } from '@/services/saved.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -115,6 +116,29 @@ const SavedPage = () => {
                 colorClass: "text-[#046A38] font-black uppercase tracking-wider",
                 bgClass: "bg-emerald-50/50 border-emerald-200 text-emerald-800",
                 status: 'upcoming'
+            };
+        }
+    };
+
+    const getRewardsPointsInfo = (dueDateStr: string | null | undefined) => {
+        const daysInfo = calculateDaysLeft(dueDateStr, currentTime);
+        if (daysInfo.status === 'overdue') {
+            return {
+                text: "Payoverdue & 20 Rewards Points",
+                colorClass: "text-rose-600 bg-rose-50/50 border-rose-200 text-rose-800",
+                iconColor: "text-rose-500"
+            };
+        } else if (daysInfo.status === 'today') {
+            return {
+                text: "Pay Today & Get 25 Rewards",
+                colorClass: "text-amber-700 bg-amber-50/50 border-amber-200 text-amber-800",
+                iconColor: "text-amber-500 animate-pulse"
+            };
+        } else {
+            return {
+                text: "Pay Now & Get 30 Points",
+                colorClass: "text-[#046A38] bg-emerald-50/50 border-emerald-200 text-emerald-800",
+                iconColor: "text-emerald-600"
             };
         }
     };
@@ -549,6 +573,20 @@ const SavedPage = () => {
                                                                         </div>
                                                                     );
                                                                 })()}
+
+                                                                {/* Rewards Points Banner */}
+                                                                {(() => {
+                                                                    const rewardsInfo = getRewardsPointsInfo(item.metadata?.due_date);
+                                                                    return (
+                                                                        <div className={cn(
+                                                                            "flex items-center gap-2.5 px-3.5 py-2.5 border rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider select-none",
+                                                                            rewardsInfo.colorClass
+                                                                        )}>
+                                                                            <Gift className={cn("w-4 h-4 shrink-0 animate-bounce", rewardsInfo.iconColor)} />
+                                                                            <span>{rewardsInfo.text}</span>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </Card>
@@ -757,6 +795,20 @@ const SavedPage = () => {
                                                                         );
                                                                     })()}
                                                                 </div>
+
+                                                                {/* Rewards Points Banner */}
+                                                                {(() => {
+                                                                    const rewardsInfo = getRewardsPointsInfo(item.metadata?.due_date);
+                                                                    return (
+                                                                        <div className={cn(
+                                                                            "flex items-center gap-2.5 px-3.5 py-2.5 border rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider select-none",
+                                                                            rewardsInfo.colorClass
+                                                                        )}>
+                                                                            <Gift className={cn("w-4 h-4 shrink-0 animate-bounce", rewardsInfo.iconColor)} />
+                                                                            <span>{rewardsInfo.text}</span>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     </Card>
