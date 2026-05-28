@@ -94,7 +94,8 @@ export async function sendTelegramAdminKYCAlert(profile: any, planType: string, 
                      : `🔗 <a href="https://pre-pe.com/admin/kyc">Direct Navigate to Admin KYC Verification Desk</a>\n\n` +
                        `<i>Please audit the uploaded identity files in the Admin Desk.</i>`);
 
-    await sendTelegramMessage(text, TELEGRAM_GROUP_CHAT_ID);
+    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID || TELEGRAM_GROUP_CHAT_ID;
+    await sendTelegramMessage(text, chatId);
 }
 
 /**
@@ -111,7 +112,8 @@ export async function sendTelegramAdminFundClaimAlert(profile: any, amount: numb
                  `🕒 <b>Time:</b> ${new Date().toLocaleString('en-IN')}\n\n` +
                  `🔗 <a href="https://pre-pe.com/admin/fund-requests">Direct Navigate to Admin Fund Requests Desk</a>\n\n` +
                  `<i>Please review and approve this claim inside the Pre-pe Admin Desk.</i>`;
-    await sendTelegramMessage(text, TELEGRAM_GROUP_CHAT_ID);
+    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID || TELEGRAM_GROUP_CHAT_ID;
+    await sendTelegramMessage(text, chatId);
 }
 
 // Background Listener States

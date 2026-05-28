@@ -28,6 +28,7 @@ import {
     checkAndRecordDailyStreak
 } from "@/services/rewards.service";
 import { Layout } from "@/components/layout/Layout";
+import { notificationsService } from "@/services/notifications.service";
 
 const HomePage = () => {
     const { user } = useAuth();
@@ -42,6 +43,7 @@ const HomePage = () => {
     const [streak, setStreak] = useState<number>(0);
     const [streakLoading, setStreakLoading] = useState(true);
     const [unscratchedCount, setUnscratchedCount] = useState<number>(0);
+    const [unreadCount, setUnreadCount] = useState<number>(0);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -75,6 +77,23 @@ const HomePage = () => {
 
         fetchPointsAndRewards();
         return () => window.removeEventListener('scroll', handleScroll);
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        
+        const fetchUnreadCount = async () => {
+            const count = await notificationsService.getUnreadCount(user.id);
+            setUnreadCount(count);
+        };
+        
+        fetchUnreadCount();
+        
+        // Listen to custom dismiss/update notifications events
+        window.addEventListener('prepe_notifications_updated', fetchUnreadCount);
+        return () => {
+            window.removeEventListener('prepe_notifications_updated', fetchUnreadCount);
+        };
     }, [user?.id]);
 
     const name = user?.user_metadata?.full_name || "User";
@@ -122,7 +141,9 @@ const HomePage = () => {
                     <div className="flex items-center gap-2">
                         <Link to="/notifications" className="h-10 w-10 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-600 relative active:scale-90 transition-all">
                             <Bell className="w-4 h-4" />
-                            <span className="absolute top-3 right-3 w-2 h-2 bg-[#FF671F] rounded-full border-2 border-white" />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-3 right-3 w-2 h-2 bg-[#FF671F] rounded-full border-2 border-white" />
+                            )}
                         </Link>
                     </div>
                 </header>

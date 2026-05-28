@@ -1,32 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { adminService } from '@/services/admin';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { 
     Bell, ChevronLeft, Megaphone, ShieldAlert, 
     Calendar, Inbox, Loader2, Info, ArrowRight,
-    CircleCheck, AlertCircle
+    CircleCheck, AlertCircle, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
-interface NotificationItem {
-    id: string;
-    type: 'announcement' | 'rejection';
-    title: string;
-    content: string;
-    date: string;
-    cta_link?: string;
-    cta_text?: string;
-    icon?: any;
-    color?: string;
-}
+import { notificationsService, NotificationItem } from '@/services/notifications.service';
 
 const NotificationsPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { toast } = useToast();
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -38,125 +27,22 @@ const NotificationsPage = () => {
     const fetchNotifications = async () => {
         setLoading(true);
         try {
-            const allNotifications: NotificationItem[] = [];
-
-            // 1. Fetch Global Announcements (banners)
-            try {
-                const announcements = await adminService.getBanners('announcement', 'published');
-                if (announcements) {
-                    announcements.forEach((a: any) => {
-                        allNotifications.push({
-                            id: a.id,
-                            type: 'announcement',
-                            title: a.title,
-                            content: a.subtitle || 'Check out this new update!',
-                            date: a.updated_at || a.created_at,
-                            cta_link: a.cta_link,
-                            cta_text: a.cta_text,
-                            icon: Megaphone,
-                            color: 'blue'
-                        });
-                    });
-                }
-            } catch (err) {
-                console.error("Announcements fetch failed:", err);
-            }
-
-            // 2. Fetch User KYC Status Updates (Approved & Rejected)
-            try {
-                const { data: kycStatusList, error: kycError } = await supabase
-                    .from('kyc_verifications' as any)
-                    .select('*')
-                    .eq('user_id', user?.id)
-                    .in('status', ['APPROVED', 'REJECTED'])
-                    .order('updated_at', { ascending: false });
-
-                if (!kycError && kycStatusList) {
-                    kycStatusList.forEach((k: any) => {
-                        if (k.status === 'APPROVED') {
-                            const detailsText = k.rejection_reason && k.rejection_reason.startsWith('Verified Checklist:')
-                                ? `Congratulations! Your Identity Compliance Audit has been successfully verified. Your plan benefits and limits are now fully unlocked.\n\n${k.rejection_reason}`
-                                : 'Congratulations! Your Identity Compliance Audit has been successfully verified. Your plan benefits and limits are now fully unlocked.';
-                            allNotifications.push({
-                                id: `kyc-${k.id}`,
-                                type: 'approval' as any,
-                                title: 'KYC Verification Approved 🎉',
-                                content: detailsText,
-                                date: k.updated_at,
-                                cta_link: '/home',
-                                cta_text: 'Explore Now',
-                                icon: CircleCheck,
-                                color: 'emerald'
-                            });
-                        } else {
-                            allNotifications.push({
-                                id: `kyc-${k.id}`,
-                                type: 'rejection',
-                                title: 'KYC Verification Rejected',
-                                content: k.rejection_reason || 'Your KYC application was rejected by the administrator. Please re-submit with clear documents.',
-                                date: k.updated_at,
-                                cta_link: '/kyc',
-                                cta_text: 'Fix Now',
-                                icon: ShieldAlert,
-                                color: 'rose'
-                            });
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error("KYC status fetch failed:", err);
-            }
-
-            // 3. Fetch User Manual Fund Request Updates (Approved & Rejected)
-            try {
-                const { data: fundRequestList, error: fundError } = await supabase
-                    .from('manual_fund_requests')
-                    .select('*')
-                    .eq('user_id', user?.id)
-                    .in('status', ['APPROVED', 'REJECTED'])
-                    .order('updated_at', { ascending: false });
-
-                if (!fundError && fundRequestList) {
-                    fundRequestList.forEach((req: any) => {
-                        if (req.status === 'APPROVED') {
-                            allNotifications.push({
-                                id: `fund-${req.id}`,
-                                type: 'approval' as any,
-                                title: 'Fund Deposit Approved 💰',
-                                content: `Your manual deposit request for ₹${req.amount} has been approved. The funds have been successfully credited to your Pre-pe wallet.`,
-                                date: req.updated_at,
-                                cta_link: '/wallet',
-                                cta_text: 'View Wallet',
-                                icon: CircleCheck,
-                                color: 'emerald'
-                            });
-                        } else {
-                            allNotifications.push({
-                                id: `fund-${req.id}`,
-                                type: 'rejection',
-                                title: 'Fund Deposit Rejected ❌',
-                                content: `Your manual deposit request for ₹${req.amount} was rejected.\n\nReason: ${req.admin_notes || 'Invalid transaction ID or details. Please double check your UTR number and try again.'}`,
-                                date: req.updated_at,
-                                cta_link: '/wallet',
-                                cta_text: 'Try Again',
-                                icon: AlertCircle,
-                                color: 'rose'
-                            });
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error("Fund request status fetch failed:", err);
-            }
-
-            // Sort by date descending
-            allNotifications.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setNotifications(allNotifications);
+            const data = await notificationsService.fetchNotifications(user.id);
+            setNotifications(data);
         } catch (err) {
             console.error("Global notification fetch failed:", err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDismiss = (id: string) => {
+        notificationsService.dismissNotification(id);
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        toast({
+            title: "Notification Dismissed",
+            description: "It has been removed from your active bulletins.",
+        });
     };
 
     return (
@@ -224,6 +110,16 @@ const NotificationsPage = () => {
                                                     ? "border-emerald-100 hover:border-emerald-200"
                                                     : "border-slate-100 hover:border-blue-100"
                                         )}>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDismiss(notif.id);
+                                                }}
+                                                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-90 transition-all z-20 shadow-sm"
+                                                title="Dismiss Notification"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
                                             <div className="flex gap-4">
                                                 {/* Icon Pillar */}
                                                 <div className={cn(
@@ -238,7 +134,7 @@ const NotificationsPage = () => {
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start mb-1 gap-2">
+                                                    <div className="flex justify-between items-start mb-1 gap-2 pr-6">
                                                         <h3 className="font-black text-slate-900 text-[15px] tracking-tight leading-tight">
                                                             {notif.title}
                                                         </h3>
