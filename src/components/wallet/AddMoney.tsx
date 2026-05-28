@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CreditCard, Smartphone, CheckCircle, XCircle, Zap, ShieldCheck, AlertCircle } from 'lucide-react';
+import { CreditCard, Smartphone, CheckCircle, XCircle, Zap, ShieldCheck, AlertCircle } from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useToast } from '@/hooks/use-toast';
 import { paymentService } from '@/services/payment.service';
 import { manualFundService } from '@/services/manualFund.service';
@@ -492,7 +493,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               disabled={submittingBnplOtp}
               className="flex-1 h-12 bg-orange-600 hover:bg-orange-700 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-100 text-white"
             >
-              {submittingBnplOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify & Link"}
+              {submittingBnplOtp ? <PrePeSpinner className="h-4 w-4" /> : "Verify & Link"}
             </Button>
           </div>
         </motion.div>
@@ -596,7 +597,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                         className="w-full h-full"
                       />
                     ) : (
-                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                      <BrandLoader size="md" />
                     )}
                   </div>
                 </div>
@@ -662,7 +663,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
           ) : (
             <div className="text-center py-12 space-y-6">
               <div className="relative h-20 w-20 mx-auto">
-                <Loader2 className="h-20 w-20 text-emerald-600 animate-spin absolute inset-0" />
+                <BrandLoader size="md" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Zap className="h-8 w-8 text-emerald-400 fill-current" />
                 </div>

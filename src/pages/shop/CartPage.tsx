@@ -5,8 +5,9 @@ import { shopService, CartItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft, ShoppingCart, Trash2, Plus, Minus, ArrowRight,
-  Sparkles, Ticket, Percent, ShieldCheck, Loader2
+  Sparkles, Ticket, Percent, ShieldCheck
 } from "lucide-react";
+import { PrePeSpinner } from "@/components/ui/BrandLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ export default function CartPage() {
     return (
       <Layout showBottomNav={true} hideHeader={true}>
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[#000080]" />
+          <PrePeSpinner className="w-12 h-12" />
           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Opening Shopping Bag...</p>
         </div>
       </Layout>
@@ -143,7 +144,7 @@ export default function CartPage() {
 
   return (
     <Layout showBottomNav={true} hideHeader={true}>
-      <div className="min-h-screen bg-[#F8FAFC] pb-32 relative overflow-x-hidden">
+      <div className="min-h-screen bg-[#F8FAFC] pb-40 relative overflow-x-hidden">
         
         {/* Navy Gradient Top */}
         <div className="absolute top-0 left-0 w-full h-[180px] bg-gradient-to-b from-[#000080]/5 to-transparent pointer-events-none" />
@@ -249,7 +250,7 @@ export default function CartPage() {
                     disabled={checkingCoupon}
                     className="bg-[#000080] hover:bg-[#000080]/90 text-white rounded-2xl h-11 px-5 text-xs font-black uppercase tracking-widest shrink-0 shadow-sm"
                   >
-                    {checkingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                    {checkingCoupon ? <PrePeSpinner className="w-4 h-4" /> : "Apply"}
                   </Button>
                 </div>
                 {appliedCoupon && (
@@ -295,16 +296,18 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Persistent Action Sticky Footer */}
+        {/* Persistent Action Sticky Footer — ABOVE 64px BottomNav */}
         {cartItems.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 px-6 flex justify-center shadow-2xl">
-            <Button
-              onClick={() => navigate('/checkout', { state: { couponCode: appliedCoupon?.code } })}
-              className="w-full max-w-md bg-[#FF671F] hover:bg-[#FF671F]/90 text-white rounded-2xl h-14 text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between px-6"
-            >
-              <span>Verify & Checkout</span>
-              <span className="flex items-center gap-1.5">₹{grandTotal.toFixed(2)} <ArrowRight className="w-4 h-4" /></span>
-            </Button>
+          <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-4">
+            <div className="w-full max-w-md bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-3 shadow-2xl">
+              <Button
+                onClick={() => navigate('/checkout', { state: { couponCode: appliedCoupon?.code } })}
+                className="w-full bg-[#FF671F] hover:bg-[#FF671F]/90 text-white rounded-xl h-14 text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between px-6"
+              >
+                <span>Verify & Checkout</span>
+                <span className="flex items-center gap-1.5">₹{grandTotal.toFixed(2)} <ArrowRight className="w-4 h-4" /></span>
+              </Button>
+            </div>
           </div>
         )}
 

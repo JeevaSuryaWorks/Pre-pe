@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
+import { PageLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { motion } from 'framer-motion';
 
 export const AdminGuard = () => {
@@ -10,11 +11,7 @@ export const AdminGuard = () => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950">
-                <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-            </div>
-        );
+        return <PageLoader message="Verifying admin access..." />;
     }
 
     if (!user) {
@@ -100,7 +97,7 @@ export const AdminGuard = () => {
                             className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl font-bold text-sm bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 text-slate-300 hover:text-white transition-all active:scale-[0.98] disabled:opacity-50"
                         >
                             {isLoggingOut ? (
-                                <Loader2 className="w-4 h-4 animate-spin text-slate-300" />
+                                <PrePeSpinner className="w-4 h-4" />
                             ) : (
                                 <LogOut className="w-4 h-4" />
                             )}

@@ -18,9 +18,9 @@ import {
     X,
     AlertCircle,
     XCircle,
-    Loader2,
     Building2
 } from 'lucide-react';
+import { PageLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { submitKYC, uploadKYCDocument } from '@/services/kyc.service';
@@ -423,9 +423,7 @@ export const KYCPage = () => {
     if (hookLoading || profileLoading) {
         return (
             <Layout hideHeader>
-                <div className="min-h-screen flex items-center justify-center bg-white">
-                    <Loader2 className="w-10 h-10 animate-spin text-[#FF671F]" />
-                </div>
+                <PageLoader message="Loading KYC..." />
             </Layout>
         );
     }
@@ -448,7 +446,7 @@ export const KYCPage = () => {
                         <div className="p-8 flex flex-col items-center text-center">
                             <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-orange-50/50">
                                 <div className="w-14 h-14 bg-[#FF671F] rounded-full flex items-center justify-center shadow-lg shadow-orange-600/20">
-                                    <Loader2 className="w-7 h-7 text-white animate-spin" />
+                                    <PrePeSpinner className="w-7 h-7" />
                                 </div>
                             </div>
 

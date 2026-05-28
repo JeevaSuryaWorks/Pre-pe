@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, Plus, Pencil, Trash, Settings2 } from "lucide-react";
+import { Plus, Pencil, Trash, Settings2 } from "lucide-react";
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -149,7 +150,7 @@ const CommissionManager = () => {
                                     <TableRow>
                                         <TableCell colSpan={6} className="h-48 text-center">
                                             <div className="flex flex-col items-center justify-center text-slate-500">
-                                                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-2" />
+                                                <BrandLoader size="md" />
                                                 <p>Loading slabs...</p>
                                             </div>
                                         </TableCell>

@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, Plus, History, ArrowUpRight, ArrowDownLeft, Lock, Zap, Loader2, CheckCircle, ArrowRightLeft, CreditCard, Trophy } from 'lucide-react';
+import { Wallet, Plus, History, ArrowUpRight, ArrowDownLeft, Lock, Zap, CheckCircle, ArrowRightLeft, CreditCard, Trophy } from 'lucide-react';
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import { useWallet } from '@/hooks/useWallet';
 import { useAuth } from '@/hooks/useAuth';
 import { getWalletLedger } from '@/services/wallet.service';
@@ -225,7 +226,7 @@ export function WalletDashboard() {
             <CardContent className="p-0">
               {loadingLedger ? (
                 <div className="flex items-center justify-center py-20">
-                  <Loader2 className="h-8 w-8 animate-spin text-slate-200" />
+                  <BrandLoader size="md" />
                 </div>
               ) : ledger.length === 0 ? (
                 <div className="py-20 text-center flex flex-col items-center">

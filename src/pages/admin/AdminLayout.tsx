@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, Menu, X } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, Menu, X, ShoppingBag, Package, ShoppingCart, Store, ExternalLink } from "lucide-react";
+import { BrandLoader } from "@/components/ui/BrandLoader";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { supportService } from "@/services/support.service";
@@ -77,9 +78,8 @@ const AdminLayout = () => {
 
     if (loading) {
         return (
-            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
-                <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-3" />
-                <p className="text-slate-500 font-semibold animate-pulse">Initializing Security...</p>
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
+                <BrandLoader size="lg" message="Initializing Security..." />
             </div>
         );
     }
@@ -99,8 +99,18 @@ const AdminLayout = () => {
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
     ];
 
+    // E-Commerce sub-section
+    const ecomItems = [
+        { icon: ShoppingBag, label: "Buyers", path: "/admin/buyers" },
+        { icon: Package, label: "Products", path: "/admin/products" },
+        { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
+        { icon: Store, label: "Sellers", path: "/admin/sellers" },
+    ];
+
+    const allNavItems = [...navItems, ...ecomItems];
+
     // Find the active page label for breadcrumbs
-    const currentActiveItem = navItems.find(item => item.path === location.pathname);
+    const currentActiveItem = allNavItems.find(item => item.path === location.pathname);
 
     return (
         <div className="flex h-screen bg-slate-50/50 overflow-hidden relative">
@@ -142,7 +152,6 @@ const AdminLayout = () => {
                             </button>
                         </div>
 
-                        {/* Sidebar Scroll Navigation List */}
                         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
                             {navItems.map((item) => {
                                 const isActive = location.pathname === item.path;
@@ -172,6 +181,37 @@ const AdminLayout = () => {
                                                 {item.badge}
                                             </Badge>
                                         )}
+                                    </button>
+                                );
+                            })}
+
+                            {/* E-Commerce Section */}
+                            <div className="pt-3 pb-1">
+                                <div className="flex items-center gap-2 px-2">
+                                    <div className="h-px flex-1 bg-slate-100" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">E-Commerce</span>
+                                    <div className="h-px flex-1 bg-slate-100" />
+                                </div>
+                            </div>
+                            {ecomItems.map((item) => {
+                                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                                return (
+                                    <button
+                                        key={item.path}
+                                        onClick={() => {
+                                            navigate(item.path);
+                                            setIsMobileMenuOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                            isActive
+                                                ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20 scale-[1.02] font-semibold"
+                                                : "text-slate-600 hover:bg-orange-50/60 hover:text-slate-900"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-400 group-hover:text-orange-600"}`} />
+                                            <span className="text-sm font-semibold tracking-tight">{item.label}</span>
+                                        </div>
                                     </button>
                                 );
                             })}
@@ -250,7 +290,34 @@ const AdminLayout = () => {
                             </button>
                         );
                     })}
+
+                    {/* E-Commerce Section */}
+                    <div className="pt-3 pb-1">
+                        <div className="flex items-center gap-2 px-2">
+                            <div className="h-px flex-1 bg-slate-100" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-orange-500 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full">E-Commerce</span>
+                            <div className="h-px flex-1 bg-slate-100" />
+                        </div>
+                    </div>
+                    {ecomItems.map((item) => {
+                        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                        return (
+                            <button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
+                                    isActive
+                                        ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20 scale-[1.02]"
+                                        : "text-slate-600 hover:bg-orange-50/60 hover:text-slate-900"
+                                }`}
+                            >
+                                <item.icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-orange-400 group-hover:text-orange-600"}`} />
+                                <span className="text-sm font-semibold tracking-tight">{item.label}</span>
+                            </button>
+                        );
+                    })}
                 </nav>
+
 
                 {/* Sidebar User profile footer */}
                 <div className="p-4 border-t border-slate-100/80 bg-slate-50/50">

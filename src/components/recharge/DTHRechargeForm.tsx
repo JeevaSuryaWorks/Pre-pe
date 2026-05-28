@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Tv, CheckCircle2 } from 'lucide-react';
+import { Tv, CheckCircle2 } from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { getOperators } from '@/services/operator.service';
 import { getPlans } from '@/services/plans.service';
 import { processRecharge } from '@/services/recharge.service';
@@ -259,7 +260,7 @@ export function DTHRechargeForm() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <BrandLoader size="md" />
         </CardContent>
       </Card>
     );
@@ -373,7 +374,7 @@ export function DTHRechargeForm() {
             >
               {processing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <PrePeSpinner className="h-4 w-4" />
                   Processing...
                 </>
               ) : (
@@ -399,7 +400,7 @@ export function DTHRechargeForm() {
           <CardContent>
             {loadingPlans ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <BrandLoader size="md" />
               </div>
             ) : plans.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -481,7 +482,7 @@ export function DTHRechargeForm() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancel</Button>
             <Button onClick={procesConfirmedRecharge} disabled={processing || parseFloat(amount) > availableBalance}>
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {processing ? <PrePeSpinner className="h-4 w-4" /> : null}
               Confirm & Pay
             </Button>
           </DialogFooter>

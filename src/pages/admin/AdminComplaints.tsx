@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { 
-  Loader2, 
   HelpCircle, 
   Phone, 
   User, 
@@ -20,6 +19,7 @@ import {
   Hash,
   ArrowRight
 } from "lucide-react";
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { format } from "date-fns";
 
 export default function AdminComplaints() {
@@ -248,7 +248,7 @@ export default function AdminComplaints() {
   if (loading) {
     return (
       <div className="h-[60vh] w-full flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+        <BrandLoader size="md" />
       </div>
     );
   }
@@ -434,7 +434,7 @@ export default function AdminComplaints() {
                         >
                           {reprocessingId === ticket.id ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin text-white" />
+                              <PrePeSpinner className="h-4 w-4" />
                               Processing API...
                             </>
                           ) : (
@@ -453,7 +453,7 @@ export default function AdminComplaints() {
                       >
                         {resolvingId === ticket.id && resolvingId !== null ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                            <PrePeSpinner className="h-4 w-4" />
                             Resolving...
                           </>
                         ) : (

@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import {
-    ArrowLeft, Save, Globe, Loader2, Search, X,
+    ArrowLeft, Save, Globe, Search, X,
     MessageCircle, Zap, Gift, Shield, Megaphone, Star, Bell, Rocket, Heart, CheckCircle2,
     Wallet, CreditCard, Banknote, Coins, DollarSign, PiggyBank, TrendingUp, TrendingDown, BarChart2,
     Smartphone, Wifi, Tv, Radio, Monitor, Laptop, Tablet, Headphones, Speaker, Camera, Cpu, Code2, Terminal, Database,
@@ -337,7 +338,7 @@ const AdminBannerEditor = () => {
 
     if (fetching) return (
         <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <BrandLoader size="md" />
         </div>
     );
 
@@ -548,7 +549,7 @@ const AdminBannerEditor = () => {
                             onClick={() => save('draft')}
                             disabled={loading}
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" />}
+                            {loading ? <PrePeSpinner className="w-4 h-4" /> : <Save className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" />}
                             Store Draft Records
                         </Button>
                         <Button 
@@ -556,7 +557,7 @@ const AdminBannerEditor = () => {
                             onClick={() => save('published')}
                             disabled={loading}
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />}
+                            {loading ? <PrePeSpinner className="w-4 h-4" /> : <Globe className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />}
                             Commit to Production
                         </Button>
                     </div>

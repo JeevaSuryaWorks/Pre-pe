@@ -3,8 +3,9 @@ import { shopService } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircle, XCircle, Clock, Building, User, Phone,
-  FileText, Clipboard, Search, ShieldCheck, Loader2
+  FileText, Clipboard, Search, ShieldCheck
 } from "lucide-react";
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,7 @@ export default function AdminSellers() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#000080]" />
+        <BrandLoader size="md" />
         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Gathering Onboardings...</p>
       </div>
     );

@@ -3,8 +3,9 @@ import { shopService, ProductItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import {
   Package, Search, Star, Trash2, Eye, EyeOff, ShieldCheck,
-  Award, Building, AlertCircle, ShieldAlert, Loader2, Tag
+  Award, Building, AlertCircle, ShieldAlert, Tag
 } from "lucide-react";
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ export default function AdminProducts() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#000080]" />
+        <BrandLoader size="md" />
         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Gathering Merchandise...</p>
       </div>
     );

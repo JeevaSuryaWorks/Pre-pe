@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Loader2,
   FileText,
   Receipt,
   CheckCircle,
@@ -16,6 +15,7 @@ import {
   PlusCircle,
   Check,
 } from 'lucide-react';
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -334,7 +334,7 @@ export function PostpaidBillForm() {
                 >
                   {fetchingBill ? (
                     <>
-                      <Loader2 className="h-4.5 w-4.5 animate-spin shrink-0" />
+                      <PrePeSpinner className="h-4.5 w-4.5" />
                       Securing Bill Statement...
                     </>
                   ) : (
@@ -458,7 +458,7 @@ export function PostpaidBillForm() {
                 >
                   {processing ? (
                     <>
-                      <Loader2 className="h-4.5 w-4.5 animate-spin shrink-0" />
+                      <PrePeSpinner className="h-4.5 w-4.5" />
                       Processing Payout...
                     </>
                   ) : (

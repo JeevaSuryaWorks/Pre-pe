@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { adminService } from "@/services/admin";
 import { 
-    Loader2, 
     ArrowUpRight, 
     AlertCircle, 
     CheckCircle2, 
@@ -22,6 +21,7 @@ import {
     Server,
     Wifi
 } from "lucide-react";
+import { PageLoader } from '@/components/ui/BrandLoader';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { startTelegramBotListener, stopTelegramBotListener } from "@/services/telegramBot.service";
@@ -96,10 +96,7 @@ const AdminDashboard = () => {
     };
 
     if (loading) return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-500">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-            <p className="font-semibold text-slate-600 animate-pulse text-sm">Synchronizing live statistics...</p>
-        </div>
+        <PageLoader message="Synchronizing live statistics..." />
     );
 
     const quickLinks = [

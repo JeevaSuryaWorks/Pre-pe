@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
     Trophy, Medal, Crown, Shield, 
     TrendingUp, User, Layout, ChevronRight,
-    Loader2, Star
+    Star
 } from "lucide-react";
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -39,10 +40,7 @@ export function Leaderboard() {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <div className="relative">
-                    <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
-                    <Star className="absolute -top-1 -right-1 w-5 h-5 text-yellow-500 animate-pulse" />
-                </div>
+                <BrandLoader size="md" />
                 <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Syncing Elite Performance...</p>
             </div>
         );

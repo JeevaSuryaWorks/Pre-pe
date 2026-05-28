@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { KYCNudgeDialog } from "@/components/kyc/KYCNudgeDialog";
-import { ArrowLeft, Landmark, Info, HandCoins, Calendar, AlertCircle, ShieldAlert, KeyRound, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Landmark, Info, HandCoins, Calendar, AlertCircle, ShieldAlert, KeyRound, Sparkles, ShieldCheck } from "lucide-react";
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -245,7 +246,7 @@ const DNPLPage = () => {
                             {/* Eligibility Card */}
                             {checkingEligibility ? (
                                 <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center justify-center gap-3">
-                                    <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+                                    <PrePeSpinner className="w-5 h-5" />
                                     <span className="text-xs font-semibold text-slate-500">Checking LazyPay Eligibility...</span>
                                 </div>
                             ) : eligibility && (
@@ -324,7 +325,7 @@ const DNPLPage = () => {
                                             disabled={submittingOtp}
                                             className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-blue-100"
                                         >
-                                            {submittingOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify & Link"}
+                                            {submittingOtp ? <PrePeSpinner className="w-4 h-4" /> : "Verify & Link"}
                                         </Button>
                                     </div>
                                 </div>
@@ -441,7 +442,7 @@ const DNPLPage = () => {
                             >
                                 {initiatingPayment ? (
                                     <span className="flex items-center justify-center gap-2">
-                                        <Loader2 className="w-5 h-5 animate-spin" /> Connecting to LazyPay S2S...
+                                        <PrePeSpinner className="w-5 h-5" /> Connecting to LazyPay S2S...
                                     </span>
                                 ) : eligibility && eligibility.customerLinked ? (
                                     <span className="flex items-center justify-center gap-2">

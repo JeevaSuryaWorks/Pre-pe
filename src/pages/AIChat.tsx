@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2, Sparkles, RefreshCcw, ArrowLeft, Star } from "lucide-react";
+import { Send, Sparkles, RefreshCcw, ArrowLeft, Star } from "lucide-react";
 import { getAIResponse } from "@/services/groqService";
 import { getPlans } from "@/services/plans.service";
 import { supabase } from "@/integrations/supabase/client";

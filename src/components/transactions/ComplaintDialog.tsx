@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 
 import { supportService } from "@/services/support.service";
 
@@ -85,7 +85,7 @@ export function ComplaintDialog({ open, onOpenChange, transactionId }: Complaint
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
                     <Button onClick={handleSubmit} disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {loading && <PrePeSpinner className="mr-2 h-4 w-4" />}
                         Submit Ticket
                     </Button>
                 </DialogFooter>

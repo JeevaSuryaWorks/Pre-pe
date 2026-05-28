@@ -6,7 +6,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-    Loader2,
     CheckCircle,
     XCircle,
     ChevronRight,
@@ -36,6 +35,7 @@ import {
     ArrowRight,
     CornerDownRight
 } from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -424,7 +424,7 @@ export const KYCRequests = () => {
 
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center p-20 space-y-4">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+            <BrandLoader size="md" />
             <p className="text-slate-500 font-medium">Loading applications database...</p>
         </div>
     );
@@ -973,7 +973,7 @@ export const KYCRequests = () => {
                                             )}
                                         >
                                             {updateStatus.isPending ? (
-                                                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Auditing...</>
+                                                <><PrePeSpinner className="w-4 h-4" /> Auditing...</>
                                             ) : (
                                                 <><CheckCircle className="w-4 h-4 mr-2" /> Approve & Unlock KYC Account</>
                                             )}
@@ -1135,7 +1135,7 @@ export const KYCRequests = () => {
                             onClick={handleRejectSubmit}
                             disabled={updateStatus.isPending || !rejectReason.trim()}
                         >
-                            {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Rejection"}
+                            {updateStatus.isPending ? <PrePeSpinner className="w-4 h-4" /> : "Confirm Rejection"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

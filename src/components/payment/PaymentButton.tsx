@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { RazorpayService, RazorpayOptions } from '@/services/RazorpayService';
 import { toast } from 'sonner';
 
@@ -56,7 +57,7 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
   const getIcon = () => {
     switch (status) {
       case 'processing':
-        return <Loader2 className="w-5 h-5 animate-spin" />;
+        return <PrePeSpinner className="w-5 h-5" />;
       case 'success':
         return <CheckCircle2 className="w-5 h-5" />;
       case 'error':

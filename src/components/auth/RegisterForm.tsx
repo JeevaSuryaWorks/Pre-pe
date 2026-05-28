@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Mail, Lock, User, Smartphone, ArrowRight, Signal, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Smartphone, ArrowRight, Signal, Eye, EyeOff } from 'lucide-react';
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -129,7 +130,7 @@ export function RegisterForm() {
                 onClick={handleGoogleSignUp}
                 disabled={loading}
             >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                {loading ? <PrePeSpinner className="h-4 w-4" /> : (
                     <svg className="h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                         <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
                     </svg>
@@ -260,7 +261,7 @@ export function RegisterForm() {
                 <Button type="submit" disabled={loading} className="w-full h-12 bg-[#FF671F] hover:bg-orange-600 text-base font-bold mt-4 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-lg shadow-orange-600/20">
                     {loading ? (
                         <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <PrePeSpinner className="mr-2 h-4 w-4" />
                             Creating Account...
                         </>
                     ) : (

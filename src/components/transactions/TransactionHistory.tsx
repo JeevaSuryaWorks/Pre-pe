@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { 
   Search, 
   Calendar as CalendarIcon, 
-  Loader2, 
   History, 
   Smartphone, 
   Tv, 
@@ -27,6 +26,7 @@ import {
   TrendingDown,
   Activity
 } from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { getTransactionHistory } from '@/services/recharge.service';
@@ -421,7 +421,7 @@ export function TransactionHistory() {
       <div className="space-y-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
+            <BrandLoader size="md" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] animate-pulse">Syncing Transaction Desk...</p>
           </div>
         ) : filteredTransactions.length === 0 ? (
@@ -515,7 +515,7 @@ export function TransactionHistory() {
                             )}
                           >
                             {isFavPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                              <PrePeSpinner className="h-4 w-4" />
                             ) : (
                               <Heart className={cn("h-4.5 w-4.5", isFav && "fill-current")} />
                             )}

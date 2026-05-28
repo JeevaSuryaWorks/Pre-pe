@@ -8,8 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Gift, ArrowLeft, Search, Wallet, Sparkles, Copy, Check, Ticket, ShoppingCart, Loader2 
+    Gift, ArrowLeft, Search, Wallet, Sparkles, Copy, Check, Ticket, ShoppingCart 
 } from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -326,7 +327,7 @@ export default function GiftCardsPage() {
 
                     {loading ? (
                         <div className="h-40 flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+                            <BrandLoader size="md" />
                             <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Syncing Partner Registry</span>
                         </div>
                     ) : filtered.length === 0 ? (
@@ -491,7 +492,7 @@ export default function GiftCardsPage() {
                                     disabled={purchasing}
                                     className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-6 bg-slate-900 hover:bg-orange-600 text-white shadow-lg active:scale-95 transition-all gap-2"
                                 >
-                                    {purchasing ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <><Sparkles className="w-4 h-4" /> Confirm & Claim</>}
+                                    {purchasing ? <PrePeSpinner className="w-5 h-5" /> : <><Sparkles className="w-4 h-4" /> Confirm & Claim</>}
                                 </Button>
                             </>
                         )}

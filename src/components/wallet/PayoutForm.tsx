@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Building, CheckCircle, AlertCircle } from 'lucide-react';
+import { Building, CheckCircle, AlertCircle } from 'lucide-react';
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
@@ -210,7 +211,7 @@ export function PayoutForm() {
                                 disabled={verifying || !accountNo || !ifsc}
                                 className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold"
                             >
-                                {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify Account'}
+                                {verifying ? <PrePeSpinner className="h-4 w-4" /> : 'Verify Account'}
                             </Button>
                         ) : (
                             <Button
@@ -218,7 +219,7 @@ export function PayoutForm() {
                                 disabled={processing || !amount}
                                 className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 font-bold"
                             >
-                                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Withdraw Money'}
+                                {processing ? <PrePeSpinner className="h-4 w-4" /> : 'Withdraw Money'}
                             </Button>
                         )}
                     </div>

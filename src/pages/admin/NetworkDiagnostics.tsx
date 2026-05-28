@@ -2,18 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-    Loader2, 
-    Globe, 
-    Shield, 
-    Info, 
-    RefreshCw, 
-    ExternalLink,
-    Server,
-    MapPin,
-    AlertTriangle,
-    CheckCircle2
-} from "lucide-react";
+import {
+    RefreshCw, Wifi, WifiOff, Database, Globe, Server, CheckCircle,
+    AlertCircle, TrendingUp, Activity, Clock, Zap, Shield, Layers
+} from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { toast } from "sonner";
 
 interface IPData {
@@ -90,9 +83,9 @@ const NetworkDiagnostics = () => {
 
     if (loading && !data) {
         return (
-            <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-                <p className="text-slate-500 font-medium animate-pulse">Analyzing network configuration...</p>
+            <div className="h-[60vh] flex flex-col items-center justify-center text-slate-500">
+                <BrandLoader size="md" />
+                <p className="font-medium mt-4">Running network diagnostics...</p>
             </div>
         );
     }
@@ -110,7 +103,7 @@ const NetworkDiagnostics = () => {
                     variant="outline"
                     className="rounded-xl border-slate-200 hover:bg-white hover:text-blue-600 hover:border-blue-200 transition-all font-bold"
                 >
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    {loading ? <PrePeSpinner className="h-4 w-4" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                     Refresh Status
                 </Button>
             </div>

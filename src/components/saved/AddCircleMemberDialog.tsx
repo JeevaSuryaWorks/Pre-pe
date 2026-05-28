@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addSavedItem } from '@/services/saved.service';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Users, Smartphone, Tv, Lightbulb, Flame, Droplet, Wifi } from 'lucide-react';
+import { Users, Smartphone, Tv, Lightbulb, Flame, Droplet, Wifi } from 'lucide-react';
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 
 interface AddCircleMemberDialogProps {
   isOpen: boolean;
@@ -146,7 +147,7 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
                     disabled={loading}
                     className="flex-1 rounded-xl bg-slate-900 text-white font-black hover:bg-blue-600 shadow-lg shadow-slate-900/10"
                 >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save to Circle"}
+                    {loading ? <PrePeSpinner className="w-4 h-4" /> : "Save to Circle"}
                 </Button>
             </DialogFooter>
         </form>

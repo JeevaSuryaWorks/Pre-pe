@@ -5,8 +5,9 @@ import { shopService, ProductItem, ProductVariant } from "@/services/shop.servic
 import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft, ShoppingCart, Star, Plus, Minus, ShieldCheck, Truck, RotateCcw,
-  Sparkles, Heart, Share2, Award, Clock, ArrowRight, CornerDownRight, Check, Loader2
+  Sparkles, Heart, Share2, Award, Clock, ArrowRight, CornerDownRight, Check
 } from "lucide-react";
+import { PrePeSpinner } from "@/components/ui/BrandLoader";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -170,7 +171,7 @@ export default function ProductDetailsPage() {
     return (
       <Layout showBottomNav={true} hideHeader={true}>
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[#000080]" />
+          <PrePeSpinner className="w-12 h-12" />
           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Unpacking Premium Gear...</p>
         </div>
       </Layout>
@@ -184,7 +185,7 @@ export default function ProductDetailsPage() {
 
   return (
     <Layout showBottomNav={true} hideHeader={true}>
-      <div className="min-h-screen bg-[#F8FAFC] pb-32 relative overflow-x-hidden">
+      <div className="min-h-screen bg-[#F8FAFC] pb-44 relative overflow-x-hidden">
         
         {/* Saffron Gradient Top */}
         <div className="absolute top-0 left-0 w-full h-[180px] bg-gradient-to-b from-[#FF671F]/5 to-transparent pointer-events-none" />
@@ -332,7 +333,7 @@ export default function ProductDetailsPage() {
                 disabled={checkingPincode}
                 className="bg-slate-900 text-white rounded-2xl h-11 px-5 hover:bg-slate-800 text-xs font-black uppercase tracking-widest shrink-0 shadow-sm"
               >
-                {checkingPincode ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
+                {checkingPincode ? <PrePeSpinner className="w-4 h-4" /> : "Verify"}
               </Button>
             </div>
             
@@ -465,7 +466,7 @@ export default function ProductDetailsPage() {
                 disabled={submittingReview}
                 className="w-full bg-[#000080] hover:bg-[#000080]/90 text-white rounded-2xl h-11 text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/10"
               >
-                {submittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : "Publish Feedback"}
+                {submittingReview ? <PrePeSpinner className="w-4 h-4" /> : "Publish Feedback"}
               </Button>
             </form>
 
@@ -498,20 +499,20 @@ export default function ProductDetailsPage() {
           </div>
         </div>
 
-        {/* Dynamic Action Sticky Footer */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 px-6 flex justify-center shadow-2xl">
-          <div className="w-full max-w-md flex gap-3">
+        {/* Dynamic Action Sticky Footer — sits ABOVE the 64px BottomNav */}
+        <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-4">
+          <div className="w-full max-w-md flex gap-3 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-3 shadow-2xl">
             <Button
               onClick={handleAddToCart}
               disabled={isOutOfStock}
-              className="flex-1 bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 rounded-2xl h-14 text-xs font-black uppercase tracking-widest shadow-sm"
+              className="flex-1 bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 rounded-xl h-13 text-xs font-black uppercase tracking-widest shadow-sm"
             >
               Add To Bag
             </Button>
             <Button
               onClick={handleBuyNow}
               disabled={isOutOfStock}
-              className="flex-1 bg-[#FF671F] hover:bg-[#FF671F]/90 text-white rounded-2xl h-14 text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+              className="flex-1 bg-[#FF671F] hover:bg-[#FF671F]/90 text-white rounded-xl h-13 text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
             >
               Buy Now
             </Button>

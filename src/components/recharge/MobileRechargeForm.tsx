@@ -25,7 +25,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Loader2,
   Contact,
   FlaskConical,
   ArrowLeft,
@@ -43,6 +42,7 @@ import {
   Star,
   Sparkles
 } from 'lucide-react';
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getOperators,
@@ -489,7 +489,7 @@ export function MobileRechargeForm() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+        <BrandLoader size="md" />
       </div>
     );
   }
@@ -498,7 +498,7 @@ export function MobileRechargeForm() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-20 space-y-6 animate-in fade-in duration-500">
         <div className="relative h-20 w-20 mx-auto">
-          <Loader2 className="h-20 w-20 text-blue-600 animate-spin absolute inset-0" />
+          <BrandLoader size="md" />
           <div className="absolute inset-0 flex items-center justify-center">
             <Zap className="h-8 w-8 text-blue-400 fill-current" />
           </div>
@@ -631,7 +631,7 @@ export function MobileRechargeForm() {
             onClick={() => handleExecuteRecharge()}
             disabled={processing}
           >
-            {processing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "SECURE PAYMENT"}
+            {processing ? <PrePeSpinner className="h-6 w-6" /> : "SECURE PAYMENT"}
           </Button>
         </div>
       </div>
@@ -673,7 +673,7 @@ export function MobileRechargeForm() {
                     </span>
                   )}
                   {fetchingTruecaller && (
-                    <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+                    <PrePeSpinner className="w-3 h-3" />
                   )}
                 </div>
                 {truecallerProfile ? (
@@ -982,7 +982,7 @@ export function MobileRechargeForm() {
             <div className="flex-shrink-0">
               {detecting ? (
                 <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  <PrePeSpinner className="h-5 w-5" />
                 </div>
               ) : (
                 <button
@@ -1081,7 +1081,7 @@ export function MobileRechargeForm() {
             </div>
 
             <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full">
-              <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+              <PrePeSpinner className="h-3 w-3" />
               <p className="text-[9px] font-black text-blue-600 uppercase tracking-tight">Waiting for payment...</p>
             </div>
           </div>

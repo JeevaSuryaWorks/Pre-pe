@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useKYC } from '@/hooks/useKYC';
 import { useProfile } from '@/hooks/useProfile';
-import { Loader2 } from 'lucide-react';
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import { Layout } from '@/components/layout/Layout';
 
 export const ProtectedRoute = () => {
@@ -33,7 +33,7 @@ export const ProtectedRoute = () => {
         return (
             <Layout hideHeader>
                 <div className="min-h-screen flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <BrandLoader size="md" />
                 </div>
             </Layout>
         );

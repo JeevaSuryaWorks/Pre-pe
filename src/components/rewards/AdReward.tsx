@@ -8,7 +8,7 @@ import {
 } from "@/services/ad_rewards";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Play, X, Loader2, Sparkles, 
+  Play, X, Sparkles, 
   Timer, Zap, Coins, Volume2, VolumeX, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

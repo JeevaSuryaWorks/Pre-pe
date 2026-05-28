@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { 
-    Loader2, Plus, Search, Filter, 
+    Plus, Search, Filter, 
     MoreVertical, Edit2, Trash2, 
     CheckCircle2, XCircle, Gift,
     Shield, Zap, User, Star,
@@ -17,6 +17,7 @@ import {
     Play, Image, Lock, ShieldCheck,
     HelpCircle
 } from "lucide-react";
+import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { 
     Dialog, DialogContent, DialogHeader, 
     DialogTitle, DialogDescription, DialogFooter 
@@ -170,7 +171,7 @@ const AdminTasks = () => {
     if (loading) {
         return (
             <div className="h-[60vh] flex flex-col items-center justify-center text-slate-500">
-                <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mb-4" />
+                <BrandLoader size="md" />
                 <p className="font-bold tracking-widest uppercase text-[10px] animate-pulse">Syncing Task Matrix...</p>
             </div>
         );
@@ -499,7 +500,7 @@ const AdminTasks = () => {
                              disabled={saving}
                              className="h-14 flex-1 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-indigo-600/20"
                         >
-                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Confirm Logic'}
+                            {saving ? <PrePeSpinner className="h-5 w-5" /> : 'Confirm Logic'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

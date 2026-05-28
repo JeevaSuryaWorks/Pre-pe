@@ -13,7 +13,6 @@ import {
     Clock,
     CheckCircle2,
     XCircle,
-    Loader2,
     IndianRupee,
     Hash,
     CalendarClock,
@@ -32,6 +31,7 @@ import {
     TrendingUp,
     Copy,
 } from 'lucide-react';
+import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { cn } from '@/lib/utils';
 
 interface FundRequest {
@@ -593,7 +593,7 @@ export const AdminFundRequests = () => {
                                                             onClick={() => handleApprove(req)}
                                                             disabled={updateMutation.isPending}
                                                         >
-                                                            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve</>}
+                                                            {updateMutation.isPending ? <PrePeSpinner className="w-4 h-4" /> : <><CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve</>}
                                                         </Button>
                                                         <Button
                                                             size="sm"
@@ -731,7 +731,7 @@ export const AdminFundRequests = () => {
                             onClick={handleReject}
                             disabled={updateMutation.isPending}
                         >
-                            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Rejection'}
+                            {updateMutation.isPending ? <PrePeSpinner className="w-4 h-4" /> : 'Confirm Rejection'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -5,8 +5,9 @@ import { shopService, AddressItem, CartItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft, MapPin, Plus, Truck, ArrowRight, ShieldCheck,
-  CreditCard, Loader2, Sparkles, Building, User, Phone, CheckCircle2
+  CreditCard, Sparkles, Building, User, Phone, CheckCircle2
 } from "lucide-react";
+import { PrePeSpinner } from "@/components/ui/BrandLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -265,7 +266,7 @@ export default function CheckoutPage() {
     return (
       <Layout showBottomNav={true} hideHeader={true}>
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[#000080]" />
+          <PrePeSpinner className="w-12 h-12" />
           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Opening Checkout Portal...</p>
         </div>
       </Layout>
@@ -274,7 +275,7 @@ export default function CheckoutPage() {
 
   return (
     <Layout showBottomNav={true} hideHeader={true}>
-      <div className="min-h-screen bg-[#F8FAFC] pb-32 relative overflow-x-hidden">
+      <div className="min-h-screen bg-[#F8FAFC] pb-44 relative overflow-x-hidden">
         
         {/* Saffron accent */}
         <div className="absolute top-0 left-0 w-full h-[180px] bg-gradient-to-b from-[#FF671F]/5 to-transparent pointer-events-none" />
@@ -406,7 +407,7 @@ export default function CheckoutPage() {
                     disabled={submittingAddress}
                     className="w-full bg-[#000080] hover:bg-[#000080]/90 text-white rounded-xl h-11 text-xs font-black uppercase tracking-widest"
                   >
-                    {submittingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Delivery Profile"}
+                    {submittingAddress ? <PrePeSpinner className="w-4 h-4" /> : "Save Delivery Profile"}
                   </Button>
                 </motion.form>
               )}
@@ -504,19 +505,21 @@ export default function CheckoutPage() {
 
         </div>
 
-        {/* Dynamic Action Sticky Footer */}
+        {/* Sticky Pay Button — sits ABOVE the 64px BottomNav */}
         {selectedAddress && (
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 px-6 flex justify-center shadow-2xl">
-            <Button
-              onClick={handlePaymentCheckout}
-              disabled={checkingOut}
-              className="w-full max-w-md bg-[#FF671F] hover:bg-[#FF671F]/90 text-white rounded-2xl h-14 text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between px-6"
-            >
-              <span>{checkingOut ? "Verifying Transaction..." : "Proceed to Payment"}</span>
-              <span className="flex items-center gap-1.5">
-                {checkingOut ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <>₹{grandTotal.toFixed(2)} <CreditCard className="w-4 h-4" /></>}
-              </span>
-            </Button>
+          <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center px-4">
+            <div className="w-full max-w-md bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-3 shadow-2xl">
+              <Button
+                onClick={handlePaymentCheckout}
+                disabled={checkingOut}
+                className="w-full bg-[#FF671F] hover:bg-[#FF671F]/90 text-white rounded-xl h-14 text-xs font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-between px-6"
+              >
+                <span>{checkingOut ? "Verifying Transaction..." : "Proceed to Payment"}</span>
+                <span className="flex items-center gap-1.5">
+                  {checkingOut ? <PrePeSpinner className="w-4 h-4" /> : <>₹{grandTotal.toFixed(2)} <CreditCard className="w-4 h-4" /></>}
+                </span>
+              </Button>
+            </div>
           </div>
         )}
 

@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, Search, Star, Trash2, ShieldAlert, Award, Calendar, ThumbsUp, Loader2 } from 'lucide-react';
+import { Heart, Search, Star, Trash2, ShieldAlert, Award, Calendar, ThumbsUp } from 'lucide-react';
+import { BrandLoader } from '@/components/ui/BrandLoader';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -215,7 +216,7 @@ export default function AdminFeedbacks() {
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center space-y-2">
-                        <Loader2 className="w-8 h-8 animate-spin text-[#046A38]" />
+                        <BrandLoader size="md" />
                         <span className="text-xs font-bold tracking-widest uppercase">Loading feedback ledger...</span>
                       </div>
                     </td>
