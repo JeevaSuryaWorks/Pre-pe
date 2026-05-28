@@ -29,6 +29,10 @@ const NotificationsPage = () => {
         try {
             const data = await notificationsService.fetchNotifications(user.id);
             setNotifications(data);
+            if (data && data.length > 0) {
+                const ids = data.map(n => n.id);
+                notificationsService.dismissAllNotifications(ids);
+            }
         } catch (err) {
             console.error("Global notification fetch failed:", err);
         } finally {

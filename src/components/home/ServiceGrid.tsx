@@ -14,7 +14,11 @@ import {
   Receipt,
   HandCoins,
   ChevronRight,
-  Gift
+  Gift,
+  Zap,
+  HeartPulse,
+  CreditCard,
+  FilePlus2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
@@ -159,6 +163,11 @@ export const ServiceGrid = () => {
     { icon: ShieldCheck, label: "Insurance", path: "/services/insurance" },
     { icon: Car, label: "FasTag", path: "/services/fasttag" },
     { icon: Gift, label: "Gift Voucher", path: "/services/gift-cards" },
+    { icon: Zap, label: "Piped Gas", path: "/services/piped-gas" },
+    { icon: HeartPulse, label: "Health", path: "/services/health" },
+    { icon: CreditCard, label: "Credit Card", path: "/services/credit-card" },
+    { icon: Receipt, label: "Municipal Tax", path: "/services/tax" },
+    { icon: FilePlus2, label: "Bulk Recharge", path: "/business/bulk-recharge" },
   ];
 
   const gridVariants = {

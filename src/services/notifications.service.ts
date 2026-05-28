@@ -44,6 +44,28 @@ export const notificationsService = {
     },
 
     /**
+     * Add multiple notification IDs to the dismissed list in localStorage in bulk
+     */
+    dismissAllNotifications(ids: string[]): void {
+        try {
+            const dismissed = this.getDismissedIds();
+            let changed = false;
+            ids.forEach(id => {
+                if (!dismissed.includes(id)) {
+                    dismissed.push(id);
+                    changed = true;
+                }
+            });
+            if (changed) {
+                localStorage.setItem('prepe_dismissed_notifications', JSON.stringify(dismissed));
+                window.dispatchEvent(new Event('prepe_notifications_updated'));
+            }
+        } catch (e) {
+            console.error("Failed to dismiss all notifications:", e);
+        }
+    },
+
+    /**
      * Fetch all notifications for a user, filtering out already dismissed ones
      */
     async fetchNotifications(userId: string): Promise<NotificationItem[]> {
