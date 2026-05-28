@@ -570,27 +570,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
                   </div>
                 </Button>
 
-                {/* 3. LazyPay S2S Link & Pay Button */}
-                <div className="relative pt-1">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleLazyPaySelect} 
-                    className="w-full h-20 border-2 border-slate-100 rounded-[30px] font-black text-slate-700 hover:bg-orange-50/20 hover:border-orange-200 transition-all active:scale-95 flex items-center justify-center gap-3 relative group"
-                    disabled={!amount || parseFloat(amount) < 1 || checkingBnpl || initiatingBnpl}
-                  >
-                    {checkingBnpl || initiatingBnpl ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center font-black text-orange-600 text-[10px] tracking-tighter shrink-0 font-sans">LP</div>
-                    )}
-                    <div className="flex flex-col items-start leading-none text-left">
-                      <span>Pay Later via LazyPay</span>
-                      <span className="text-[10px] opacity-75 font-bold uppercase tracking-widest mt-1 text-orange-600">
-                        PayU S2S Link & Pay • 0% Extra Fees
-                      </span>
-                    </div>
-                  </Button>
-                </div>
+                {/* 3. LazyPay S2S Link & Pay Button - Removed */}
 
                 <div className="flex flex-col items-center gap-2 text-center pt-2">
                   <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
