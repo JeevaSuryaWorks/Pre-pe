@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { shopService } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import {
   ChevronLeft, Smartphone, Building, ShieldCheck, Clock,
   FileText, ArrowRight, Clipboard, Award, ShieldAlert, Loader2
@@ -17,9 +18,10 @@ export default function SellerOnboardingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
 
   const [checking, setChecking] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profileData, setProfileData] = useState<any>(null);
 
   // Form states
   const [companyName, setCompanyName] = useState("");
@@ -29,7 +31,7 @@ export default function SellerOnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || profileLoading) return;
 
     const AUTHORIZED_ADMINS = [
       'connect.prepe@gmail.com',
@@ -38,11 +40,12 @@ export default function SellerOnboardingPage() {
       'jeevasuriya2007@gmail.com'
     ];
     const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+    const isBusiness = profile?.plan_type?.toUpperCase() === 'BUSINESS';
 
-    if (!isAdmin) {
+    if (!isAdmin && !isBusiness) {
       toast({
         title: "Access Denied",
-        description: "Seller portal is restricted to authorized administrators.",
+        description: "Seller portal is restricted to Business plan users and authorized administrators.",
         variant: "destructive"
       });
       navigate("/shop");
@@ -50,13 +53,13 @@ export default function SellerOnboardingPage() {
     }
 
     checkProfile();
-  }, [user, authLoading]);
+  }, [user, authLoading, profile, profileLoading]);
 
   const checkProfile = async () => {
     setChecking(true);
     try {
       const data = await shopService.getSellerProfile();
-      setProfile(data);
+      setProfileData(data);
       if (data.exists && data.status === 'ACTIVE') {
         navigate('/seller/dashboard');
       }
@@ -147,7 +150,7 @@ export default function SellerOnboardingPage() {
         </header>
 
         <div className="px-5 mt-6 space-y-6">
-          {profile?.exists && profile.kyc_status === 'PENDING' ? (
+          {profileData?.exists && profileData.kyc_status === 'PENDING' ? (
             /* Pending status state card */
             <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 text-center space-y-6 shadow-sm py-12">
               <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mx-auto shadow-sm relative">
@@ -157,7 +160,7 @@ export default function SellerOnboardingPage() {
               <div className="space-y-2">
                 <h3 className="text-base font-black text-slate-900 tracking-tight">Verification In Progress</h3>
                 <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-[240px] mx-auto">
-                  Your merchant application for <strong>{profile.company_name}</strong> has been received successfully. Pre-pe Compliance desks are verifying your credentials.
+                  Your merchant application for <strong>{profileData.company_name}</strong> has been received successfully. Pre-pe Compliance desks are verifying your credentials.
                 </p>
               </div>
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">

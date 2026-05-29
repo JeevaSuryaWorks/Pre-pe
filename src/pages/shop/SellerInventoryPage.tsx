@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { shopService, ProductItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import {
   ChevronLeft, Package, Plus, Trash2, Edit2, Star, CheckCircle2,
   ListPlus, Sparkles, Image, Settings, DollarSign, Loader2, Save, X
@@ -17,6 +18,7 @@ export default function SellerInventoryPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
 
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -51,7 +53,7 @@ export default function SellerInventoryPage() {
   const [savingStock, setSavingStock] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || profileLoading) return;
 
     const AUTHORIZED_ADMINS = [
       'connect.prepe@gmail.com',
@@ -60,11 +62,12 @@ export default function SellerInventoryPage() {
       'jeevasuriya2007@gmail.com'
     ];
     const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+    const isBusiness = profile?.plan_type?.toUpperCase() === 'BUSINESS';
 
-    if (!isAdmin) {
+    if (!isAdmin && !isBusiness) {
       toast({
         title: "Access Denied",
-        description: "Seller portal is restricted to authorized administrators.",
+        description: "Seller portal is restricted to Business plan users and authorized administrators.",
         variant: "destructive"
       });
       navigate("/shop");
@@ -72,7 +75,7 @@ export default function SellerInventoryPage() {
     }
 
     loadInventory();
-  }, [user, authLoading]);
+  }, [user, authLoading, profile, profileLoading]);
 
   const loadInventory = async () => {
     setLoading(true);
