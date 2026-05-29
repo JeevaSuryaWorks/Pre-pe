@@ -107,6 +107,7 @@ const ProfilePage = () => {
     ];
 
     const isAdmin = AUTHORIZED_ADMINS.includes(user?.email || '');
+    const isBusiness = profile?.plan_type?.toUpperCase() === 'BUSINESS';
 
     const getInitials = () => {
         const name = user?.user_metadata?.full_name || 'Admin';
@@ -314,10 +315,20 @@ const ProfilePage = () => {
                             icon={Package} 
                             title="My Orders" 
                             subtitle="Track shipments & invoices" 
-                            colorClass="text-emerald-600" 
-                            bgClass="bg-emerald-50/50" 
+                            colorClass="text-[#000080]" 
+                            bgClass="bg-blue-50/50" 
                             onClick={() => navigate('/orders')} 
                         />
+                        {(isAdmin || isBusiness) && (
+                            <SettingItem 
+                                icon={ShoppingBag} 
+                                title="Sell Products" 
+                                subtitle="Setup store, manage inventory & orders" 
+                                colorClass="text-[#046A38] font-bold" 
+                                bgClass="bg-emerald-50/50" 
+                                onClick={() => navigate('/seller/dashboard')} 
+                            />
+                        )}
                         {isAdmin && (
                             <SettingItem 
                                 icon={ShoppingBag} 
