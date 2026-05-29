@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import {
   ChevronLeft, Package, Plus, Trash2, Edit2, Star, CheckCircle2,
-  ListPlus, Sparkles, Image, Settings, DollarSign, Loader2, Save, X
+  ListPlus, Sparkles, Image, Settings, DollarSign, Loader2, Save, X, ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
