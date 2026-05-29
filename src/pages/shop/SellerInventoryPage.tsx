@@ -5,9 +5,10 @@ import { shopService, ProductItem } from "@/services/shop.service";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronLeft, Package, Plus, Trash2, Edit2, Star, CheckCircle2,
-  ListPlus, Sparkles, Image, Settings, DollarSign, Loader2, Save, X, ArrowRight
+  ListPlus, Sparkles, Image as ImageIcon, Settings, DollarSign, Loader2, Save, X, ArrowRight, Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export default function SellerInventoryPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [targetMarket, setTargetMarket] = useState("retail");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Dynamic Specs additions
   const [specKey, setSpecKey] = useState("");
@@ -50,6 +52,44 @@ export default function SellerInventoryPage() {
   // Inline stock edit states
   const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
   const [editStockValue, setEditStockValue] = useState("");
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `products/${user?.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setImageUrl(publicUrl);
+      toast({
+        title: "Image Uploaded 📸",
+        description: "Product image uploaded successfully."
+      });
+    } catch (err: any) {
+      console.error("Image upload failed:", err);
+      toast({
+        title: "Upload Failed",
+        description: err.message || "Failed to upload product image.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
   const [savingStock, setSavingStock] = useState(false);
 
   useEffect(() => {
@@ -288,7 +328,7 @@ export default function SellerInventoryPage() {
                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Product Title *</label>
                     <Input
                       placeholder="e.g. Ultra Armor iPhone 15 Pro Case"
-                      className="bg-slate-50 border-none rounded-xl h-11 pl-4 font-bold"
+                      className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
@@ -298,7 +338,7 @@ export default function SellerInventoryPage() {
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Category *</label>
                     <select
-                      className="w-full bg-slate-50 border-none rounded-xl h-11 px-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF671F]/10"
+                      className="w-full bg-white border-2 border-slate-200 rounded-xl h-11 px-4 font-bold text-slate-700 focus:outline-none focus:border-[#FF671F] focus:ring-1 focus:ring-[#FF671F]/15 transition-all"
                       value={categoryId}
                       onChange={(e) => setCategoryId(e.target.value)}
                       required
@@ -313,7 +353,7 @@ export default function SellerInventoryPage() {
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Target Market *</label>
                     <select
-                      className="w-full bg-slate-50 border-none rounded-xl h-11 px-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FF671F]/10"
+                      className="w-full bg-white border-2 border-slate-200 rounded-xl h-11 px-4 font-bold text-slate-700 focus:outline-none focus:border-[#FF671F] focus:ring-1 focus:ring-[#FF671F]/15 transition-all"
                       value={targetMarket}
                       onChange={(e) => setTargetMarket(e.target.value)}
                       required
@@ -329,7 +369,7 @@ export default function SellerInventoryPage() {
                       <Input
                         placeholder="e.g. 299"
                         type="number"
-                        className="bg-slate-50 border-none rounded-xl h-11 pl-4 font-bold"
+                        className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         required
@@ -340,7 +380,7 @@ export default function SellerInventoryPage() {
                       <Input
                         placeholder="e.g. 599"
                         type="number"
-                        className="bg-slate-50 border-none rounded-xl h-11 pl-4 font-bold"
+                        className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                         value={compareAtPrice}
                         onChange={(e) => setCompareAtPrice(e.target.value)}
                       />
@@ -351,28 +391,55 @@ export default function SellerInventoryPage() {
                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Brand Name *</label>
                     <Input
                       placeholder="e.g. Spigen, PrePe Assured"
-                      className="bg-slate-50 border-none rounded-xl h-11 pl-4 font-bold"
+                      className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                       value={brand}
                       onChange={(e) => setBrand(e.target.value)}
                       required
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Image Resource Link</label>
-                    <Input
-                      placeholder="e.g. https://images.com/cover.png"
-                      className="bg-slate-50 border-none rounded-xl h-11 pl-4 font-bold"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                    />
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Product Image *</label>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {/* Image Upload Area */}
+                      <div className="relative border-2 border-dashed border-slate-200 hover:border-[#FF671F]/40 rounded-2xl p-4 bg-slate-50/50 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer min-h-[90px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingImage}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        {uploadingImage ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-[#FF671F]" />
+                        ) : imageUrl ? (
+                          <img src={imageUrl} className="h-16 w-16 object-contain rounded-lg border border-slate-100 bg-white" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-slate-400" />
+                        )}
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                          {uploadingImage ? "Uploading..." : imageUrl ? "Tap to Change Uploaded Image" : "Upload Product Image File"}
+                        </span>
+                      </div>
+                      
+                      {/* Text Input Link alternative */}
+                      <div className="space-y-1">
+                        <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Or Paste Image URL</span>
+                        <Input
+                          placeholder="e.g. https://images.com/cover.png"
+                          className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block mb-1">Product Description *</label>
                     <textarea
                       placeholder="Write specifications highlight, protective layers details..."
-                      className="w-full bg-slate-50 border-none rounded-2xl p-4 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF671F]/10 min-h-[80px]"
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl p-4 text-xs font-bold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF671F]/15 focus-visible:border-[#FF671F] min-h-[80px] transition-all"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       required
@@ -385,13 +452,13 @@ export default function SellerInventoryPage() {
                     <div className="flex gap-2">
                       <Input
                         placeholder="Key (e.g. Material)"
-                        className="bg-white border-none rounded-lg h-9 text-xs pl-2.5 font-bold"
+                        className="bg-white border-2 border-slate-200 rounded-lg h-9 text-xs pl-2.5 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                         value={specKey}
                         onChange={(e) => setSpecKey(e.target.value)}
                       />
                       <Input
                         placeholder="Value (e.g. TPU Polycarbonate)"
-                        className="bg-white border-none rounded-lg h-9 text-xs pl-2.5 font-bold"
+                        className="bg-white border-2 border-slate-200 rounded-lg h-9 text-xs pl-2.5 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                         value={specValue}
                         onChange={(e) => setSpecValue(e.target.value)}
                       />
@@ -419,7 +486,7 @@ export default function SellerInventoryPage() {
                     <div className="space-y-2">
                       <Input
                         placeholder="Variant Label (e.g. Clear Saffron)"
-                        className="bg-white border-none rounded-lg h-9 text-xs pl-2.5 font-bold"
+                        className="bg-white border-2 border-slate-200 rounded-lg h-9 text-xs pl-2.5 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                         value={variantName}
                         onChange={(e) => setVariantName(e.target.value)}
                       />
@@ -427,14 +494,14 @@ export default function SellerInventoryPage() {
                         <Input
                           placeholder="Initial Stock (e.g. 50)"
                           type="number"
-                          className="bg-white border-none rounded-lg h-9 text-xs pl-2.5 font-bold"
+                          className="bg-white border-2 border-slate-200 rounded-lg h-9 text-xs pl-2.5 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                           value={variantStock}
                           onChange={(e) => setVariantStock(e.target.value)}
                         />
                         <Input
                           placeholder="Price Override (Optional)"
                           type="number"
-                          className="bg-white border-none rounded-lg h-9 text-xs pl-2.5 font-bold"
+                          className="bg-white border-2 border-slate-200 rounded-lg h-9 text-xs pl-2.5 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
                           value={variantPrice}
                           onChange={(e) => setVariantPrice(e.target.value)}
                         />

@@ -261,7 +261,7 @@ const SavedPage = () => {
             setIsFamilyModalOpen(false);
 
             toast({
-                title: `Welcome to ${trimmed} PrePe Family!`,
+                title: `Welcome to PrePe Family - ${trimmed}!`,
                 description: "Your standard billing presets have been automatically set up.",
             });
 
@@ -286,7 +286,7 @@ const SavedPage = () => {
         setIsEditingFamilyName(false);
         toast({
             title: "Family Name Updated",
-            description: `Renamed to ${trimmed}'s PrePe Family.`
+            description: `Renamed to PrePe Family - ${trimmed}.`
         });
     };
 
@@ -550,7 +550,7 @@ const SavedPage = () => {
     const favoriteItems = filteredItems.filter(i => i.category === 'FAVORITE');
 
     return (
-        <Layout title={familyName ? `${familyName}'s PrePe Family` : "PrePe Family"} showBottomNav>
+        <Layout title={familyName ? `PrePe Family - ${familyName}` : "PrePe Family"} showBottomNav>
             <div className="min-h-screen bg-slate-50/50 pb-28">
                 {/* Visual Accent Gradients */}
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF671F]/5 rounded-full blur-[100px] pointer-events-none" />
@@ -570,7 +570,7 @@ const SavedPage = () => {
                                 </span>
                                 <div className="flex items-center gap-2 pt-1 group">
                                     <h1 className="text-2xl font-black text-[#000080] tracking-tight leading-none">
-                                        {familyName ? `${familyName}'s Family` : "PrePe Family"}
+                                        {familyName ? `PrePe Family - ${familyName}` : "PrePe Family"}
                                     </h1>
                                     {familyName && (
                                         <Button
@@ -735,7 +735,7 @@ const SavedPage = () => {
                                                                         const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                         let btnStyle = "from-[#046A38] to-green-700 shadow-green-700/10 hover:shadow-green-700/20";
                                                                         let effects = "";
-                                                                        let label = "Pay";
+                                                                        let label = "Pay Now";
                                                                         let points = 30;
                                                                         let pointsColor = "text-[#046A38]";
                                                                         
