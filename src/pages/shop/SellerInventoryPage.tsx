@@ -30,6 +30,7 @@ export default function SellerInventoryPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [customCategoryName, setCustomCategoryName] = useState("");
   const [price, setPrice] = useState("");
   const [compareAtPrice, setCompareAtPrice] = useState("");
   const [brand, setBrand] = useState("");
@@ -174,10 +175,12 @@ export default function SellerInventoryPage() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submittingProduct) return;
-    if (!title || !description || !categoryId || !price) {
+    
+    const isCustom = categoryId === "custom";
+    if (!title || !description || !categoryId || !price || (isCustom && !customCategoryName.trim())) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required product fields.",
+        description: isCustom ? "Please specify your custom category name." : "Please fill in all required product fields.",
         variant: "destructive"
       });
       return;
@@ -195,7 +198,8 @@ export default function SellerInventoryPage() {
       await shopService.createProduct({
         title,
         description,
-        category_id: categoryId,
+        category_id: isCustom ? "00000000-0000-0000-0000-000000000000" : categoryId,
+        custom_category_name: isCustom ? customCategoryName.trim() : undefined,
         price: Number(price),
         compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
         brand: brand || "Generic",
@@ -213,6 +217,7 @@ export default function SellerInventoryPage() {
       setTitle("");
       setDescription("");
       setCategoryId("");
+      setCustomCategoryName("");
       setPrice("");
       setCompareAtPrice("");
       setBrand("");
@@ -340,15 +345,34 @@ export default function SellerInventoryPage() {
                     <select
                       className="w-full bg-white border-2 border-slate-200 rounded-xl h-11 px-4 font-bold text-slate-700 focus:outline-none focus:border-[#FF671F] focus:ring-1 focus:ring-[#FF671F]/15 transition-all"
                       value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value)}
+                      onChange={(e) => {
+                        setCategoryId(e.target.value);
+                        if (e.target.value !== 'custom') {
+                          setCustomCategoryName("");
+                        }
+                      }}
                       required
                     >
                       <option value="">Select Category</option>
                       {categories.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
+                      <option value="custom" className="text-[#FF671F] font-bold">+ Add Custom Category</option>
                     </select>
                   </div>
+
+                  {categoryId === "custom" && (
+                    <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Custom Category Name *</label>
+                      <Input
+                        placeholder="e.g. Premium Smart Watches"
+                        className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
+                        value={customCategoryName}
+                        onChange={(e) => setCustomCategoryName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Target Market *</label>
@@ -413,24 +437,25 @@ export default function SellerInventoryPage() {
                         {uploadingImage ? (
                           <Loader2 className="w-5 h-5 animate-spin text-[#FF671F]" />
                         ) : imageUrl ? (
-                          <img src={imageUrl} className="h-16 w-16 object-contain rounded-lg border border-slate-100 bg-white" />
+                          <div className="relative group z-20">
+                            <img src={imageUrl} className="h-16 w-16 object-contain rounded-lg border border-slate-100 bg-white" />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImageUrl("");
+                              }}
+                              className="absolute -top-1.5 -right-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full p-0.5 shadow-sm transition-all"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                         ) : (
                           <Upload className="w-5 h-5 text-slate-400" />
                         )}
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
                           {uploadingImage ? "Uploading..." : imageUrl ? "Tap to Change Uploaded Image" : "Upload Product Image File"}
                         </span>
-                      </div>
-                      
-                      {/* Text Input Link alternative */}
-                      <div className="space-y-1">
-                        <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Or Paste Image URL</span>
-                        <Input
-                          placeholder="e.g. https://images.com/cover.png"
-                          className="bg-white border-2 border-slate-200 rounded-xl h-11 pl-4 font-bold focus-visible:ring-1 focus-visible:ring-[#FF671F]/20 focus-visible:border-[#FF671F] transition-all"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                        />
                       </div>
                     </div>
                   </div>

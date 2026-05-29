@@ -88,7 +88,36 @@ export class SellersService {
 
     async createProduct(sellerId: string, data: any) {
         if (!this.isValidUuid(sellerId)) throw new BadRequestException('Invalid seller ID');
-        if (!data.category_id || !this.isValidUuid(data.category_id)) {
+
+        let categoryId = data.category_id;
+
+        if (data.custom_category_name && data.custom_category_name.trim()) {
+            const trimmedName = data.custom_category_name.trim();
+            const slug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+            let category = await this.prisma.ecommerce_categories.findFirst({
+                where: {
+                    OR: [
+                        { name: { equals: trimmedName, mode: 'insensitive' } },
+                        { slug: { equals: slug, mode: 'insensitive' } }
+                    ]
+                }
+            });
+
+            if (!category) {
+                category = await this.prisma.ecommerce_categories.create({
+                    data: {
+                        name: trimmedName,
+                        slug: slug,
+                        description: `Custom category: ${trimmedName}`,
+                        image_url: 'https://placehold.co/100x100/png?text=' + encodeURIComponent(trimmedName)
+                    }
+                });
+            }
+            categoryId = category.id;
+        }
+
+        if (!categoryId || !this.isValidUuid(categoryId)) {
             throw new BadRequestException('Invalid category');
         }
 
@@ -103,7 +132,7 @@ export class SellersService {
             const product = await tx.ecommerce_products.create({
                 data: {
                     seller_id: sellerId,
-                    category_id: data.category_id,
+                    category_id: categoryId,
                     title: data.title,
                     description: data.description,
                     price: new Decimal(data.price),
