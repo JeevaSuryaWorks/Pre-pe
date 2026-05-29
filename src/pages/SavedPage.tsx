@@ -5,6 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Heart,
     Users,
@@ -26,9 +36,11 @@ import {
     Calendar,
     AlertCircle,
     MessageSquare,
-    Gift
+    Gift,
+    Edit2,
+    Settings
 } from 'lucide-react';
-import { getSavedItems, removeSavedItem, updateSavedItem, type SavedItem } from '@/services/saved.service';
+import { getSavedItems, removeSavedItem, updateSavedItem, type SavedItem, addSavedItem } from '@/services/saved.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -56,6 +68,20 @@ const SavedPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
+
+    const [familyName, setFamilyName] = useState<string | null>(null);
+    const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+    const [familyInput, setFamilyInput] = useState("");
+    const [isEditingFamilyName, setIsEditingFamilyName] = useState(false);
+
+    // For editing saved items
+    const [editingItem, setEditingItem] = useState<SavedItem | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        title: "",
+        service_type: "",
+        account_id: "",
+        due_date: ""
+    });
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -159,7 +185,177 @@ const SavedPage = () => {
 
     useEffect(() => {
         loadData();
+        if (user) {
+            const storedFamily = localStorage.getItem(`prepe_family_name_${user.id}`);
+            if (storedFamily) {
+                setFamilyName(storedFamily);
+            } else {
+                setIsFamilyModalOpen(true);
+            }
+        }
     }, [user]);
+
+    const handleSaveFamilyName = async () => {
+        if (!familyInput.trim() || !user) return;
+        const trimmed = familyInput.trim();
+        setLoading(true);
+        try {
+            // Preset dates: 15, 20, 25 days out, or 28-10-2027 for Broadband
+            const presets = [
+                {
+                    title: "Mobile Recharge",
+                    service_type: "MOBILE_PREPAID",
+                    account_id: "9999999999",
+                    category: "CIRCLE" as const,
+                    user_id: user.id,
+                    metadata: {
+                        is_preset: true,
+                        due_date: format(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+                        whatsapp_reminder_active: true,
+                    }
+                },
+                {
+                    title: "Electricity Bill",
+                    service_type: "ELECTRICITY",
+                    account_id: "1234567890",
+                    category: "CIRCLE" as const,
+                    user_id: user.id,
+                    metadata: {
+                        is_preset: true,
+                        due_date: format(new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+                        whatsapp_reminder_active: true,
+                    }
+                },
+                {
+                    title: "Gas Bill",
+                    service_type: "GAS",
+                    account_id: "9876543210",
+                    category: "CIRCLE" as const,
+                    user_id: user.id,
+                    metadata: {
+                        is_preset: true,
+                        due_date: format(new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+                        whatsapp_reminder_active: true,
+                    }
+                },
+                {
+                    title: "Broadband Bill",
+                    service_type: "BROADBAND",
+                    account_id: "866875429",
+                    category: "CIRCLE" as const,
+                    user_id: user.id,
+                    metadata: {
+                        is_preset: true,
+                        due_date: "2027-10-28", // matches screenshot
+                        whatsapp_reminder_active: true,
+                    }
+                }
+            ];
+
+            for (const preset of presets) {
+                await addSavedItem(preset);
+            }
+
+            localStorage.setItem(`prepe_family_name_${user.id}`, trimmed);
+            setFamilyName(trimmed);
+            setIsFamilyModalOpen(false);
+
+            toast({
+                title: `Welcome to ${trimmed} PrePe Family!`,
+                description: "Your standard billing presets have been automatically set up.",
+            });
+
+            await loadData();
+        } catch (err) {
+            console.error("Failed to add preset items", err);
+            toast({
+                title: "Setup Failed",
+                description: "Could not create billing presets.",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateFamilyName = () => {
+        if (!familyInput.trim() || !user) return;
+        const trimmed = familyInput.trim();
+        localStorage.setItem(`prepe_family_name_${user.id}`, trimmed);
+        setFamilyName(trimmed);
+        setIsEditingFamilyName(false);
+        toast({
+            title: "Family Name Updated",
+            description: `Renamed to ${trimmed}'s PrePe Family.`
+        });
+    };
+
+    const handleEditItem = (item: SavedItem) => {
+        setEditingItem(item);
+        setEditFormData({
+            title: item.title,
+            service_type: item.service_type,
+            account_id: item.account_id,
+            due_date: item.metadata?.due_date || ""
+        });
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingItem) return;
+
+        if (!editFormData.account_id || !editFormData.due_date) {
+            toast({
+                title: "Validation Error",
+                description: "Number/ID and Payment Due Date are required.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const updatedMetadata = {
+                ...(editingItem.metadata || {}),
+                due_date: editFormData.due_date
+            };
+
+            const updates: Partial<SavedItem> = {
+                account_id: editFormData.account_id,
+                metadata: updatedMetadata
+            };
+
+            if (!editingItem.metadata?.is_preset) {
+                updates.title = editFormData.title;
+                updates.service_type = editFormData.service_type;
+            }
+
+            const result = await updateSavedItem(editingItem.id, updates);
+            if (result) {
+                toast({
+                    title: "Updated Successfully",
+                    description: "The item details have been saved."
+                });
+                setEditingItem(null);
+                await loadData();
+            } else {
+                toast({
+                    title: "Update Failed",
+                    description: "Could not save details to database.",
+                    variant: "destructive"
+                });
+            }
+        } catch (err) {
+            console.error("Failed to edit saved item", err);
+            toast({
+                title: "Update Failed",
+                description: "An unexpected error occurred.",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDelete = async (id: string) => {
         const success = await removeSavedItem(id);
@@ -354,7 +550,7 @@ const SavedPage = () => {
     const favoriteItems = filteredItems.filter(i => i.category === 'FAVORITE');
 
     return (
-        <Layout title="PrePe Circle" showBottomNav>
+        <Layout title={familyName ? `${familyName}'s PrePe Family` : "PrePe Family"} showBottomNav>
             <div className="min-h-screen bg-slate-50/50 pb-28">
                 {/* Visual Accent Gradients */}
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF671F]/5 rounded-full blur-[100px] pointer-events-none" />
@@ -370,10 +566,28 @@ const SavedPage = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                             <div className="space-y-1.5">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3.5 py-1.5 rounded-full w-fit block shadow-sm border border-[#FF671F]/10">
-                                    Digital Directory
+                                    PrePe Family
                                 </span>
-                                <h1 className="text-2xl font-black text-[#000080] tracking-tight leading-none pt-1">PrePe Circle</h1>
-                                <p className="text-xs text-slate-500 font-medium leading-relaxed">Your family, friends & saved payment links</p>
+                                <div className="flex items-center gap-2 pt-1 group">
+                                    <h1 className="text-2xl font-black text-[#000080] tracking-tight leading-none">
+                                        {familyName ? `${familyName}'s Family` : "PrePe Family"}
+                                    </h1>
+                                    {familyName && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                                setFamilyInput(familyName);
+                                                setIsEditingFamilyName(true);
+                                            }}
+                                            className="w-6 h-6 rounded-md text-slate-400 hover:text-[#000080] hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                            title="Edit Family Name"
+                                        >
+                                            <Edit2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium leading-relaxed">Your family members & quick billing presets</p>
                             </div>
                             <Button
                                 onClick={() => setIsAddDialogOpen(true)}
@@ -402,7 +616,7 @@ const SavedPage = () => {
                                 value="circle" 
                                 className="rounded-xl font-black text-xs transition-all uppercase tracking-widest text-slate-400 data-[state=active]:bg-[#046A38] data-[state=active]:text-white data-[state=active]:shadow-md"
                             >
-                                <Users className="w-4 h-4 mr-2" /> My Circle ({circleItems.length})
+                                <Users className="w-4 h-4 mr-2" /> My Family ({circleItems.length})
                             </TabsTrigger>
                             <TabsTrigger 
                                 value="favorites" 
@@ -417,7 +631,7 @@ const SavedPage = () => {
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center py-24 gap-3 bg-white rounded-[32px] border border-slate-100 shadow-sm">
                                     <Loader2 className="h-10 w-10 animate-spin text-[#000080]" />
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Loading Circle...</p>
+                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Loading Family...</p>
                                 </div>
                             ) : circleItems.length === 0 ? (
                                 <motion.div 
@@ -428,9 +642,9 @@ const SavedPage = () => {
                                     <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mb-5 shadow-inner">
                                         <Users className="w-10 h-10 text-[#046A38]" />
                                     </div>
-                                    <h3 className="text-lg font-black text-slate-800">Your Circle is Empty</h3>
+                                    <h3 className="text-lg font-black text-slate-800">Your Family is Empty</h3>
                                     <p className="text-xs text-slate-500 max-w-xs mx-auto mt-2 mb-6 font-medium leading-relaxed">
-                                        Add family members, friends, or regular clients to quickly process their mobile recharges and utility bills in a single tap!
+                                        Add family members, relations, or billing numbers to quickly process mobile recharges and utility bills in a single tap!
                                     </p>
                                     <Button 
                                         onClick={() => setIsAddDialogOpen(true)} 
@@ -463,50 +677,98 @@ const SavedPage = () => {
 
                                                                 {/* User and Account details */}
                                                                 <div className="flex-1 min-w-0 pr-1">
-                                                                    <div className="flex flex-col">
-                                                                        <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
-                                                                            {item.title}
-                                                                        </h4>
-                                                                        <div className="flex items-center gap-1.5 mt-1.5">
-                                                                            <Badge className={cn("text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5", styling.bgLight)}>
-                                                                                {item.service_type.replace('_', ' ')}
-                                                                            </Badge>
+                                                                    <div className="flex items-start justify-between">
+                                                                        <div className="flex flex-col">
+                                                                            <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
+                                                                                {item.title}
+                                                                            </h4>
+                                                                            <div className="flex items-center gap-1.5 mt-1.5">
+                                                                                <Badge className={cn("text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5", styling.bgLight)}>
+                                                                                    {item.service_type.replace('_', ' ')}
+                                                                                </Badge>
+                                                                                {item.metadata?.is_preset && (
+                                                                                    <Badge className="text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5 bg-indigo-50 text-indigo-600">
+                                                                                        Preset
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        {/* Card edit/delete actions */}
+                                                                        <div className="flex items-center gap-1 shrink-0 -mt-1 ml-2">
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleEditItem(item);
+                                                                                }}
+                                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-[#046A38] hover:bg-emerald-50 transition-colors"
+                                                                                title="Edit"
+                                                                            >
+                                                                                <Edit2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                            {!item.metadata?.is_preset && (
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setItemToDelete(item.id);
+                                                                                    }}
+                                                                                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                                                    title="Delete"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </Button>
+                                                                            )}
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-xs font-mono font-bold text-slate-500 mt-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100/80 inline-block">
+                                                                    <p className="text-xs font-mono font-bold text-slate-500 mt-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100/80 inline-block select-all">
                                                                         {item.account_id}
                                                                     </p>
                                                                 </div>
 
                                                                 {/* Directly Visible Mobile-Friendly Actions */}
-                                                                <div className="flex flex-col gap-2 shrink-0 items-end">
+                                                                <div className="flex flex-col gap-1 shrink-0 items-end justify-center">
                                                                     {(() => {
                                                                         const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                         let btnStyle = "from-[#046A38] to-green-700 shadow-green-700/10 hover:shadow-green-700/20";
                                                                         let effects = "";
                                                                         let label = "Pay";
+                                                                        let points = 30;
+                                                                        let pointsColor = "text-[#046A38]";
                                                                         
                                                                         if (daysInfo.status === 'overdue') {
                                                                             btnStyle = "from-red-600 to-rose-700 shadow-red-700/20 hover:shadow-red-700/30 animate-pulse border border-red-300/40";
                                                                             effects = "animate-bounce hover:animate-none";
                                                                             label = "Pay Overdue";
+                                                                            points = 20;
+                                                                            pointsColor = "text-rose-600";
                                                                         } else if (daysInfo.status === 'today') {
                                                                             btnStyle = "from-amber-500 to-orange-600 shadow-amber-600/20 hover:shadow-amber-600/30 border border-amber-300/40";
                                                                             effects = "animate-pulse";
                                                                             label = "Pay Today";
+                                                                            points = 25;
+                                                                            pointsColor = "text-amber-600";
                                                                         }
                                                                         
                                                                         return (
-                                                                            <Button
-                                                                                onClick={() => handleAction(item)}
-                                                                                className={cn(
-                                                                                    "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
-                                                                                    btnStyle,
-                                                                                    effects
-                                                                                )}
-                                                                            >
-                                                                                {label} <Send className="w-3 h-3" />
-                                                                            </Button>
+                                                                            <>
+                                                                                <Button
+                                                                                    onClick={() => handleAction(item)}
+                                                                                    className={cn(
+                                                                                        "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
+                                                                                        btnStyle,
+                                                                                        effects
+                                                                                    )}
+                                                                                >
+                                                                                    {label} <Send className="w-3 h-3" />
+                                                                                </Button>
+                                                                                <span className={cn("text-[10px] font-black uppercase tracking-wider mt-1.5 text-right block pr-1 select-none animate-pulse", pointsColor)}>
+                                                                                    Get {points} Points
+                                                                                </span>
+                                                                            </>
                                                                         );
                                                                     })()}
                                                                 </div>
@@ -570,20 +832,6 @@ const SavedPage = () => {
                                                                                     <MessageSquare className="w-3.5 h-3.5 fill-current" />
                                                                                 </Badge>
                                                                             )}
-                                                                        </div>
-                                                                    );
-                                                                })()}
-
-                                                                {/* Rewards Points Banner */}
-                                                                {(() => {
-                                                                    const rewardsInfo = getRewardsPointsInfo(item.metadata?.due_date);
-                                                                    return (
-                                                                        <div className={cn(
-                                                                            "flex items-center gap-2.5 px-3.5 py-2.5 border rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider select-none",
-                                                                            rewardsInfo.colorClass
-                                                                        )}>
-                                                                            <Gift className={cn("w-4 h-4 shrink-0 animate-bounce", rewardsInfo.iconColor)} />
-                                                                            <span>{rewardsInfo.text}</span>
                                                                         </div>
                                                                     );
                                                                 })()}
@@ -654,49 +902,92 @@ const SavedPage = () => {
 
                                                                 {/* Favorite Title & Amount Info */}
                                                                 <div className="flex-1 min-w-0 pr-1">
-                                                                    <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
-                                                                        {item.title}
-                                                                    </h4>
-                                                                    
-                                                                    <div className="flex items-center gap-2 mt-2">
-                                                                        <span className="text-xs font-black text-[#046A38] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100/50">
-                                                                            ₹{item.metadata?.amount || 'N/A'}
-                                                                        </span>
-                                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                                                            {format(new Date(item.created_at), 'MMM d, yyyy')}
-                                                                        </span>
+                                                                    <div className="flex items-start justify-between">
+                                                                        <div className="flex flex-col">
+                                                                            <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
+                                                                                {item.title}
+                                                                            </h4>
+                                                                            
+                                                                            <div className="flex items-center gap-2 mt-2">
+                                                                                <span className="text-xs font-black text-[#046A38] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100/50">
+                                                                                    ₹{item.metadata?.amount || 'N/A'}
+                                                                                </span>
+                                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                                                    {format(new Date(item.created_at), 'MMM d, yyyy')}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        {/* Card edit/delete actions */}
+                                                                        <div className="flex items-center gap-1 shrink-0 -mt-1 ml-2">
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleEditItem(item);
+                                                                                }}
+                                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-[#FF671F] hover:bg-orange-50 transition-colors"
+                                                                                title="Edit"
+                                                                            >
+                                                                                <Edit2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setItemToDelete(item.id);
+                                                                                }}
+                                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                                                title="Delete"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Mobile Actions */}
-                                                                <div className="flex flex-col gap-2 shrink-0 items-end">
+                                                                <div className="flex flex-col gap-1 shrink-0 items-end justify-center">
                                                                     {(() => {
                                                                         const daysInfo = calculateDaysLeft(item.metadata?.due_date, currentTime);
                                                                         let btnStyle = "from-[#FF671F] to-orange-600 shadow-orange-700/10 hover:shadow-orange-700/20";
                                                                         let effects = "";
                                                                         let label = "Repeat";
+                                                                        let points = 30;
+                                                                        let pointsColor = "text-[#046A38]";
                                                                         
                                                                         if (daysInfo.status === 'overdue') {
                                                                             btnStyle = "from-red-600 to-rose-700 shadow-red-700/20 hover:shadow-red-700/30 animate-pulse border border-red-300/40";
                                                                             effects = "animate-bounce hover:animate-none";
                                                                             label = "Pay Overdue";
+                                                                            points = 20;
+                                                                            pointsColor = "text-rose-600";
                                                                         } else if (daysInfo.status === 'today') {
                                                                             btnStyle = "from-amber-500 to-orange-600 shadow-amber-600/20 hover:shadow-amber-600/30 border border-amber-300/40";
                                                                             effects = "animate-pulse";
                                                                             label = "Pay Today";
+                                                                            points = 25;
+                                                                            pointsColor = "text-amber-600";
                                                                         }
                                                                         
                                                                         return (
-                                                                            <Button
-                                                                                onClick={() => handleAction(item)}
-                                                                                className={cn(
-                                                                                    "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
-                                                                                    btnStyle,
-                                                                                    effects
-                                                                                )}
-                                                                            >
-                                                                                {label} <ArrowRight className="w-3.5 h-3.5" />
-                                                                            </Button>
+                                                                            <>
+                                                                                <Button
+                                                                                    onClick={() => handleAction(item)}
+                                                                                    className={cn(
+                                                                                        "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
+                                                                                        btnStyle,
+                                                                                        effects
+                                                                                    )}
+                                                                                >
+                                                                                    {label} <ArrowRight className="w-3.5 h-3.5" />
+                                                                                </Button>
+                                                                                <span className={cn("text-[10px] font-black uppercase tracking-wider mt-1.5 text-right block pr-1 select-none animate-pulse", pointsColor)}>
+                                                                                    Get {points} Points
+                                                                                </span>
+                                                                            </>
                                                                         );
                                                                     })()}
                                                                 </div>
@@ -735,7 +1026,9 @@ const SavedPage = () => {
                                                                             }
                                                                         </div>
                                                                     </div>
-                                                                </div>                                                                {/* AutoPay and Days Left */}
+                                                                </div>
+
+                                                                {/* AutoPay and Days Left */}
                                                                 <div className="grid grid-cols-2 gap-3 mt-1">
                                                                     {/* Autopay Toggle */}
                                                                     <div 
@@ -795,20 +1088,6 @@ const SavedPage = () => {
                                                                         );
                                                                     })()}
                                                                 </div>
-
-                                                                {/* Rewards Points Banner */}
-                                                                {(() => {
-                                                                    const rewardsInfo = getRewardsPointsInfo(item.metadata?.due_date);
-                                                                    return (
-                                                                        <div className={cn(
-                                                                            "flex items-center gap-2.5 px-3.5 py-2.5 border rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider select-none",
-                                                                            rewardsInfo.colorClass
-                                                                        )}>
-                                                                            <Gift className={cn("w-4 h-4 shrink-0 animate-bounce", rewardsInfo.iconColor)} />
-                                                                            <span>{rewardsInfo.text}</span>
-                                                                        </div>
-                                                                    );
-                                                                })()}
                                                             </div>
                                                         </div>
                                                     </Card>
@@ -862,6 +1141,188 @@ const SavedPage = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Onboarding Dialog for Family Name */}
+            <Dialog open={isFamilyModalOpen} onOpenChange={() => {}}>
+                <DialogContent className="max-w-sm rounded-[32px] p-8 border-none shadow-2xl bg-white select-none pointer-events-auto" onInteractOutside={(e) => e.preventDefault()}>
+                    <DialogHeader className="flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-[#046A38]/10 rounded-3xl flex items-center justify-center mb-4 shadow-inner">
+                            <Users className="w-8 h-8 text-[#046A38]" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Create Your PrePe Family</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium text-xs leading-relaxed mt-2 text-center">
+                            Enter your family name to setup custom billing presets for Mobile, Electricity, Gas & Broadband.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="family_name_input" className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Family / House Name</Label>
+                            <Input
+                                id="family_name_input"
+                                placeholder="e.g. Jeeva's, Sharma's, Sweet Home"
+                                className="h-12 rounded-2xl border-slate-200 focus:border-[#046A38] focus:ring-4 focus:ring-[#046A38]/5 px-4 font-semibold text-slate-800"
+                                value={familyInput}
+                                onChange={(e) => setFamilyInput(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    
+                    <DialogFooter className="pt-2">
+                        <Button
+                            onClick={handleSaveFamilyName}
+                            disabled={loading || !familyInput.trim()}
+                            className="w-full rounded-2xl bg-gradient-to-r from-[#046A38] to-green-700 text-white font-black hover:opacity-95 h-13 shadow-lg shadow-green-700/20 active:scale-98 transition-all uppercase tracking-widest text-xs"
+                        >
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Set Family & Auto Setup"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Dialog for Family Name */}
+            <Dialog open={isEditingFamilyName} onOpenChange={setIsEditingFamilyName}>
+                <DialogContent className="max-w-sm rounded-[32px] p-8 border-none shadow-2xl bg-white select-none">
+                    <DialogHeader className="flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-[#000080]/10 rounded-3xl flex items-center justify-center mb-4 shadow-inner">
+                            <Settings className="w-8 h-8 text-[#000080]" />
+                        </div>
+                        <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">Edit PrePe Family Name</DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium text-xs leading-relaxed mt-2 text-center">
+                            Change your digital directory family branding name below.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_family_name_input" className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1">Family / House Name</Label>
+                            <Input
+                                id="edit_family_name_input"
+                                placeholder="e.g. Jeeva's, Sharma's, Sweet Home"
+                                className="h-12 rounded-2xl border-slate-200 focus:border-[#000080] focus:ring-4 focus:ring-[#000080]/5 px-4 font-semibold text-slate-800"
+                                value={familyInput}
+                                onChange={(e) => setFamilyInput(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    
+                    <DialogFooter className="flex flex-row gap-3 pt-2 w-full">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setIsEditingFamilyName(false)}
+                            className="flex-1 rounded-2xl font-bold text-slate-500 border-slate-200 hover:bg-slate-50 h-12"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleUpdateFamilyName}
+                            disabled={!familyInput.trim()}
+                            className="flex-1 rounded-2xl bg-[#000080] text-white font-black hover:bg-indigo-900 h-12 shadow-lg shadow-indigo-900/20 active:scale-98 transition-all uppercase tracking-widest text-xs"
+                        >
+                            Save
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Item Dialog */}
+            <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+                <DialogContent className="max-w-md rounded-[32px] p-8 border-none shadow-2xl bg-white max-h-[90vh] overflow-y-auto no-scrollbar">
+                    <DialogHeader className="flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                            <Edit2 className="w-8 h-8 text-blue-600 animate-pulse" />
+                        </div>
+                        <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">
+                            {editingItem?.metadata?.is_preset ? "Edit Preset Card" : "Edit Directory Card"}
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500 font-medium">
+                            {editingItem?.metadata?.is_preset 
+                                ? "Presets can only have their mobile/account number and due date updated." 
+                                : "Modify nickname, category, service type or details below."}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSaveEdit} className="space-y-5 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_nickname" className="text-xs font-bold text-slate-500 ml-1 uppercase">Nickname / Relation</Label>
+                            <Input 
+                                id="edit_nickname"
+                                placeholder="e.g. Dad's Phone, Home Electricity"
+                                className="h-12 rounded-xl border-slate-200 focus:border-blue-500 px-4 disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-100 font-semibold"
+                                value={editFormData.title}
+                                onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                                disabled={!!editingItem?.metadata?.is_preset}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_service" className="text-xs font-bold text-slate-500 ml-1 uppercase">Service Type</Label>
+                            <Select 
+                                value={editFormData.service_type} 
+                                onValueChange={(v) => setEditFormData(prev => ({ ...prev, service_type: v }))}
+                                disabled={!!editingItem?.metadata?.is_preset}
+                            >
+                                <SelectTrigger className="h-12 rounded-xl border-slate-200 font-semibold disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-100">
+                                    <SelectValue placeholder="Select Service" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-100 shadow-xl">
+                                    <SelectItem value="MOBILE_PREPAID" className="rounded-lg py-2">Mobile Prepaid</SelectItem>
+                                    <SelectItem value="MOBILE_POSTPAID" className="rounded-lg py-2">Mobile Postpaid</SelectItem>
+                                    <SelectItem value="DTH" className="rounded-lg py-2">DTH Recharge</SelectItem>
+                                    <SelectItem value="ELECTRICITY" className="rounded-lg py-2">Electricity Bill</SelectItem>
+                                    <SelectItem value="GAS" className="rounded-lg py-2">Gas Piped/Cylinder</SelectItem>
+                                    <SelectItem value="WATER" className="rounded-lg py-2">Water Bill</SelectItem>
+                                    <SelectItem value="BROADBAND" className="rounded-lg py-2">Broadband/Landline</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_account" className="text-xs font-bold text-slate-500 ml-1 uppercase">Mobile / Account / Consumer ID</Label>
+                            <Input 
+                                id="edit_account"
+                                placeholder="10-digit number or Consumer ID"
+                                className="h-12 rounded-xl border-slate-200 focus:border-blue-500 px-4 font-semibold text-slate-800"
+                                value={editFormData.account_id}
+                                onChange={(e) => setEditFormData(prev => ({ ...prev, account_id: e.target.value }))}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="edit_due_date" className="text-xs font-bold text-slate-500 ml-1 uppercase">Payment Due Date</Label>
+                            <Input 
+                                id="edit_due_date"
+                                type="date"
+                                className="h-12 rounded-xl border-slate-200 focus:border-blue-500 px-4 cursor-pointer font-semibold text-slate-800"
+                                value={editFormData.due_date}
+                                onChange={(e) => setEditFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                            />
+                        </div>
+
+                        <DialogFooter className="pt-4 flex flex-row gap-3 w-full">
+                            <Button 
+                                type="button" 
+                                variant="ghost" 
+                                onClick={() => setEditingItem(null)}
+                                className="flex-1 rounded-xl font-bold text-slate-500 h-12"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                disabled={loading}
+                                className="flex-1 rounded-xl bg-slate-900 text-white font-black hover:bg-blue-600 shadow-lg shadow-slate-900/10 h-12"
+                            >
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Save Changes"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </Layout>
     );
 };

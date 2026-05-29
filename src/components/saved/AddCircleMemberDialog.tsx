@@ -59,7 +59,7 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
 
     setLoading(false);
     if (result) {
-      toast({ title: 'Success', description: `${formData.title} added to your Prepe Circle with active alerts.` });
+      toast({ title: 'Success', description: `${formData.title} added to your PrePe Family with active alerts.` });
       setFormData({ title: '', service_type: '', account_id: '', operator_name: '', due_date: '' });
       onSuccess();
       onClose();
@@ -74,7 +74,7 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
             <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
                 <Users className="w-8 h-8 text-blue-600" />
             </div>
-            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Add to Circle</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Add to Family</DialogTitle>
             <DialogDescription className="text-slate-500 font-medium">
                 Save family bill details for instant recharges later.
             </DialogDescription>
