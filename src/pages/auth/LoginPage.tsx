@@ -34,7 +34,7 @@ const LoginPage = () => {
                 
                 <div className="w-full max-w-md space-y-8 relative z-10">
                     <div className="text-center space-y-2">
-                        <img src="/logo.png" alt="PrePe Logo" className="h-16 w-16 mb-4 mx-auto object-contain shadow-xl rounded-2xl bg-white p-1" />
+                        <img src="/icon_new.png" alt="PrePe Logo" className="h-16 w-16 mb-4 mx-auto object-contain shadow-xl rounded-2xl bg-white p-1" />
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Welcome Back</h1>
                         <p className="text-slate-500 font-medium">Sign in to continue your secure payments. 🇮🇳</p>
                     </div>

@@ -57,28 +57,34 @@ export const ProtectedRoute = () => {
         return <Outlet />;
     }
 
+    // 0. Terms Acceptance Guard
+    if (!user.user_metadata?.terms_accepted && location.pathname !== '/terms-acceptance') {
+        console.log('[ProtectedRoute] Redirecting to /terms-acceptance');
+        return <Navigate to="/terms-acceptance" replace />;
+    }
+
     // 1. Capture phone numbers missing from OAuth signups
     const hasPhone = user.phone || user.user_metadata?.phone;
-    if (!hasPhone && location.pathname !== '/auth/complete-profile') {
+    if (!hasPhone && location.pathname !== '/auth/complete-profile' && location.pathname !== '/terms-acceptance') {
         return <Navigate to="/auth/complete-profile" replace />;
     }
 
-    // 2. Ensure Whatsapp consent is handled first
-    if (profile?.whatsapp_consent === null && location.pathname !== '/onboarding/consent') {
-        return <Navigate to="/onboarding/consent" replace />;
-    }
-
-    // 3. Force plan Selection AFTER consent is given
+    // 2. Force plan Selection
     if (!profileLoading && !profile?.plan_type && 
-        location.pathname !== '/onboarding/plans' && 
-        location.pathname !== '/onboarding/consent'
+        location.pathname !== '/onboarding/plans' &&
+        location.pathname !== '/terms-acceptance'
     ) {
         console.log('[ProtectedRoute] Redirecting to /onboarding/plans (No plan selected)');
         return <Navigate to="/onboarding/plans" replace />;
     }
 
-    // 4. Force KYC submission ONLY AFTER Plan is selected. 
-    if (!kycLoading && kycStatus === null && location.pathname !== '/kyc' && location.pathname !== '/onboarding/plans' && location.pathname !== '/onboarding/consent') {
+    // 3. Force KYC submission ONLY AFTER Plan is selected. 
+    // Basic plan users are NOT forced to complete KYC to browse the dashboard, but their services are faded/locked.
+    if (planType !== 'BASIC' && !kycLoading && kycStatus === null && 
+        location.pathname !== '/kyc' && 
+        location.pathname !== '/onboarding/plans' &&
+        location.pathname !== '/terms-acceptance'
+    ) {
         console.log('[ProtectedRoute] Redirecting to /kyc (No kyc status found)');
         return <Navigate to="/kyc" replace />;
     }

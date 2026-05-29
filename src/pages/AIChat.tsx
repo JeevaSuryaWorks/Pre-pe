@@ -341,7 +341,7 @@ const AIChat = () => {
   // Prepe Logo Avatar Component
   const PrepeAvatar = () => (
     <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center shadow-sm shrink-0 overflow-hidden p-0.5">
-      <img src="/logo.png" alt="PrePe Logo" className="w-full h-full object-contain rounded-lg" />
+      <img src="/icon_new.png" alt="PrePe Logo" className="w-full h-full object-contain rounded-lg" />
     </div>
   );
 
@@ -609,7 +609,7 @@ const AIChat = () => {
               >
                 {/* Prepe Logo Header */}
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm p-1">
-                  <img src="/logo.png" alt="PrePe Logo" className="w-full h-full object-contain" />
+                  <img src="/icon_new.png" alt="PrePe Logo" className="w-full h-full object-contain" />
                 </div>
 
                 {/* Question */}

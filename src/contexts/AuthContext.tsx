@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: fullName,
           phone: phone,
           sim_provider: simProvider,
+          terms_accepted: true,
         },
       },
     });

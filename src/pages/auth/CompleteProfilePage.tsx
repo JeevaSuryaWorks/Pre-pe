@@ -55,8 +55,7 @@ export default function CompleteProfilePage() {
                 description: 'Phone number added successfully. Proceeding to KYC.',
             });
 
-            // Post-update, redirect to KYC if new or rejected, otherwise home
-            navigate('/onboarding/plans', { replace: true });
+            navigate('/kyc', { replace: true });
 
         } catch (err: any) {
             console.error(err);

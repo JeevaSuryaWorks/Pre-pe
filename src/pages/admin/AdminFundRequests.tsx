@@ -105,12 +105,29 @@ export const AdminFundRequests = () => {
     const [rejectReason, setRejectReason] = useState('');
 
     useEffect(() => {
+        // Subscribe to real-time database changes for manual fund requests
+        const channel = supabase
+            .channel('admin_fund_realtime_changes')
+            .on('postgres_changes', {
+                event: '*', // Listen to INSERT, UPDATE, DELETE
+                schema: 'public',
+                table: 'manual_fund_requests'
+            }, (payload) => {
+                console.log("[AdminFundRequests] Real-time postgres change detected:", payload);
+                queryClient.invalidateQueries({ queryKey: ['admin_fund_requests'] });
+            })
+            .subscribe();
+
         const handleFundUpdate = () => {
             console.log("Instant Fund update event received from Telegram bot...");
             queryClient.invalidateQueries({ queryKey: ['admin_fund_requests'] });
         };
         window.addEventListener('admin_fund_requests_updated', handleFundUpdate);
-        return () => window.removeEventListener('admin_fund_requests_updated', handleFundUpdate);
+
+        return () => {
+            window.removeEventListener('admin_fund_requests_updated', handleFundUpdate);
+            supabase.removeChannel(channel);
+        };
     }, [queryClient]);
 
     const { data: requests, isLoading } = useQuery<FundRequest[]>({

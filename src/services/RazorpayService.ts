@@ -109,7 +109,7 @@ export class RazorpayService {
       currency: order.currency,
       name: options.name,
       description: options.description || 'Payment Transaction',
-      image: options.image || '/logo.png',
+      image: options.image || '/icon_new.png',
       order_id: order.id,
       handler: async (response: any) => {
         try {

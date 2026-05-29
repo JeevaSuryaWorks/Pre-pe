@@ -53,12 +53,29 @@ export const KYCRequests = () => {
     const [planFilter, setPlanFilter] = useState<'ALL' | 'BASIC' | 'PRO' | 'BUSINESS'>('ALL');
 
     useEffect(() => {
+        // Subscribe to real-time database changes for KYC requests
+        const channel = supabase
+            .channel('admin_kyc_realtime_changes')
+            .on('postgres_changes', {
+                event: '*', // Listen to INSERT, UPDATE, DELETE
+                schema: 'public',
+                table: 'kyc_verifications'
+            }, (payload) => {
+                console.log("[KYCRequests] Real-time postgres change detected:", payload);
+                queryClient.invalidateQueries({ queryKey: ['admin_kyc_requests'] });
+            })
+            .subscribe();
+
         const handleKycUpdate = () => {
             console.log("Instant KYC update event received from Telegram bot...");
             queryClient.invalidateQueries({ queryKey: ['admin_kyc_requests'] });
         };
         window.addEventListener('admin_kyc_requests_updated', handleKycUpdate);
-        return () => window.removeEventListener('admin_kyc_requests_updated', handleKycUpdate);
+
+        return () => {
+            window.removeEventListener('admin_kyc_requests_updated', handleKycUpdate);
+            supabase.removeChannel(channel);
+        };
     }, [queryClient]);
     
     // Details Panel loading states

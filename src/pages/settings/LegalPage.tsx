@@ -80,6 +80,21 @@ const LegalPage = ({ title, type }: LegalPageProps) => {
                                 <p className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100/30 text-xs text-slate-700 leading-relaxed">
                                     By using <strong>PrePe</strong>, you consent to receive automated billing notifications, payment reminders, and circle alerts directly on your registered mobile number via WhatsApp. This consent is integrated directly into our platform terms to guarantee secure and timely payment alerts. Reminders can be monitored within the My Circle settings page.
                                 </p>
+
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#FF671F] pl-3">7. Delivery & Fulfillment Policy</h3>
+                                <p className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs text-slate-700 leading-relaxed">
+                                    PrePe provides instant digital delivery for mobile recharges, utility bill settlements, DTH packages, and Google Play vouchers. Most electronic transactions settle in real-time. For e-commerce orders (such as mobile accessories), product shipments will be delivered through verified logistics partners within 3 to 7 working days, subject to regional network availability.
+                                </p>
+
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-[#046A38] pl-3">8. User Behaviour Guidelines</h3>
+                                <p className="text-slate-700 leading-relaxed">
+                                    Users are strictly required to provide verified identity documents during KYC registration. Submitting fraudulent transaction information, false UTR codes, or repeating unauthorized chargeback requests is prohibited. All members of the PrePe community must maintain a respectful, law-abiding stance when interacting with platform operators, AI recharge agents, and merchant portals.
+                                </p>
+
+                                <h3 className="font-black text-slate-900 mt-6 border-l-4 border-rose-600 pl-3">9. Suspension, Banning & Termination</h3>
+                                <p className="bg-rose-50/30 p-4 rounded-2xl border border-rose-100/50 text-xs text-slate-700 leading-relaxed">
+                                    We reserve the absolute right to suspend, freeze, or permanently ban any user account that violates our security parameters, commits false fund request claims, or utilizes custom scraping bots. Banned users lose immediate access to their wallets, promotional reward streak points, and merchant listings, in accordance with PCI-DSS compliance regulations.
+                                </p>
                             </div>
                         )}
 

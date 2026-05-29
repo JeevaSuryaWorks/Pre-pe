@@ -66,12 +66,13 @@ import CompleteProfilePage from "./pages/auth/CompleteProfilePage";
 import CashbackOffers from "./pages/settings/CashbackOffers";
 import LegalPage from "./pages/settings/LegalPage";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { SellerGuard } from "@/components/auth/SellerGuard";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 
 import PlanSelectionPage from "./pages/onboarding/PlanSelectionPage";
-import ConsentPage from "./pages/onboarding/ConsentPage";
+import TermsAcceptancePage from "./pages/auth/TermsAcceptancePage";
 import RewardsDashboard from "./pages/rewards/RewardsDashboard";
 import RewardHistoryPage from "./pages/rewards/RewardHistoryPage";
 import ServicesPage from "./pages/ServicesPage";
@@ -136,6 +137,7 @@ const App = () => (
             <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
             <Route path="/auth/magic-link" element={<MagicLinkPage />} />
             <Route path="/auth/complete-profile" element={<CompleteProfilePage />} />
+            <Route path="/terms-acceptance" element={<TermsAcceptancePage />} />
             <Route path="/kyc" element={<KYCPage />} />
             <Route path="/legal/terms" element={<LegalPage title="Terms & Conditions" type="terms" />} />
             <Route path="/legal/privacy" element={<LegalPage title="Privacy Policy" type="privacy" />} />
@@ -145,7 +147,6 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route path="/home" element={<HomePage />} />
               <Route path="/onboarding/plans" element={<PlanSelectionPage />} />
-              <Route path="/onboarding/consent" element={<ConsentPage />} />
 
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/profile" element={<ProfilePage />} />
@@ -195,9 +196,13 @@ const App = () => (
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/orders" element={<OrderHistoryPage />} />
-              <Route path="/seller/onboarding" element={<SellerOnboardingPage />} />
-              <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
-              <Route path="/seller/inventory" element={<SellerInventoryPage />} />
+              
+              {/* Seller Protected Routes */}
+              <Route element={<SellerGuard />}>
+                <Route path="/seller/onboarding" element={<SellerOnboardingPage />} />
+                <Route path="/seller/dashboard" element={<SellerDashboardPage />} />
+                <Route path="/seller/inventory" element={<SellerInventoryPage />} />
+              </Route>
             </Route>
 
 

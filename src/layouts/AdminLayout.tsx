@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift, Globe, Home, Heart } from 'lucide-react';
+import { LogOut, LayoutDashboard, Shield, Users, History, Percent, Menu, Banknote, Megaphone, Terminal, CreditCard, Settings, Gift, Globe, Home, Heart, Store, ChevronDown, ChevronUp, Package, ShoppingCart, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,43 @@ export const AdminLayout = () => {
     const [open, setOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const menuItems = [
+    const shopItems = [
+        { path: '/admin/sellers', icon: Building, label: 'Sellers' },
+        { path: '/admin/products', icon: Package, label: 'Products' },
+        { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
+        { path: '/admin/buyers', icon: Users, label: 'Buyers' },
+    ];
+
+    const isShopActive = [
+        '/admin/sellers',
+        '/admin/products',
+        '/admin/orders',
+        '/admin/buyers'
+    ].includes(location.pathname);
+
+    const [isShopExpanded, setIsShopExpanded] = useState(() => {
+        return location.pathname.startsWith('/admin/sellers') ||
+               location.pathname.startsWith('/admin/products') ||
+               location.pathname.startsWith('/admin/orders') ||
+               location.pathname.startsWith('/admin/buyers');
+    });
+
+    const handleShopClick = () => {
+        if (isCollapsed) {
+            setIsCollapsed(false);
+            setIsShopExpanded(true);
+        } else {
+            setIsShopExpanded(!isShopExpanded);
+        }
+    };
+
+    const menuItems: any[] = [
         { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/admin/kyc', icon: Shield, label: 'KYC Requests' },
         { path: '/admin/fund-requests', icon: Banknote, label: 'Fund Requests' },
         { path: '/admin/banners', icon: Megaphone, label: 'Banner Manager' },
         { path: '/admin/gift-vouchers', icon: Gift, label: 'Gift Vouchers' },
+        { isShopDropdown: true },
         { path: '/admin/users', icon: Users, label: 'User Management' },
         { path: '/admin/paid-users', icon: CreditCard, label: 'Paid Users' },
         { path: '/admin/plan-manager', icon: Settings, label: 'Plan Manager' },
@@ -30,9 +61,64 @@ export const AdminLayout = () => {
         { path: '/admin/feedbacks', icon: Heart, label: 'User Feedbacks' },
     ];
 
+    const ShopHeaderItem = () => {
+        const Icon = Store;
+        const isActive = isShopActive;
+        const ChevronIcon = isShopExpanded ? ChevronUp : ChevronDown;
+
+        return (
+            <div className="w-full">
+                <button
+                    onClick={handleShopClick}
+                    title={isCollapsed ? "Shop Manager" : undefined}
+                    className={`w-full flex items-center justify-between ${isCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive
+                        ? 'bg-blue-600/10 text-blue-700 shadow-sm border border-blue-100/50'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                >
+                    <div className="flex items-center gap-3 truncate">
+                        <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                        {!isCollapsed && <span className="truncate">Shop Manager</span>}
+                    </div>
+                    {!isCollapsed && <ChevronIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+                </button>
+
+                {/* Nested Sub-routes with smooth height & transitions */}
+                {!isCollapsed && isShopExpanded && (
+                    <div className="pl-4 mt-1.5 space-y-1.5 border-l border-slate-100 ml-6 animate-in slide-in-from-top-2 duration-200">
+                        {shopItems.map((subItem) => {
+                            const SubIcon = subItem.icon;
+                            const isSubActive = location.pathname === subItem.path;
+                            return (
+                                <button
+                                    key={subItem.path}
+                                    onClick={() => {
+                                        navigate(subItem.path);
+                                        setOpen(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 ${isSubActive
+                                        ? 'bg-blue-600/10 text-blue-700 font-bold border-l-2 border-blue-600 pl-2'
+                                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    <span className="truncate">{subItem.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const NavLinks = () => (
         <nav className={`flex-1 ${isCollapsed ? 'px-2' : 'px-4'} py-6 space-y-2 transition-all duration-300`}>
-            {menuItems.map((item) => {
+            {menuItems.map((item, index) => {
+                if ('isShopDropdown' in item) {
+                    return <ShopHeaderItem key="shop-dropdown" />;
+                }
+
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 return (
@@ -61,7 +147,7 @@ export const AdminLayout = () => {
             {/* Mobile Header */}
             <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
                 <div className="flex items-center gap-2">
-                    <img src="/logo.png" alt="Admin" className="w-8 h-8 rounded-lg bg-white object-contain shadow-sm p-0.5" />
+                    <img src="/icon_new.png" alt="Admin" className="w-8 h-8 rounded-lg bg-white object-contain shadow-sm p-0.5" />
                     <h1 className="font-bold text-lg text-slate-800 tracking-tight">PrePe Admin</h1>
                 </div>
                 <Sheet open={open} onOpenChange={setOpen}>
@@ -75,7 +161,7 @@ export const AdminLayout = () => {
                         <div className="h-full flex flex-col">
                             <div className="p-6 border-b border-slate-100">
                                 <div className="flex items-center gap-3">
-                                    <img src="/logo.png" alt="Admin" className="w-8 h-8 rounded-lg bg-slate-100 object-contain p-0.5 shadow-sm" />
+                                    <img src="/icon_new.png" alt="Admin" className="w-8 h-8 rounded-lg bg-slate-100 object-contain p-0.5 shadow-sm" />
                                     <span className="font-bold text-lg text-slate-900 tracking-tight">PrePe Admin</span>
                                 </div>
                             </div>
@@ -109,7 +195,7 @@ export const AdminLayout = () => {
                 <div className={`p-6 border-b border-slate-200/50 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
                     <div className="flex items-center gap-3 truncate">
                         <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-100 flex-shrink-0">
-                            <img src="/logo.png" alt="Admin" className="w-8 h-8 object-contain" />
+                            <img src="/icon_new.png" alt="Admin" className="w-8 h-8 object-contain" />
                         </div>
                         {!isCollapsed && <h1 className="font-bold text-xl text-slate-900 tracking-tight truncate">PrePe Admin</h1>}
                     </div>
