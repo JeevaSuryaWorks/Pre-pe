@@ -40,7 +40,8 @@ import {
   Smartphone,
   Trophy,
   Star,
-  Sparkles
+  Sparkles,
+  Mic
 } from 'lucide-react';
 import { BrandLoader, PrePeSpinner } from '@/components/ui/BrandLoader';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -379,6 +380,137 @@ const getPlanBenefits = (description: string) => {
   return benefits;
 };
 
+const parseVoiceCommand = (transcript: string, availablePlans: RechargePlan[]): RechargePlan | null => {
+  const cleanText = transcript.toLowerCase();
+  
+  // 1. Check for exact numbers first (amount matching)
+  const numberRegex = /\b\d+\b/g;
+  const numbersFound = cleanText.match(numberRegex);
+  if (numbersFound && numbersFound.length > 0) {
+    const spokenAmount = parseInt(numbersFound[0], 10);
+    // Find a plan with exact amount
+    const exactPlan = availablePlans.find(p => p.amount === spokenAmount);
+    if (exactPlan) return exactPlan;
+  }
+
+  // Check Tamil spoken numbers
+  const tamilAmountMap: Record<string, number> = {
+    'irunootru muppathu ombadhu': 239,
+    'irunootru thonnootru ombadhu': 299,
+    'munnootru thonnootru ombadhu': 399,
+    'aaranootru aravatthu aaru': 666,
+    'ezhanootru thonnootru ezhu': 797,
+    'ombadhu': 9,
+    'pathu': 10,
+    'ambathu': 50,
+  };
+
+  for (const [phrase, amt] of Object.entries(tamilAmountMap)) {
+    if (cleanText.includes(phrase)) {
+      const exactPlan = availablePlans.find(p => p.amount === amt);
+      if (exactPlan) return exactPlan;
+    }
+  }
+
+  // 2. Score plans based on multiple criteria
+  let bestPlan: RechargePlan | null = null;
+  let bestScore = -1;
+
+  // Criteria indicators
+  const isDataRequested = cleanText.includes('data') || cleanText.includes('gb') || cleanText.includes('net') || cleanText.includes('booster') || cleanText.includes('card');
+  const isUnlimitedCalls = cleanText.includes('unlimited') || cleanText.includes('call') || cleanText.includes('pesuradhu') || cleanText.includes('pesa');
+  const isAnnual = cleanText.includes('annual') || cleanText.includes('year') || cleanText.includes('varusham') || cleanText.includes('365') || cleanText.includes('yearly');
+  const isOtt = cleanText.includes('ott') || cleanText.includes('hotstar') || cleanText.includes('disney') || cleanText.includes('prime') || cleanText.includes('netflix') || cleanText.includes('cinema');
+  const isTopup = cleanText.includes('topup') || cleanText.includes('top up') || cleanText.includes('talktime') || cleanText.includes('talk time') || cleanText.includes('pathu') || cleanText.includes('chillrai');
+  
+  // Specific data indicators
+  let dataLimit = 0;
+  if (cleanText.includes('1.5 gb') || cleanText.includes('1.5gb')) dataLimit = 1.5;
+  else if (cleanText.includes('1 gb') || cleanText.includes('1gb') || cleanText.includes('oru gb')) dataLimit = 1.0;
+  else if (cleanText.includes('2 gb') || cleanText.includes('2gb')) dataLimit = 2.0;
+  else if (cleanText.includes('3 gb') || cleanText.includes('3gb')) dataLimit = 3.0;
+
+  // Specific validity indicators
+  let validityDays = 0;
+  if (cleanText.includes('28 days') || cleanText.includes('28 naal') || cleanText.includes('irubathu ettu')) validityDays = 28;
+  else if (cleanText.includes('56 days') || cleanText.includes('56 naal')) validityDays = 56;
+  else if (cleanText.includes('84 days') || cleanText.includes('84 naal')) validityDays = 84;
+  else if (cleanText.includes('today') || cleanText.includes('oru naal') || cleanText.includes('1 day') || cleanText.includes('one day')) validityDays = 1;
+
+  availablePlans.forEach(plan => {
+    let score = 0;
+    const planDesc = plan.description.toLowerCase();
+    const planCat = (plan.category || '').toLowerCase();
+
+    // Data request matching
+    if (isDataRequested) {
+      if (planCat === 'data' || planDesc.includes('data') || planDesc.includes('gb')) {
+        score += 2;
+      }
+      if (dataLimit > 0) {
+        const dataStr = `${dataLimit}gb`;
+        const dataSpacedStr = `${dataLimit} gb`;
+        if (planDesc.includes(dataStr) || planDesc.includes(dataSpacedStr)) {
+          score += 10; // High score for matching specific data allowance
+        }
+      }
+    }
+
+    // Unlimited calls matching
+    if (isUnlimitedCalls) {
+      if (planCat === 'unlimited' || planDesc.includes('unlimited') || planDesc.includes('free voice') || planDesc.includes('unlimited calls')) {
+        score += 3;
+      }
+    }
+
+    // Annual plans matching
+    if (isAnnual) {
+      if (planCat === 'annual' || planDesc.includes('year') || planDesc.includes('365 days') || planDesc.includes('annual')) {
+        score += 8;
+      }
+    }
+
+    // OTT matching
+    if (isOtt) {
+      if (planCat === 'ott' || planDesc.includes('hotstar') || planDesc.includes('prime') || planDesc.includes('netflix') || planDesc.includes('disney')) {
+        score += 5;
+      }
+    }
+
+    // Top up matching
+    if (isTopup) {
+      if (planCat === 'topup' || planDesc.includes('talktime') || planDesc.includes('topup')) {
+        score += 6;
+      }
+    }
+
+    // Specific validity matching
+    if (validityDays > 0) {
+      const valStr = `${validityDays} day`;
+      const valSpacedStr = `${validityDays} days`;
+      if (plan.validity.toLowerCase().includes(valStr) || plan.validity.toLowerCase().includes(valSpacedStr)) {
+        score += 8;
+      }
+    }
+
+    // Generic match based on text content
+    const keywords = cleanText.split(' ');
+    keywords.forEach(kw => {
+      if (kw.length > 2 && planDesc.includes(kw)) {
+        score += 0.5;
+      }
+    });
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestPlan = plan;
+    }
+  });
+
+  // Return the plan if it has a high enough score threshold
+  return bestScore > 2 ? bestPlan : null;
+};
+
 const getProviderTabs = (operatorId: string) => {
   switch (operatorId) {
     case '3': // Jio
@@ -575,6 +707,147 @@ export function MobileRechargeForm() {
   const [shortfall, setShortfall] = useState(0);
   const [showTopupQr, setShowTopupQr] = useState(false);
   const [intentUrl, setIntentUrl] = useState('');
+
+  // ==========================================
+  // Voice to Recharge assistant states & NLU
+  // ==========================================
+  const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceError, setVoiceError] = useState('');
+  const [listeningLang, setListeningLang] = useState<'en-IN' | 'ta-IN'>('en-IN');
+  const [voiceSuccessMessage, setVoiceSuccessMessage] = useState('');
+
+  const processSpeechResult = (text: string) => {
+    if (plans.length === 0) {
+      toast({
+        title: "Recharge plans not loaded",
+        description: "Please wait until carrier plans are completely loaded.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const matchedPlan = parseVoiceCommand(text, plans);
+    if (matchedPlan) {
+      setVoiceSuccessMessage(`Auto-selected ₹${matchedPlan.amount} plan! ${matchedPlan.description}`);
+      setSelectedPlan(matchedPlan);
+      setAmount(matchedPlan.amount.toString());
+      
+      // Auto transition to confirm page after a 1.5s delay for hands-free premium look
+      setTimeout(() => {
+        setIsListening(false);
+        setStep('confirm');
+      }, 1500);
+    } else {
+      // Automatic adaptive STT switch to Tamil if circle is Tamil Nadu and no matches found in English/Tanglish
+      if (listeningLang === 'en-IN' && selectedCircle === '23') {
+        setVoiceTranscript('Analyzing spoken language... Retrying in தமிழ்...');
+        setTimeout(() => {
+          setListeningLang('ta-IN');
+          retryVoiceListeningWithLang('ta-IN');
+        }, 1200);
+      } else {
+        setVoiceError("No matching plan found. Search query updated with your spoken text.");
+        setPlanSearchQuery(text);
+        setTimeout(() => {
+          setIsListening(false);
+        }, 3000);
+      }
+    }
+  };
+
+  const startVoiceListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        title: "Speech Recognition Unsupported",
+        description: "Web Speech API is unsupported in this browser. Please use Chrome or Safari.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setVoiceTranscript('');
+    setVoiceError('');
+    setVoiceSuccessMessage('');
+    setListeningLang('en-IN'); // Default to English/Tanglish
+    setIsListening(true);
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setVoiceError(event.error === 'not-allowed' ? 'Microphone permission blocked. Please enable permission.' : 'Could not recognize speech. Try again.');
+      setTimeout(() => setIsListening(false), 2500);
+    };
+
+    recognition.onend = () => {
+      // Finished speaking
+    };
+
+    recognition.onresult = (event: any) => {
+      const current = event.resultIndex;
+      const transcriptText = event.results[current][0].transcript;
+      const isFinal = event.results[current].isFinal;
+      setVoiceTranscript(transcriptText);
+
+      if (isFinal) {
+        processSpeechResult(transcriptText);
+      }
+    };
+
+    recognition.start();
+  };
+
+  const retryVoiceListeningWithLang = (lang: 'en-IN' | 'ta-IN') => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = lang;
+
+    recognition.onerror = () => {
+      setVoiceError('Could not recognize Tamil speech. Search query updated.');
+      setTimeout(() => setIsListening(false), 2500);
+    };
+
+    recognition.onend = () => {
+      // Stopped
+    };
+
+    recognition.onresult = (event: any) => {
+      const current = event.resultIndex;
+      const transcriptText = event.results[current][0].transcript;
+      const isFinal = event.results[current].isFinal;
+      setVoiceTranscript(transcriptText);
+
+      if (isFinal) {
+        const matchedPlan = parseVoiceCommand(transcriptText, plans);
+        if (matchedPlan) {
+          setVoiceSuccessMessage(`Auto-selected ₹${matchedPlan.amount} plan! ${matchedPlan.description}`);
+          setSelectedPlan(matchedPlan);
+          setAmount(matchedPlan.amount.toString());
+          setTimeout(() => {
+            setIsListening(false);
+            setStep('confirm');
+          }, 1500);
+        } else {
+          setVoiceError("No matching plan found. Search query updated with your spoken text.");
+          setPlanSearchQuery(transcriptText);
+          setTimeout(() => {
+            setIsListening(false);
+          }, 3000);
+        }
+      }
+    };
+
+    recognition.start();
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -1136,6 +1409,18 @@ export function MobileRechargeForm() {
                     }
                   }}
                 />
+                
+                {/* Voice to Recharge Mic Button */}
+                <button
+                  type="button"
+                  onClick={startVoiceListening}
+                  className="w-10 h-10 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-all duration-300 shrink-0 shadow-sm relative group/mic select-none hover:scale-105 active:scale-95"
+                  title="Speak to select plan"
+                >
+                  <Mic className="w-5 h-5 group-hover/mic:scale-110 transition-transform text-blue-600" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-white animate-pulse" />
+                </button>
+
                 {planSearchQuery && (
                   <button
                     onClick={() => {
@@ -1512,6 +1797,104 @@ export function MobileRechargeForm() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Voice Assistant Glassmorphic Overlay */}
+      <AnimatePresence>
+        {isListening && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col justify-between p-6 bg-slate-950/95 backdrop-blur-xl text-white select-none"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20">
+                  <div className="absolute inset-0 w-full h-full bg-blue-500 rounded-full animate-ping opacity-30" />
+                  <Mic className="w-4 h-4 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-200">PrePe Voice Assistant</h3>
+                  <p className="text-[10px] font-bold text-slate-400">
+                    Listening in {listeningLang === 'en-IN' ? 'English / Tanglish' : 'தமிழ் (Tamil)'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (speechRecognitionInstance) {
+                    try { speechRecognitionInstance.abort(); } catch(e){}
+                  }
+                  setIsListening(false);
+                }}
+                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Central Animated Waveform & Live Transcript */}
+            <div className="flex flex-col items-center justify-center flex-1 py-12 max-w-md mx-auto w-full text-center space-y-12">
+              {/* pulsing audio wave sphere */}
+              <div className="relative w-40 h-40 flex items-center justify-center">
+                <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-2xl animate-pulse" />
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute w-32 h-32 rounded-full border-2 border-blue-500/30"
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.35, 1] }}
+                  transition={{ duration: 1.5, delay: 0.3, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute w-24 h-24 rounded-full border border-indigo-500/40 bg-gradient-to-br from-blue-600/10 to-indigo-600/10"
+                />
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/50">
+                  <Mic className="w-7 h-7 text-white animate-pulse" />
+                </div>
+              </div>
+
+              {/* Dynamic Transcription Box */}
+              <div className="space-y-4 w-full px-4">
+                {voiceError ? (
+                  <p className="text-sm font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-2xl animate-in zoom-in-95 duration-200">
+                    {voiceError}
+                  </p>
+                ) : voiceSuccessMessage ? (
+                  <div className="space-y-2 animate-in zoom-in-95 duration-200">
+                    <p className="text-md font-black text-emerald-400">{voiceSuccessMessage}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Navigating to checkout...</p>
+                  </div>
+                ) : (
+                  <p className="text-2xl font-extrabold tracking-tight text-white/90 leading-snug min-h-[4rem] text-center">
+                    {voiceTranscript || <span className="text-white/40">"I want 1.5 GB data booster..."</span>}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom visual hint banner (multilingual) */}
+            <div className="w-full max-w-sm mx-auto bg-white/5 border border-white/10 rounded-3xl p-5 mb-4 animate-in slide-in-from-bottom-5 duration-300">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 text-center">Examples of what you can say</p>
+              <div className="space-y-2.5 text-xs text-slate-300 font-bold">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[10px] font-black text-blue-400 uppercase bg-blue-500/15 px-1.5 py-0.5 rounded">Eng</span>
+                  <p className="leading-relaxed">"I want to 1 GB Data for today"</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase bg-indigo-500/15 px-1.5 py-0.5 rounded">Tamil</span>
+                  <p className="leading-relaxed">"ஒரு வருட அன்லிமிடெட் பிளான் போடுங்க"</p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[10px] font-black text-emerald-400 uppercase bg-emerald-500/15 px-1.5 py-0.5 rounded">Tang</span>
+                  <p className="leading-relaxed">"Enaku 1.5 GB unlimited pack podunga"</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
