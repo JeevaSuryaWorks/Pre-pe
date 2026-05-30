@@ -1298,7 +1298,7 @@ export function MobileRechargeForm() {
     return (
       <div className="flex-1 flex flex-col space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 w-full relative">
         <div 
-          className="sticky bg-white/98 backdrop-blur-md pb-4 pt-2 space-y-4 shadow-sm -mx-4 px-4 border-b border-slate-200/50"
+          className="sticky bg-white/98 backdrop-blur-md pb-3 pt-2 shadow-sm -mx-4 px-4 border-b border-slate-200/50"
           style={{ position: 'sticky', top: '60px', zIndex: 30 }}
         >
           {/* Card containing Logo, Number, Truecaller Name lookup, and Change button */}
@@ -1348,115 +1348,115 @@ export function MobileRechargeForm() {
             </div>
             <Button variant="ghost" size="sm" onClick={() => setStep('number')} className="h-8 rounded-lg text-blue-600 text-xs font-bold hover:bg-blue-50 px-3">Change</Button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full px-1">
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operator</Label>
-              <Select value={selectedOperator} onValueChange={setSelectedOperator}>
-                <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
-                  <SelectValue placeholder="Operator" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {operators.map((op) => (
-                    <SelectItem key={op.id} value={op.id} className="font-bold py-2 text-sm">{op.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Circle</Label>
-              <Select value={selectedCircle} onValueChange={setSelectedCircle}>
-                <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
-                  <SelectValue placeholder="Circle" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {circles.map((circle) => (
-                    <SelectItem key={circle.id} value={circle.id} className="font-bold py-2 text-sm">{circle.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="grid grid-cols-2 gap-3 w-full px-1">
+          <div className="space-y-1.5">
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operator</Label>
+            <Select value={selectedOperator} onValueChange={setSelectedOperator}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
+                <SelectValue placeholder="Operator" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {operators.map((op) => (
+                  <SelectItem key={op.id} value={op.id} className="font-bold py-2 text-sm">{op.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Circle</Label>
+            <Select value={selectedCircle} onValueChange={setSelectedCircle}>
+              <SelectTrigger className="h-11 rounded-xl border-slate-100 bg-white font-bold shadow-sm">
+                <SelectValue placeholder="Circle" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {circles.map((circle) => (
+                  <SelectItem key={circle.id} value={circle.id} className="font-bold py-2 text-sm">{circle.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-          {/* Unified Search & Custom Amount Input Box */}
-          <div className="relative group w-full px-1">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[30px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
-            <div className="relative bg-white border-2 border-slate-100 rounded-[24px] p-4 focus-within:border-blue-500 transition-all shadow-md shadow-slate-100/5 w-full">
-              <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Search Plans or Enter Amount</Label>
-              <div className="flex items-center gap-3 h-10 w-full">
-                {/^\d+$/.test(planSearchQuery) ? (
-                  <span className="text-xl font-black text-blue-600 select-none shrink-0 animate-in zoom-in-50 duration-200">₹</span>
+        {/* Unified Search & Custom Amount Input Box */}
+        <div className="relative group w-full px-1">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[30px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
+          <div className="relative bg-white border-2 border-slate-100 rounded-[24px] p-4 focus-within:border-blue-500 transition-all shadow-md shadow-slate-100/5 w-full">
+            <Label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 block ml-1">Search Plans or Enter Amount</Label>
+            <div className="flex items-center gap-3 h-10 w-full">
+              {/^\d+$/.test(planSearchQuery) ? (
+                <span className="text-xl font-black text-blue-600 select-none shrink-0 animate-in zoom-in-50 duration-200">₹</span>
+              ) : (
+                <Search className="h-5 w-5 text-slate-400 shrink-0" />
+              )}
+              <div className="w-px h-5 bg-slate-100 shrink-0" />
+              <input
+                type="text"
+                className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0 font-sans"
+                placeholder="Search plan or enter amount (e.g. 2GB, 239)"
+                value={planSearchQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPlanSearchQuery(val);
+                  
+                  const isNumber = /^\d+$/.test(val);
+                  if (isNumber && parseFloat(val) > 0) {
+                    setAmount(val);
+                    setSelectedPlan({
+                      id: 'custom',
+                      amount: parseFloat(val) || 0,
+                      validity: 'As per operator',
+                      description: 'Custom Recharge Amount',
+                      category: 'custom'
+                    } as any);
+                  } else {
+                    setAmount("");
+                    if (selectedPlan?.id === 'custom') {
+                      setSelectedPlan(null);
+                    }
+                  }
+                }}
+              />
+              
+              {/* Voice to Recharge Mic Button */}
+              <button
+                type="button"
+                onClick={startVoiceListening}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-350 shrink-0 shadow-sm relative group/mic select-none hover:scale-105 active:scale-95 ${
+                  isListening ? 'bg-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-500/15' : 'bg-blue-50 hover:bg-blue-100'
+                }`}
+                title="Speak to select plan"
+              >
+                {isListening ? (
+                  <div className="flex items-end gap-0.5 h-3.5 select-none shrink-0">
+                    <span className="w-0.75 bg-white rounded-full animate-[bounce_0.6s_infinite] h-2" />
+                    <span className="w-0.75 bg-white rounded-full animate-[bounce_0.4s_infinite] h-3.5" />
+                    <span className="w-0.75 bg-white rounded-full animate-[bounce_0.8s_infinite] h-2.5" />
+                    <span className="w-0.75 bg-white rounded-full animate-[bounce_0.5s_infinite] h-3" />
+                  </div>
                 ) : (
-                  <Search className="h-5 w-5 text-slate-400 shrink-0" />
+                  <>
+                    <Mic className="w-5 h-5 group-hover/mic:scale-110 transition-transform text-blue-600" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-white animate-pulse" />
+                  </>
                 )}
-                <div className="w-px h-5 bg-slate-100 shrink-0" />
-                <input
-                  type="text"
-                  className="border-none p-0 h-full text-xl font-bold tracking-tight focus:outline-none placeholder:text-slate-200 bg-transparent flex-1 min-w-0 font-sans"
-                  placeholder="Search plan or enter amount (e.g. 2GB, 239)"
-                  value={planSearchQuery}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setPlanSearchQuery(val);
-                    
-                    const isNumber = /^\d+$/.test(val);
-                    if (isNumber && parseFloat(val) > 0) {
-                      setAmount(val);
-                      setSelectedPlan({
-                        id: 'custom',
-                        amount: parseFloat(val) || 0,
-                        validity: 'As per operator',
-                        description: 'Custom Recharge Amount',
-                        category: 'custom'
-                      } as any);
-                    } else {
-                      setAmount("");
-                      if (selectedPlan?.id === 'custom') {
-                        setSelectedPlan(null);
-                      }
+              </button>
+
+              {planSearchQuery && (
+                <button
+                  onClick={() => {
+                    setPlanSearchQuery("");
+                    setAmount("");
+                    if (selectedPlan?.id === 'custom') {
+                      setSelectedPlan(null);
                     }
                   }}
-                />
-                
-                {/* Voice to Recharge Mic Button */}
-                <button
-                  type="button"
-                  onClick={startVoiceListening}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-350 shrink-0 shadow-sm relative group/mic select-none hover:scale-105 active:scale-95 ${
-                    isListening ? 'bg-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-500/15' : 'bg-blue-50 hover:bg-blue-100'
-                  }`}
-                  title="Speak to select plan"
+                  className="w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors shrink-0"
                 >
-                  {isListening ? (
-                    <div className="flex items-end gap-0.5 h-3.5 select-none shrink-0">
-                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.6s_infinite] h-2" />
-                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.4s_infinite] h-3.5" />
-                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.8s_infinite] h-2.5" />
-                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.5s_infinite] h-3" />
-                    </div>
-                  ) : (
-                    <>
-                      <Mic className="w-5 h-5 group-hover/mic:scale-110 transition-transform text-blue-600" />
-                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-white animate-pulse" />
-                    </>
-                  )}
+                  <XCircle className="w-4 h-4" />
                 </button>
-
-                {planSearchQuery && (
-                  <button
-                    onClick={() => {
-                      setPlanSearchQuery("");
-                      setAmount("");
-                      if (selectedPlan?.id === 'custom') {
-                        setSelectedPlan(null);
-                      }
-                    }}
-                    className="w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-                  >
-                    <XCircle className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
