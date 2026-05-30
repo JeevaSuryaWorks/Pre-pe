@@ -35,7 +35,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   const [transactionId, setTransactionId] = useState('');
   const [isManualSuccess, setIsManualSuccess] = useState(false);
   const [selectedUpiVpa, setSelectedUpiVpa] = useState(() => {
-    const vpas = ['prepetechnologies@okaxis', 'prepetechnologies@okicici'];
+    const vpas = ['8668075429@okbizaxis'];
     return vpas[Math.floor(Math.random() * vpas.length)];
   });
   const { toast } = useToast();
