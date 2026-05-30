@@ -732,6 +732,7 @@ export function MobileRechargeForm() {
       setVoiceSuccessMessage(`Auto-selected ₹${matchedPlan.amount} plan! ${matchedPlan.description}`);
       setSelectedPlan(matchedPlan);
       setAmount(matchedPlan.amount.toString());
+      setVoiceError('');
       
       // Auto transition to confirm page after a 1.5s delay for hands-free premium look
       setTimeout(() => {
@@ -747,11 +748,8 @@ export function MobileRechargeForm() {
           retryVoiceListeningWithLang('ta-IN');
         }, 1200);
       } else {
-        setVoiceError("No matching plan found. Search query updated with your spoken text.");
+        setVoiceError("No matching plan found. You can try speaking again, or type your query below.");
         setPlanSearchQuery(text);
-        setTimeout(() => {
-          setIsListening(false);
-        }, 3000);
       }
     }
   };
@@ -780,12 +778,17 @@ export function MobileRechargeForm() {
 
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
-      setVoiceError(event.error === 'not-allowed' ? 'Microphone permission blocked. Please enable permission.' : 'Could not recognize speech. Try again.');
-      setTimeout(() => setIsListening(false), 2500);
+      if (event.error === 'network') {
+        setVoiceError('Speech server unreachable (Network Error). You can retry or type your plan request below.');
+      } else if (event.error === 'not-allowed') {
+        setVoiceError('Microphone permission blocked. Please enable microphone access.');
+      } else {
+        setVoiceError('Could not recognize speech. Please tap to retry or type below.');
+      }
     };
 
     recognition.onend = () => {
-      // Finished speaking
+      // Keep overlay open so user can see errors or use fallback text inputs
     };
 
     recognition.onresult = (event: any) => {
@@ -800,6 +803,7 @@ export function MobileRechargeForm() {
     };
 
     recognition.start();
+    setSpeechRecognitionInstance(recognition);
   };
 
   const retryVoiceListeningWithLang = (lang: 'en-IN' | 'ta-IN') => {
@@ -811,13 +815,17 @@ export function MobileRechargeForm() {
     recognition.interimResults = true;
     recognition.lang = lang;
 
-    recognition.onerror = () => {
-      setVoiceError('Could not recognize Tamil speech. Search query updated.');
-      setTimeout(() => setIsListening(false), 2500);
+    recognition.onerror = (event: any) => {
+      console.error('Tamil speech recognition error:', event.error);
+      if (event.error === 'network') {
+        setVoiceError('Speech server unreachable (Network Error). You can retry or type your plan request below.');
+      } else {
+        setVoiceError('Could not recognize Tamil speech. You can retry or type below.');
+      }
     };
 
     recognition.onend = () => {
-      // Stopped
+      // Keep open
     };
 
     recognition.onresult = (event: any) => {
@@ -832,21 +840,20 @@ export function MobileRechargeForm() {
           setVoiceSuccessMessage(`Auto-selected ₹${matchedPlan.amount} plan! ${matchedPlan.description}`);
           setSelectedPlan(matchedPlan);
           setAmount(matchedPlan.amount.toString());
+          setVoiceError('');
           setTimeout(() => {
             setIsListening(false);
             setStep('confirm');
           }, 1500);
         } else {
-          setVoiceError("No matching plan found. Search query updated with your spoken text.");
+          setVoiceError("No matching plan found. You can try speaking again, or type your query below.");
           setPlanSearchQuery(transcriptText);
-          setTimeout(() => {
-            setIsListening(false);
-          }, 3000);
         }
       }
     };
 
     recognition.start();
+    setSpeechRecognitionInstance(recognition);
   };
 
   useEffect(() => {
@@ -1414,11 +1421,24 @@ export function MobileRechargeForm() {
                 <button
                   type="button"
                   onClick={startVoiceListening}
-                  className="w-10 h-10 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-all duration-300 shrink-0 shadow-sm relative group/mic select-none hover:scale-105 active:scale-95"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-350 shrink-0 shadow-sm relative group/mic select-none hover:scale-105 active:scale-95 ${
+                    isListening ? 'bg-blue-600 shadow-lg shadow-blue-500/25 ring-4 ring-blue-500/15' : 'bg-blue-50 hover:bg-blue-100'
+                  }`}
                   title="Speak to select plan"
                 >
-                  <Mic className="w-5 h-5 group-hover/mic:scale-110 transition-transform text-blue-600" />
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-white animate-pulse" />
+                  {isListening ? (
+                    <div className="flex items-end gap-0.5 h-3.5 select-none shrink-0">
+                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.6s_infinite] h-2" />
+                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.4s_infinite] h-3.5" />
+                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.8s_infinite] h-2.5" />
+                      <span className="w-0.75 bg-white rounded-full animate-[bounce_0.5s_infinite] h-3" />
+                    </div>
+                  ) : (
+                    <>
+                      <Mic className="w-5 h-5 group-hover/mic:scale-110 transition-transform text-blue-600" />
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border border-white animate-pulse" />
+                    </>
+                  )}
                 </button>
 
                 {planSearchQuery && (
@@ -1851,16 +1871,32 @@ export function MobileRechargeForm() {
                   className="absolute w-24 h-24 rounded-full border border-indigo-500/40 bg-gradient-to-br from-blue-600/10 to-indigo-600/10"
                 />
                 <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/50">
-                  <Mic className="w-7 h-7 text-white animate-pulse" />
+                  {/* Bouncing audio bars visualizer instead of static Mic icon when voice is on */}
+                  <div className="flex items-end gap-1 h-6 select-none shrink-0">
+                    <span className="w-1 bg-white rounded-full animate-[bounce_0.6s_infinite] h-3" />
+                    <span className="w-1 bg-white rounded-full animate-[bounce_0.4s_infinite] h-6" />
+                    <span className="w-1 bg-white rounded-full animate-[bounce_0.8s_infinite] h-4" />
+                    <span className="w-1 bg-white rounded-full animate-[bounce_0.5s_infinite] h-5" />
+                    <span className="w-1 bg-white rounded-full animate-[bounce_0.7s_infinite] h-3.5" />
+                  </div>
                 </div>
               </div>
 
               {/* Dynamic Transcription Box */}
-              <div className="space-y-4 w-full px-4">
+              <div className="space-y-6 w-full px-4 flex flex-col items-center">
                 {voiceError ? (
-                  <p className="text-sm font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-2xl animate-in zoom-in-95 duration-200">
-                    {voiceError}
-                  </p>
+                  <div className="space-y-4 w-full flex flex-col items-center animate-in zoom-in-95 duration-200">
+                    <p className="text-sm font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-4 py-3 rounded-2xl text-center w-full">
+                      {voiceError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={startVoiceListening}
+                      className="px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-md shadow-blue-500/25 active:scale-95 hover:scale-105"
+                    >
+                      Tap to Retry Listening
+                    </button>
+                  </div>
                 ) : voiceSuccessMessage ? (
                   <div className="space-y-2 animate-in zoom-in-95 duration-200">
                     <p className="text-md font-black text-emerald-400">{voiceSuccessMessage}</p>
@@ -1871,6 +1907,38 @@ export function MobileRechargeForm() {
                     {voiceTranscript || <span className="text-white/40">"I want 1.5 GB data booster..."</span>}
                   </p>
                 )}
+
+                {/* Fallback Manual Query Input for Resiliency */}
+                <div className="w-full max-w-sm mt-4 animate-in fade-in duration-500">
+                  <div className="relative bg-white/5 border border-white/10 rounded-2xl p-1.5 focus-within:border-blue-500 transition-all flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Or type here (e.g. 1GB data booster)"
+                      className="flex-1 bg-transparent border-none focus:outline-none px-3 py-2 text-sm text-white placeholder:text-white/30"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = (e.target as HTMLInputElement).value;
+                          if (val.trim()) {
+                            processSpeechResult(val);
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        const container = e.currentTarget.parentElement;
+                        const input = container?.querySelector('input');
+                        if (input && input.value.trim()) {
+                          processSpeechResult(input.value);
+                        }
+                      }}
+                      className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-black transition-colors"
+                    >
+                      SUBMIT
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
