@@ -51,8 +51,29 @@ const callProxy = async (endpoint: string, params?: Record<string, any>, method:
             // @ts-ignore
             signal: AbortSignal.timeout(20000) // 20 seconds frontend timeout
         });
-        return response.json();
+        return await response.json();
     } catch (error: any) {
+        // Transparent fallback to production proxy if local dev proxy fails
+        const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const isRelativeUrl = PROXY_URL.startsWith('/') || PROXY_URL.includes('localhost') || PROXY_URL.includes('127.0.0.1');
+        
+        if (isLocalHost || isRelativeUrl) {
+            try {
+                console.warn('[Proxy Fallback] Local proxy unreachable. Retrying via production proxy...');
+                const fallbackUrl = 'https://api.pre-pe.com/api/kwik-proxy';
+                const response = await fetch(fallbackUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint, params, method }),
+                    // @ts-ignore
+                    signal: AbortSignal.timeout(15000)
+                });
+                return await response.json();
+            } catch (fallbackError) {
+                console.error('[Proxy Fallback] Production proxy also unreachable:', fallbackError);
+            }
+        }
+
         if (error.name === 'TimeoutError') {
             throw new Error('Provider response timed out. Please check history.');
         }
