@@ -255,12 +255,13 @@ export class RechargeService {
 
   private async sendStatusNotification(userId: string, status: string, amount: number, mobileNumber: string, referenceId: string) {
     try {
-      const profile = await this.prisma.profiles.findUnique({
-        where: { user_id: userId },
-        select: { fcm_token: true } as any
-      });
+      const results: any[] = await this.prisma.$queryRawUnsafe(
+        `SELECT fcm_token FROM profiles WHERE user_id = $1::uuid LIMIT 1`,
+        userId
+      );
+      const profile = results?.[0];
 
-      if (profile && (profile as any).fcm_token) {
+      if (profile && profile.fcm_token) {
         let title = '';
         let body = '';
 
@@ -275,7 +276,7 @@ export class RechargeService {
           body = `Postpaid mobile payment of ₹${amount} failed. Refund initiated to your wallet.`;
         }
 
-        await this.notificationService.sendPushNotification((profile as any).fcm_token, title, body);
+        await this.notificationService.sendPushNotification(profile.fcm_token, title, body);
       }
     } catch (e) {
       this.logger.error('Failed to send status notification', e);
