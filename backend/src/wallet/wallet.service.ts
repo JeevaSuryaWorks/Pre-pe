@@ -476,7 +476,7 @@ export class WalletService {
 
         let vpa = this.configService.get<string>('UPI_VPA');
         const upiIds = [
-            '8668075429@okbizaxis'
+            'prepetechnologies@okaxis'
         ];
         if (!vpa || vpa === 'bmsmobiles@barodampay') {
             vpa = upiIds[Math.floor(Math.random() * upiIds.length)];

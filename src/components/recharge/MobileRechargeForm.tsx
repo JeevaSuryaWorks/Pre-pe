@@ -144,6 +144,377 @@ const getAISuggestedPlans = (operatorId: string): RechargePlan[] => {
   ];
 };
 
+const getPlanBenefits = (description: string) => {
+  const desc = description.toLowerCase();
+  const benefits: { name: string; icon: React.ReactNode }[] = [];
+
+  if (desc.includes('5g') || desc.includes('true 5g')) {
+    benefits.push({
+      name: 'Unlimited 5G Data',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 p-0.5 border border-white/20">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <text x="50" y="58" fill="#ffffff" fontSize="24" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">5G</text>
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('hotstar') || desc.includes('disney')) {
+    benefits.push({
+      name: 'Disney+ Hotstar',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#0a122c] to-[#182c61] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M50 22 L54 38 L70 38 L58 48 L62 64 L50 54 L38 64 L42 48 L30 38 L46 38 Z" fill="#ffd700" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('prime') || desc.includes('amazon')) {
+    benefits.push({
+      name: 'Amazon Prime',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#00a8e8] to-[#007eb9] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M30 55 Q50 68 70 55" fill="none" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+          <path d="M70 55 L62 52 M70 55 L65 62" fill="none" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('netflix')) {
+    benefits.push({
+      name: 'Netflix',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#141414] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M32 25 L45 25 L65 75 L65 25 L78 25 L78 75 L65 75 L45 25 L45 75 L32 75 Z" fill="#e50914" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('jiocinema') || desc.includes('cinema')) {
+    benefits.push({
+      name: 'JioCinema',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#e91e63] to-[#c2185b] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M35 30 C35 30 50 20 50 20 C50 20 65 30 65 30 C65 48 50 72 50 72 C50 72 35 48 35 30 Z" fill="none" stroke="#ffffff" strokeWidth="5" />
+          <text x="50" y="46" fill="#ffffff" fontSize="18" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">JC</text>
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('jiocloud') || desc.includes('cloud')) {
+    benefits.push({
+      name: 'JioCloud',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#00b0ff] to-[#0081cb] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M40 60 Q35 60 35 55 Q35 50 42 50 Q45 42 52 42 Q62 42 65 50 Q70 50 70 56 Q70 60 65 60 Z" fill="#ffffff" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('jiotv') || desc.includes('live tv') || desc.includes('livetv')) {
+    benefits.push({
+      name: 'JioTV',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#e91e63] to-[#ff4081] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <rect x="25" y="35" width="50" height="36" rx="6" fill="#ffffff" />
+          <polygon points="43,45 61,53 43,61" fill="#e91e63" />
+          <line x1="40" y1="35" x2="30" y2="25" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+          <line x1="60" y1="35" x2="70" y2="25" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('saavn') || desc.includes('jiosaavn') || desc.includes('music')) {
+    benefits.push({
+      name: 'JioSaavn Pro',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#3ee0ac] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <circle cx="50" cy="50" r="22" fill="#ffffff" />
+          <circle cx="50" cy="50" r="10" fill="#3ee0ac" />
+          <path d="M50 15 Q68 28 68 50 Q68 72 50 85 Q32 72 32 50 Q32 28 50 15 Z" fill="none" stroke="#ffffff" strokeWidth="5" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('zee5') || desc.includes('zee')) {
+    benefits.push({
+      name: 'ZEE5',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#820082] to-[#410041] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <text x="50" y="58" fill="#ffd700" fontSize="26" fontWeight="bold" fontFamily="Georgia, serif" textAnchor="middle">Z5</text>
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('sonyliv') || desc.includes('liv')) {
+    benefits.push({
+      name: 'SonyLIV',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#111] to-[#2c3e50] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <text x="50" y="44" fill="#f1c40f" fontSize="16" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">SONY</text>
+          <text x="50" y="64" fill="#ffffff" fontSize="15" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">LIV</text>
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('youtube') || desc.includes('yt premium')) {
+    benefits.push({
+      name: 'YouTube Premium',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#ff0000] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <polygon points="38,32 70,50 38,68" fill="#ffffff" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('wynk')) {
+    benefits.push({
+      name: 'Wynk Music',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#ff2a68] to-[#920025] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M32 45 Q50 30 68 45 M38 55 Q50 42 62 55 M44 65 Q50 55 56 65" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('apollo')) {
+    benefits.push({
+      name: 'Apollo 24|7 Circle',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#ffffff] p-0.5 border border-[#1abc9c]">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <rect x="42" y="20" width="16" height="60" rx="4" fill="#e74c3c" />
+          <rect x="20" y="42" width="60" height="16" rx="4" fill="#e74c3c" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('hellotunes') || desc.includes('hello tunes')) {
+    benefits.push({
+      name: 'Free HelloTunes',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#ff9f43] to-[#ee5253] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M40 40 A15 15 0 0 1 60 40 L60 60 A15 15 0 0 1 40 60 Z" fill="none" stroke="#ffffff" strokeWidth="4" />
+          <circle cx="40" cy="60" r="8" fill="#ffffff" />
+          <circle cx="60" cy="60" r="8" fill="#ffffff" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('eros') || desc.includes('eros now')) {
+    benefits.push({
+      name: 'Eros Now',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#111111] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <text x="50" y="56" fill="#ff7f50" fontSize="24" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">EN</text>
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('binge all night') || desc.includes('binge')) {
+    benefits.push({
+      name: 'Vi Binge All Night (12AM-6AM)',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-gradient-to-br from-[#e1b12c] to-[#441a7b] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M35 50 L45 60 L65 40" fill="none" stroke="#ffffff" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('rollover') || desc.includes('weekend data')) {
+    benefits.push({
+      name: 'Weekend Data Rollover',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#4cd137] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M35 60 L50 40 L65 60" fill="none" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+          <line x1="50" y1="40" y2="70" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+        </svg>
+      )
+    });
+  }
+
+  if (desc.includes('vi movies') || desc.includes('movies & tv')) {
+    benefits.push({
+      name: 'Vi Movies & TV',
+      icon: (
+        <svg viewBox="0 0 100 100" className="w-6 h-6 select-none shrink-0 shadow-sm rounded-full bg-[#e84118] p-0.5 border border-white/10">
+          <circle cx="50" cy="50" r="48" fill="none" />
+          <path d="M40 30 L70 50 L40 70 Z" fill="#ffffff" />
+        </svg>
+      )
+    });
+  }
+
+  return benefits;
+};
+
+const getProviderTabs = (operatorId: string) => {
+  switch (operatorId) {
+    case '3': // Jio
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'true_5g_unlimited', label: 'True 5G Unlimited' },
+        { id: 'calls_only', label: 'Calls Only' },
+        { id: 'data', label: 'Data' },
+        { id: 'entertainment', label: 'Entertainment' },
+        { id: 'gaming', label: 'Gaming' },
+        { id: '5g_unlimited_upgrade', label: '5G Unlimited Upgrade' },
+        { id: 'annual_plans', label: 'Annual Plans' },
+        { id: 'smartphone_plans', label: 'Smartphone Plans' },
+        { id: '4g_feature_phone_plan', label: '4G Feature Phone Plan' },
+        { id: 'jio_phone', label: 'Jio Phone' },
+        { id: 'jio_bharat', label: 'Jio Bharat' },
+        { id: 'international_roaming', label: 'International roaming' },
+        { id: 'isd', label: 'ISD' },
+        { id: 'top_up', label: 'Top Up' }
+      ];
+    case '1': // Airtel
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'unlimited', label: 'Unlimited' },
+        { id: 'call_only', label: 'Call Only' },
+        { id: 'data', label: 'Data' },
+        { id: 'international_roaming', label: 'International Roaming' },
+        { id: 'talktime', label: 'Talktime' },
+        { id: 'other', label: 'Other' },
+        { id: 'inflight_roaming_packs', label: 'Inflight Roaming Packs' },
+        { id: 'plan_vouchers', label: 'Plan Vouchers' }
+      ];
+    case '4': // VI
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'unlimited', label: 'Unlimited' },
+        { id: 'call_only', label: 'Call Only' },
+        { id: 'nonstop_hero', label: 'NonStop Hero' },
+        { id: 'super_hero', label: 'Super Hero' },
+        { id: 'data', label: 'Data' },
+        { id: 'ott', label: 'OTT' },
+        { id: 'top_up', label: 'Top Up' },
+        { id: 'plan_voucher', label: 'Plan Voucher' }
+      ];
+    case '2': // BSNL
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'unlimited', label: 'Unlimited' },
+        { id: 'data', label: 'Data' },
+        { id: 'vas', label: 'VAS' },
+        { id: 'top_up', label: 'Top Up' },
+        { id: 'international_roaming', label: 'International Roaming' }
+      ];
+    default:
+      return [
+        { id: 'all', label: 'All' },
+        { id: 'unlimited', label: 'Unlimited' },
+        { id: 'data', label: 'Data (GB)' },
+        { id: 'combo', label: 'Validity' },
+        { id: 'topup', label: 'Talktime' }
+      ];
+  }
+};
+
+const matchesCategory = (plan: RechargePlan, tabId: string) => {
+  if (tabId === 'all') return true;
+
+  const desc = plan.description.toLowerCase();
+  const cat = plan.category?.toLowerCase() || '';
+
+  switch (tabId) {
+    // JIO Specific
+    case 'true_5g_unlimited':
+      return desc.includes('5g') && desc.includes('unlimited') && (desc.includes('voice') || desc.includes('calls'));
+    case 'calls_only':
+    case 'call_only':
+      return desc.includes('calls only') || desc.includes('unlimited calls') || desc.includes('unlimited voice') || cat.includes('talktime') || cat.includes('topup');
+    case 'data':
+      return cat.includes('data') || desc.includes('data booster') || desc.includes('extra data') || desc.includes('data pack');
+    case 'entertainment':
+    case 'ott':
+      return cat.includes('ott') || desc.includes('hotstar') || desc.includes('prime') || desc.includes('netflix') || desc.includes('ott') || desc.includes('cinema') || desc.includes('entertainment') || desc.includes('streaming');
+    case 'gaming':
+      return desc.includes('gaming') || desc.includes('games') || desc.includes('game');
+    case '5g_unlimited_upgrade':
+      return desc.includes('5g upgrade') || (desc.includes('5g') && desc.includes('upgrade'));
+    case 'annual_plans':
+      return desc.includes('year') || desc.includes('365 days') || desc.includes('annual');
+    case 'smartphone_plans':
+      return desc.includes('smartphone') || (!desc.includes('jiophone') && !desc.includes('bharat') && (cat.includes('unlimited') || desc.includes('voice')));
+    case '4g_feature_phone_plan':
+      return desc.includes('4g feature') || desc.includes('feature phone');
+    case 'jio_phone':
+    case 'jiophone':
+      return desc.includes('jiophone') || desc.includes('jio phone');
+    case 'jio_bharat':
+    case 'jiobharat':
+      return desc.includes('jiobharat') || desc.includes('jio bharat');
+    case 'international_roaming':
+    case 'roaming':
+      return cat.includes('roaming') || desc.includes('roaming') || desc.includes('international');
+    case 'isd':
+      return desc.includes('isd') || desc.includes('international call');
+    case 'top_up':
+    case 'topup':
+      return cat.includes('topup') || desc.includes('topup') || desc.includes('top-up') || desc.includes('talktime balance');
+
+    // AIRTEL Specific
+    case 'unlimited':
+      return cat.includes('unlimited') || desc.includes('unlimited');
+    case 'talktime':
+      return cat.includes('topup') || desc.includes('talktime') || desc.includes('top up');
+    case 'other':
+      return cat.includes('combo') || cat.includes('special') || desc.includes('other');
+    case 'inflight_roaming_packs':
+      return desc.includes('inflight') || desc.includes('in-flight');
+    case 'plan_vouchers':
+      return desc.includes('voucher') || desc.includes('rate cutter');
+
+    // VI Specific
+    case 'nonstop_hero':
+      return desc.includes('nonstop') || desc.includes('non-stop') || desc.includes('hero');
+    case 'super_hero':
+      return desc.includes('super hero') || desc.includes('superhero');
+    case 'plan_voucher':
+      return desc.includes('voucher') || desc.includes('plan voucher');
+
+    // BSNL Specific
+    case 'vas':
+      return desc.includes('vas') || desc.includes('value added') || desc.includes('caller tune') || desc.includes('tunes');
+
+    default:
+      return cat === tabId || desc.includes(tabId);
+  }
+};
+
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
 
 export function MobileRechargeForm() {
@@ -175,7 +546,7 @@ export function MobileRechargeForm() {
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [rewardsConfig, setRewardsConfig] = useState<any>(null);
   const [upiVpa, setUpiVpa] = useState(() => {
-    const vpas = ['8668075429@okbizaxis'];
+    const vpas = ['prepetechnologies@okaxis'];
     return vpas[Math.floor(Math.random() * vpas.length)];
   });
   
@@ -338,15 +709,19 @@ export function MobileRechargeForm() {
   }, [mobileNumber]);
 
   useEffect(() => {
+    setPlanCategory('all');
+  }, [selectedOperator]);
+
+  useEffect(() => {
     if (!selectedOperator || step !== 'details') return;
     const load = async () => {
       setLoadingPlans(true);
-      const result = await getPlans(selectedOperator, selectedCircle || '1', planCategory);
+      const result = await getPlans(selectedOperator, selectedCircle || '1', 'all');
       setPlans(result.status === 'SUCCESS' ? result.data : []);
       setLoadingPlans(false);
     };
     load();
-  }, [selectedOperator, selectedCircle, planCategory, step]);
+  }, [selectedOperator, selectedCircle, step]);
 
   useEffect(() => {
     if (!selectedOperator || !mobileNumber || step !== 'details') return;
@@ -896,16 +1271,7 @@ export function MobileRechargeForm() {
 
           <Tabs value={planCategory} onValueChange={setPlanCategory} className="flex-1 flex flex-col">
             <TabsList className="flex bg-slate-100/50 p-1 rounded-[18px] gap-1 mb-4 h-11 shrink-0 w-full overflow-x-auto no-scrollbar justify-start">
-              {[
-                { id: 'all', label: 'All' },
-                { id: 'unlimited', label: 'Unlimited' },
-                { id: 'data', label: 'Data (GB)' },
-                { id: 'combo', label: 'Validity' },
-                { id: 'ott', label: 'OTT / Media' },
-                { id: '5g', label: 'True 5G' },
-                { id: 'roaming', label: 'Roaming' },
-                { id: 'topup', label: 'Talktime' }
-              ].map((cat) => (
+              {getProviderTabs(selectedOperator).map((cat) => (
                 <TabsTrigger
                   key={cat.id}
                   value={cat.id}
@@ -918,13 +1284,18 @@ export function MobileRechargeForm() {
 
             <TabsContent value={planCategory} className="mt-0 w-full">
               <div className="grid gap-3 pr-1 pb-2 w-full">
-                {plans.length === 0 ? (
-                   <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 w-full">
-                      <Search className="w-8 h-8 mb-2" />
-                      <p className="text-[9px] font-black uppercase tracking-widest">No Plans Available</p>
-                   </div>
+                {plans.filter(plan => planCategory === 'all' || matchesCategory(plan, planCategory))
+                    .filter(plan => 
+                      plan.amount.toString().includes(planSearchQuery) || 
+                      plan.description.toLowerCase().includes(planSearchQuery.toLowerCase()) ||
+                      plan.validity.toLowerCase().includes(planSearchQuery.toLowerCase())
+                    ).length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 w-full">
+                       <Search className="w-8 h-8 mb-2" />
+                       <p className="text-[9px] font-black uppercase tracking-widest">No Plans Available</p>
+                    </div>
                 ) : plans
-                    .filter(plan => planCategory === 'all' || plan.category === planCategory)
+                    .filter(plan => planCategory === 'all' || matchesCategory(plan, planCategory))
                     .filter(plan => 
                       plan.amount.toString().includes(planSearchQuery) || 
                       plan.description.toLowerCase().includes(planSearchQuery.toLowerCase()) ||
@@ -937,8 +1308,44 @@ export function MobileRechargeForm() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
                     onClick={() => handlePlanSelect(plan)}
-                    className="p-5 rounded-[28px] border-2 border-slate-100 bg-white hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98] w-full"
+                    className="p-5 rounded-[28px] border-2 border-slate-100 bg-white hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98] w-full relative overflow-hidden"
                   >
+                    {/* Top Highlights Banner */}
+                    {(() => {
+                      const lowerDesc = plan.description.toLowerCase();
+                      let highlightText = "";
+                      let highlightClass = "";
+                      
+                      if (lowerDesc.includes('hotstar')) {
+                        highlightText = "Disney+ Hotstar Included";
+                        highlightClass = "from-teal-500 to-emerald-500";
+                      } else if (lowerDesc.includes('prime') || lowerDesc.includes('amazon')) {
+                        highlightText = "Amazon Prime Video Included";
+                        highlightClass = "from-sky-500 to-blue-500";
+                      } else if (lowerDesc.includes('netflix')) {
+                        highlightText = "Netflix Included";
+                        highlightClass = "from-red-600 to-rose-700";
+                      } else if (lowerDesc.includes('5g') || lowerDesc.includes('true 5g')) {
+                        highlightText = "True 5G Unlimited Data";
+                        highlightClass = "from-blue-600 to-indigo-600 shadow-sm";
+                      } else if (lowerDesc.includes('binge all night') || lowerDesc.includes('binge')) {
+                        highlightText = "Binge All Night Included";
+                        highlightClass = "from-amber-500 to-orange-600";
+                      } else if (lowerDesc.includes('rollover') || lowerDesc.includes('weekend data')) {
+                        highlightText = "Weekend Data Rollover";
+                        highlightClass = "from-green-500 to-emerald-600";
+                      }
+
+                      if (highlightText) {
+                        return (
+                          <div className={`bg-gradient-to-r ${highlightClass} text-white text-[8px] font-black uppercase tracking-wider px-3 py-1 rounded-[10px] w-fit mb-3 shadow-sm`}>
+                            {highlightText}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
@@ -950,7 +1357,25 @@ export function MobileRechargeForm() {
                         <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 font-medium leading-normal line-clamp-2">{plan.description}</p>
+                    
+                    <p className="text-[11px] text-slate-500 font-medium leading-normal line-clamp-2 mb-2">{plan.description}</p>
+                    
+                    {/* Render Benefits row */}
+                    {(() => {
+                      const benefits = getPlanBenefits(plan.description);
+                      if (benefits.length > 0) {
+                        return (
+                          <div className="flex items-center gap-1.5 mt-3 bg-slate-50/50 backdrop-blur-sm rounded-full px-3 py-1.5 w-fit border border-slate-100/50 shadow-sm">
+                            {benefits.map((b, bIdx) => (
+                              <div key={bIdx} title={b.name} className="hover:scale-115 active:scale-95 transition-transform duration-200 cursor-pointer">
+                                {b.icon}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </motion.div>
                 ))}
               </div>

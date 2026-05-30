@@ -8,7 +8,7 @@
 import type { Operator, Circle, ApiResponse } from '@/types/recharge.types';
 import { supabase } from '@/integrations/supabase/client';
 
-import { fetchKwikOperators, fetchOperatorDetails, KwikOperator } from './kwikApiService';
+import { fetchKwikOperators, fetchOperatorDetails, KwikOperator, fetchCircleCodes } from './kwikApiService';
 
 /**
  * Get all operators by type
@@ -102,9 +102,19 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
  * Get all circles
  */
 export async function getCircles(): Promise<Circle[]> {
-  // TODO: Replace with real API call
-  // const response = await supabase.functions.invoke('get-circles');
-
+  try {
+    const response = await fetchCircleCodes();
+    if (response && response.status === 'SUCCESS' && response.response) {
+      const mapped = response.response.map((c) => ({
+        id: c.circle_code,
+        name: c.circle_name,
+        code: c.circle_code,
+      }));
+      if (mapped.length > 0) return mapped;
+    }
+  } catch (error) {
+    console.error('Failed to fetch real circles from KwikAPI:', error);
+  }
   return MOCK_CIRCLES;
 }
 
@@ -147,6 +157,10 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
       const sum = cleanNum.split('').reduce((acc, char) => acc + parseInt(char || '0', 10), 0);
       matchedOp = operators[sum % operators.length] || operators[0];
     }
+
+    // Deterministic offline circle fallback distribution based on phone number hash
+    const sumDigits = cleanNum.split('').reduce((acc, char) => acc + parseInt(char || '0', 10), 0);
+    const matchedCircle = circles[sumDigits % circles.length] || circles[0];
     
     return {
       status: 'SUCCESS',
@@ -154,7 +168,7 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
       message: 'Operator detected successfully (Offline fallback)',
       data: {
         operator: matchedOp,
-        circle: circles[0],
+        circle: matchedCircle,
       },
     };
   };
@@ -179,10 +193,11 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
       );
 
       const circles = await getCircles();
-      const matchedCircle = circles.find(c =>
-        c.name.toLowerCase().includes(apiCircleName.toLowerCase()) ||
-        apiCircleName.toLowerCase().includes(c.name.toLowerCase())
-      ) || circles[0];
+      const cleanApiCircle = apiCircleName.toLowerCase().replace(/\s/g, '');
+      const matchedCircle = circles.find(c => {
+        const cleanName = c.name.toLowerCase().replace(/\s/g, '');
+        return cleanName.includes(cleanApiCircle) || cleanApiCircle.includes(cleanName);
+      }) || circles[0];
 
       if (matchedOp) {
         return {
