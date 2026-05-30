@@ -42,44 +42,49 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     setLoading(true);
-    console.log("[ProfileContext] Fetching profile for:", user.id);
+    console.log("[ProfileContext] Fetching profile for user_id:", user.id);
     
     try {
-        // Attempt 1: Full join with plans
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*, plans:plans(*)')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      // 1. Fetch the basic profile cleanly without any broken joins
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (error) {
-            console.error("[ProfileContext] Advanced fetch error (plans join failed):", error);
-            
-            // Attempt 2: Fallback to basic profile without join
-            console.log("[ProfileContext] Falling back to basic profile fetch...");
-            const { data: basicData, error: basicError } = await supabase
-              .from('profiles')
+      if (profileError) {
+        console.error("[ProfileContext] Error fetching profile:", profileError);
+        setProfile(null);
+      } else if (profileData) {
+        const joinedProfile = { ...profileData } as any;
+
+        // 2. Fetch the plan details separately to prevent join errors due to schema relationship constraints
+        if (profileData.plan_type) {
+          try {
+            const { data: planData, error: planError } = await supabase
+              .from('plans')
               .select('*')
-              .eq('user_id', user.id)
+              .eq('id', profileData.plan_type.toUpperCase())
               .maybeSingle();
-
-            if (basicError) {
-                console.error("[ProfileContext] Critical fetch error:", basicError);
-            } else if (basicData) {
-                console.log("[ProfileContext] Basic profile loaded (no plans info):", basicData);
-                setProfile(basicData as unknown as UserProfile);
+            
+            if (!planError && planData) {
+              joinedProfile.plans = planData;
             }
-        } else if (data) {
-            console.log("[ProfileContext] Full profile loaded:", data);
-            setProfile(data as unknown as UserProfile);
-        } else {
-            console.warn("[ProfileContext] No profile found in DB for user:", user.id);
-            setProfile(null);
+          } catch (planErr) {
+            console.warn("[ProfileContext] Failed to load separate plan details:", planErr);
+          }
         }
+
+        console.log("[ProfileContext] Profile successfully loaded:", joinedProfile);
+        setProfile(joinedProfile as UserProfile);
+      } else {
+        console.warn("[ProfileContext] No profile found in DB for user:", user.id);
+        setProfile(null);
+      }
     } catch (err) {
-        console.error("[ProfileContext] Unexpected error during fetch:", err);
+      console.error("[ProfileContext] Unexpected error during fetch:", err);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 

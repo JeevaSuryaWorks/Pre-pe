@@ -716,6 +716,7 @@ export function MobileRechargeForm() {
   const [voiceError, setVoiceError] = useState('');
   const [listeningLang, setListeningLang] = useState<'en-IN' | 'ta-IN'>('en-IN');
   const [voiceSuccessMessage, setVoiceSuccessMessage] = useState('');
+  const [speechRecognitionInstance, setSpeechRecognitionInstance] = useState<any>(null);
 
   const processSpeechResult = (text: string) => {
     if (plans.length === 0) {
