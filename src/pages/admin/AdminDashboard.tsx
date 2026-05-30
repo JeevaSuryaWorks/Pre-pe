@@ -19,12 +19,14 @@ import {
     ArrowRightLeft,
     TrendingUp,
     Server,
-    Wifi
+    Wifi,
+    RefreshCw
 } from "lucide-react";
 import { PageLoader } from '@/components/ui/BrandLoader';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { startTelegramBotListener, stopTelegramBotListener } from "@/services/telegramBot.service";
+import { fetchWalletBalance } from "@/services/kwikApiService";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -38,6 +40,8 @@ const AdminDashboard = () => {
         successRate: 0
     });
     const [recentTxns, setRecentTxns] = useState<any[]>([]);
+    const [gatewayBalance, setGatewayBalance] = useState<string | null>(null);
+    const [fetchingBalance, setFetchingBalance] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -64,12 +68,29 @@ const AdminDashboard = () => {
         };
     }, []);
 
+    const fetchGatewayBalance = async () => {
+        setFetchingBalance(true);
+        try {
+            const balanceData = await fetchWalletBalance();
+            if (balanceData) {
+                setGatewayBalance(balanceData.balance);
+            }
+        } catch (e) {
+            console.warn("Failed to fetch KwikAPI gateway balance:", e);
+        } finally {
+            setFetchingBalance(false);
+        }
+    };
+
     const fetchData = async () => {
         try {
             const users = await adminService.getUsers(1, 1);
             const allTxns = await adminService.getTransactions();
             const pendingKYC = await adminService.getPendingKYCCount();
             const pendingManual = await adminService.getPendingManualFundCount();
+            
+            // Trigger parallel fetch of KwikAPI balance
+            fetchGatewayBalance();
 
             const txns = allTxns.data || [];
             const successful = txns.filter(t => t.status === 'SUCCESS');
@@ -119,13 +140,29 @@ const AdminDashboard = () => {
                     </p>
                 </div>
                 
-                {/* Active Sync Status Badge */}
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3.5 py-1.5 rounded-full text-emerald-700 text-xs font-bold w-fit">
-                    <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Live Synced with Supabase
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Real-time KwikAPI Balance Top Indicator */}
+                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3.5 py-1.5 rounded-full text-blue-700 text-xs font-bold w-fit shadow-sm">
+                        <IndianRupee className="w-3.5 h-3.5" />
+                        <span>KwikAPI Wallet: </span>
+                        <span className="font-extrabold">{gatewayBalance !== null ? `₹${gatewayBalance}` : 'Syncing...'}</span>
+                        <button 
+                            onClick={fetchGatewayBalance}
+                            disabled={fetchingBalance}
+                            className={`ml-1 hover:text-blue-900 transition-all ${fetchingBalance ? 'animate-spin' : 'active:scale-95'}`}
+                        >
+                            <RefreshCw className="w-3 h-3" />
+                        </button>
+                    </div>
+
+                    {/* Active Sync Status Badge */}
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3.5 py-1.5 rounded-full text-emerald-700 text-xs font-bold w-fit">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        Live Synced with Supabase
+                    </div>
                 </div>
             </div>
 
@@ -243,6 +280,31 @@ const AdminDashboard = () => {
                     </CardHeader>
                     <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-4">
                         <div className="space-y-3.5">
+                            {/* KwikAPI Wallet Balance Control */}
+                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-100/50 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-lg text-white shadow-sm">
+                                        <IndianRupee className="h-4.5 w-4.5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-slate-700">KwikAPI Wallet Balance</p>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Checked real-time</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg font-black text-slate-900 leading-none">
+                                        {gatewayBalance !== null ? `₹${Number(gatewayBalance).toFixed(2)}` : 'Syncing...'}
+                                    </span>
+                                    <button 
+                                        onClick={fetchGatewayBalance} 
+                                        disabled={fetchingBalance}
+                                        className={`p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-all ${fetchingBalance ? 'animate-spin' : 'active:scale-90'}`}
+                                    >
+                                        <RefreshCw className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Proxy IP */}
                             <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                                 <div className="flex items-center gap-3">
