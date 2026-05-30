@@ -29,18 +29,31 @@ const MOCK_OPERATORS: Operator[] = [
   { id: '11', name: 'Sun Direct', code: 'SUN', type: 'dth', logo: '/operators/sun-direct.svg' },
 ];
 
-// Mock circles data - Replace with real API call
-const MOCK_CIRCLES: Circle[] = [
-  { id: '1', name: 'Delhi NCR', code: 'DL' },
-  { id: '2', name: 'Mumbai', code: 'MH' },
-  { id: '3', name: 'Karnataka', code: 'KA' },
-  { id: '4', name: 'Tamil Nadu', code: 'TN' },
-  { id: '5', name: 'Andhra Pradesh', code: 'AP' },
-  { id: '6', name: 'Gujarat', code: 'GJ' },
-  { id: '7', name: 'Maharashtra', code: 'MH' },
-  { id: '8', name: 'West Bengal', code: 'WB' },
-  { id: '9', name: 'Uttar Pradesh East', code: 'UPE' },
-  { id: '10', name: 'Uttar Pradesh West', code: 'UPW' },
+// Cached official Indian telecom circles matching KwikAPI codes - Bypasses the 2/day API rate limit
+const OFFICIAL_CIRCLES: Circle[] = [
+  { id: '1', name: 'Delhi NCR', code: '1' },
+  { id: '2', name: 'Mumbai', code: '2' },
+  { id: '3', name: 'Kolkata', code: '3' },
+  { id: '4', name: 'Maharashtra', code: '4' },
+  { id: '5', name: 'West Bengal', code: '5' },
+  { id: '6', name: 'Tamil Nadu', code: '6' },
+  { id: '7', name: 'Karnataka', code: '7' },
+  { id: '8', name: 'Andhra Pradesh & Telangana', code: '8' },
+  { id: '9', name: 'Gujarat', code: '9' },
+  { id: '10', name: 'Uttar Pradesh East', code: '10' },
+  { id: '11', name: 'Uttar Pradesh West & Uttarakhand', code: '11' },
+  { id: '12', name: 'Rajasthan', code: '12' },
+  { id: '13', name: 'Madhya Pradesh & Chhattisgarh', code: '13' },
+  { id: '14', name: 'Assam', code: '14' },
+  { id: '15', name: 'North East', code: '15' },
+  { id: '16', name: 'Kerala', code: '16' },
+  { id: '17', name: 'Haryana', code: '17' },
+  { id: '18', name: 'Himachal Pradesh', code: '18' },
+  { id: '19', name: 'Punjab', code: '19' },
+  { id: '20', name: 'Odisha', code: '20' },
+  { id: '21', name: 'Bihar & Jharkhand', code: '21' },
+  { id: '22', name: 'Jammu & Kashmir', code: '22' },
+  { id: '23', name: 'Chennai', code: '23' }
 ];
 
 /**
@@ -102,20 +115,7 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
  * Get all circles
  */
 export async function getCircles(): Promise<Circle[]> {
-  try {
-    const response = await fetchCircleCodes();
-    if (response && response.status === 'SUCCESS' && response.response) {
-      const mapped = response.response.map((c) => ({
-        id: c.circle_code,
-        name: c.circle_name,
-        code: c.circle_code,
-      }));
-      if (mapped.length > 0) return mapped;
-    }
-  } catch (error) {
-    console.error('Failed to fetch real circles from KwikAPI:', error);
-  }
-  return MOCK_CIRCLES;
+  return OFFICIAL_CIRCLES;
 }
 
 /**
@@ -185,6 +185,7 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
     if (kwikResult && kwikResult.success && kwikResult.details) {
       const apiOpName = kwikResult.details.provider;
       const apiCircleName = kwikResult.details.circle_name;
+      const apiCircleCode = kwikResult.details.circle_code;
 
       const operators = await getOperators('prepaid');
       const matchedOp = operators.find(op =>
@@ -193,11 +194,16 @@ export async function detectOperator(mobileNumber: string): Promise<ApiResponse<
       );
 
       const circles = await getCircles();
-      const cleanApiCircle = apiCircleName.toLowerCase().replace(/\s/g, '');
-      const matchedCircle = circles.find(c => {
-        const cleanName = c.name.toLowerCase().replace(/\s/g, '');
-        return cleanName.includes(cleanApiCircle) || cleanApiCircle.includes(cleanName);
-      }) || circles[0];
+      // Match by KwikAPI numeric circle_code directly first, falling back to name parsing if missing
+      let matchedCircle = apiCircleCode ? circles.find(c => c.id === apiCircleCode) : undefined;
+
+      if (!matchedCircle) {
+        const cleanApiCircle = apiCircleName.toLowerCase().replace(/\s/g, '');
+        matchedCircle = circles.find(c => {
+          const cleanName = c.name.toLowerCase().replace(/\s/g, '');
+          return cleanName.includes(cleanApiCircle) || cleanApiCircle.includes(cleanName);
+        }) || circles[0];
+      }
 
       if (matchedOp) {
         return {
