@@ -48,6 +48,7 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         fetchData();
+        fetchGatewayBalance();
         const interval = setInterval(fetchData, 30000);
         
         // Listen to external telegram approval events to trigger instant updates
@@ -75,17 +76,49 @@ const AdminDashboard = () => {
         setFetchingBalance(true);
         try {
             const balanceData = await fetchWalletBalance();
-            if (balanceData && balanceData.balance) {
-                const parsed = parseFloat(String(balanceData.balance).replace(/[^0-9.]/g, ''));
-                if (!isNaN(parsed)) {
-                    setGatewayBalance(parsed.toFixed(2));
+            if (balanceData) {
+                // If API returned a rate limit error (429) or other API-level failure
+                if (balanceData.error_code || (balanceData as any).status === 'FAILED' || (balanceData as any).status === 'ERROR') {
+                    console.warn("KwikAPI rate limit or API warning:", balanceData);
+                    const cached = localStorage.getItem('kwik_wallet_balance');
+                    if (cached) {
+                        setGatewayBalance(cached);
+                        toast({
+                            title: "KwikAPI Rate Limited",
+                            description: "Daily API limit reached. Showing last cached balance.",
+                        });
+                    } else {
+                        setGatewayBalance("Limit Reached");
+                    }
                     return;
                 }
+
+                if (balanceData.balance) {
+                    const parsed = parseFloat(String(balanceData.balance).replace(/[^0-9.]/g, ''));
+                    if (!isNaN(parsed)) {
+                        const formatted = parsed.toFixed(2);
+                        setGatewayBalance(formatted);
+                        localStorage.setItem('kwik_wallet_balance', formatted);
+                        return;
+                    }
+                }
             }
-            setGatewayBalance("0.00");
+            
+            // Fallback to cache if API returns empty or invalid response
+            const cached = localStorage.getItem('kwik_wallet_balance');
+            if (cached) {
+                setGatewayBalance(cached);
+            } else {
+                setGatewayBalance("0.00");
+            }
         } catch (e) {
             console.warn("Failed to fetch KwikAPI gateway balance:", e);
-            setGatewayBalance("0.00");
+            const cached = localStorage.getItem('kwik_wallet_balance');
+            if (cached) {
+                setGatewayBalance(cached);
+            } else {
+                setGatewayBalance("0.00");
+            }
         } finally {
             setFetchingBalance(false);
         }
@@ -97,9 +130,6 @@ const AdminDashboard = () => {
             const allTxns = await adminService.getTransactions();
             const pendingKYC = await adminService.getPendingKYCCount();
             const pendingManual = await adminService.getPendingManualFundCount();
-            
-            // Trigger parallel fetch of KwikAPI balance
-            fetchGatewayBalance();
 
             const txns = allTxns.data || [];
             const successful = txns.filter(t => t.status === 'SUCCESS');
