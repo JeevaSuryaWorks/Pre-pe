@@ -75,11 +75,17 @@ const AdminDashboard = () => {
         setFetchingBalance(true);
         try {
             const balanceData = await fetchWalletBalance();
-            if (balanceData) {
-                setGatewayBalance(balanceData.balance);
+            if (balanceData && balanceData.balance) {
+                const parsed = parseFloat(String(balanceData.balance).replace(/[^0-9.]/g, ''));
+                if (!isNaN(parsed)) {
+                    setGatewayBalance(parsed.toFixed(2));
+                    return;
+                }
             }
+            setGatewayBalance("0.00");
         } catch (e) {
             console.warn("Failed to fetch KwikAPI gateway balance:", e);
+            setGatewayBalance("0.00");
         } finally {
             setFetchingBalance(false);
         }
@@ -148,7 +154,15 @@ const AdminDashboard = () => {
                     <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3.5 py-1.5 rounded-full text-blue-700 text-xs font-bold w-fit shadow-sm">
                         <IndianRupee className="w-3.5 h-3.5" />
                         <span>KwikAPI Wallet: </span>
-                        <span className="font-extrabold">{gatewayBalance !== null ? `₹${gatewayBalance}` : 'Syncing...'}</span>
+                        <a 
+                            href="https://www.kwikapi.com/Dashboard/AddMoney/NewV2" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="font-extrabold hover:text-blue-900 active:scale-95 transition-all hover:underline"
+                            title="Click to Add Money"
+                        >
+                            {gatewayBalance !== null ? `₹${gatewayBalance}` : 'Syncing...'}
+                        </a>
                         <button 
                             onClick={fetchGatewayBalance}
                             disabled={fetchingBalance}
@@ -298,9 +312,17 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                                        <span className={`font-black text-slate-900 leading-none tracking-tight ${gatewayBalance !== null ? 'text-lg' : 'text-[11px] text-slate-400 font-bold'}`}>
-                                            {gatewayBalance !== null ? `₹${Number(gatewayBalance).toFixed(2)}` : 'Syncing...'}
-                                        </span>
+                                        <a 
+                                            href="https://www.kwikapi.com/Dashboard/AddMoney/NewV2" 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="hover:text-blue-600 active:scale-95 transition-all flex items-center animate-in fade-in"
+                                            title="Click to Add Money"
+                                        >
+                                            <span className={`font-black leading-none tracking-tight ${gatewayBalance !== null ? 'text-lg text-slate-900 hover:text-blue-600' : 'text-[11px] text-slate-400 font-bold'}`}>
+                                                {gatewayBalance !== null ? `₹${gatewayBalance}` : 'Syncing...'}
+                                            </span>
+                                        </a>
                                         <button 
                                             onClick={fetchGatewayBalance} 
                                             disabled={fetchingBalance}
