@@ -191,7 +191,7 @@ const AdminDashboard = () => {
                             className="font-extrabold hover:text-blue-900 active:scale-95 transition-all hover:underline"
                             title="Click to Add Money"
                         >
-                            {gatewayBalance !== null ? `₹${gatewayBalance}` : 'Syncing...'}
+                            {gatewayBalance !== null ? (gatewayBalance === 'Limit Reached' ? 'Rate Limited' : `₹${gatewayBalance}`) : 'Syncing...'}
                         </a>
                         <button 
                             onClick={fetchGatewayBalance}
@@ -349,8 +349,8 @@ const AdminDashboard = () => {
                                             className="hover:text-blue-600 active:scale-95 transition-all flex items-center animate-in fade-in"
                                             title="Click to Add Money"
                                         >
-                                            <span className={`font-black leading-none tracking-tight ${gatewayBalance !== null ? 'text-lg text-slate-900 hover:text-blue-600' : 'text-[11px] text-slate-400 font-bold'}`}>
-                                                {gatewayBalance !== null ? `₹${gatewayBalance}` : 'Syncing...'}
+                                            <span className={`font-black leading-none tracking-tight ${gatewayBalance !== null ? (gatewayBalance === 'Limit Reached' ? 'text-xs text-amber-600 font-bold uppercase tracking-tight' : 'text-lg text-slate-900 hover:text-blue-600') : 'text-[11px] text-slate-400 font-bold'}`}>
+                                                {gatewayBalance !== null ? (gatewayBalance === 'Limit Reached' ? 'Rate Limited' : `₹${gatewayBalance}`) : 'Syncing...'}
                                             </span>
                                         </a>
                                         <button 
