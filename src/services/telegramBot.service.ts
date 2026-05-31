@@ -128,8 +128,25 @@ export function startTelegramBotListener() {
 
     console.log("Initializing PrePe Telegram bot administrative listener...");
     pollingInterval = setInterval(async () => {
+        // Skip polling if the document is not visible (tab minimized/inactive) to avoid multi-tab conflicts
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+            return;
+        }
+
         try {
             const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`);
+            
+            // Handle active webhook or multiple active tabs conflicts gracefully
+            if (response.status === 409) {
+                console.warn("[TelegramBotService] Another admin dashboard tab/listener is active. Backing off polling to resolve conflict.");
+                return;
+            }
+
+            if (!response.ok) {
+                console.warn(`[TelegramBotService] Polling responded with non-ok status: ${response.status}`);
+                return;
+            }
+
             const data = await response.json();
             if (data.ok && data.result && data.result.length > 0) {
                 for (const update of data.result) {
@@ -148,7 +165,7 @@ export function startTelegramBotListener() {
                 }
             }
         } catch (error) {
-            console.error("Telegram polling error:", error);
+            console.warn("[TelegramBotService] Polling network exception or transient failure:", error);
         }
     }, 8000); // Poll every 8 seconds
 }
