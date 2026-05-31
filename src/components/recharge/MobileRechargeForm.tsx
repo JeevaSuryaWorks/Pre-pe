@@ -649,7 +649,7 @@ const matchesCategory = (plan: RechargePlan, tabId: string) => {
 
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
 
-export function MobileRechargeForm() {
+export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: FlowStep) => void } = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { availableBalance, refetch } = useWallet();
@@ -685,6 +685,10 @@ export function MobileRechargeForm() {
   const [loading, setLoading] = useState(true);
   const [truecallerProfile, setTruecallerProfile] = useState<TruecallerProfile | null>(null);
   const [fetchingTruecaller, setFetchingTruecaller] = useState(false);
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
   
   useEffect(() => {
     const loadRewards = async () => {
