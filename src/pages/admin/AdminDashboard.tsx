@@ -27,9 +27,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { startTelegramBotListener, stopTelegramBotListener } from "@/services/telegramBot.service";
 import { fetchWalletBalance } from "@/services/kwikApiService";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalUsers: 0,
@@ -280,28 +282,77 @@ const AdminDashboard = () => {
                     </CardHeader>
                     <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-4">
                         <div className="space-y-3.5">
-                            {/* KwikAPI Wallet Balance Control */}
-                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-100/50 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-lg text-white shadow-sm">
-                                        <IndianRupee className="h-4.5 w-4.5" />
+                            {/* KwikAPI Wallet & Fund Loading Panel */}
+                            <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/40 via-indigo-50/10 to-transparent p-4.5 shadow-sm space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl text-white shadow-md shadow-blue-100">
+                                            <IndianRupee className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-slate-700 uppercase tracking-wider">KwikAPI Wallet</p>
+                                            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-tight flex items-center gap-1 mt-0.5">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Can Pay (Limit)
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-xs font-black text-slate-700">KwikAPI Wallet Balance</p>
-                                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">Checked real-time</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xl font-black text-slate-900 leading-none tracking-tight">
+                                            {gatewayBalance !== null ? `₹${Number(gatewayBalance).toFixed(2)}` : 'Syncing...'}
+                                        </span>
+                                        <button 
+                                            onClick={fetchGatewayBalance} 
+                                            disabled={fetchingBalance}
+                                            className={`p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-all ${fetchingBalance ? 'animate-spin' : 'active:scale-90'}`}
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-lg font-black text-slate-900 leading-none">
-                                        {gatewayBalance !== null ? `₹${Number(gatewayBalance).toFixed(2)}` : 'Syncing...'}
-                                    </span>
-                                    <button 
-                                        onClick={fetchGatewayBalance} 
-                                        disabled={fetchingBalance}
-                                        className={`p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-all ${fetchingBalance ? 'animate-spin' : 'active:scale-90'}`}
-                                    >
-                                        <RefreshCw className="w-3.5 h-3.5" />
-                                    </button>
+
+                                <div className="border-t border-slate-100 pt-3.5 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pay / Load Funds (Bank Deposit)</p>
+                                        <span className="text-[8px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">Instant NEFT/IMPS</span>
+                                    </div>
+                                    <div className="bg-white border border-slate-100 rounded-xl p-3 space-y-2 text-xs">
+                                        <div className="flex items-center gap-2 border-b border-slate-50 pb-2">
+                                            <img src="/logos/kotak_logo.png" alt="Kotak Bank" className="h-4 object-contain" onError={(e) => { (e.target as any).src = 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Kotak_Mahindra_Bank_logo.svg'; }} />
+                                            <span className="font-extrabold text-slate-700 text-[10.5px]">Kotak Mahindra Bank</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-slate-400 font-medium text-[10px] uppercase">Account Number</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-mono font-black text-slate-800 select-all tracking-tight">YOFLIC1KWKJEE670</span>
+                                                <button 
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText('YOFLIC1KWKJEE670');
+                                                        toast({ title: "Account copied", description: "Virtual Account copied to clipboard" });
+                                                    }}
+                                                    className="text-[9px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50"
+                                                >
+                                                    Copy
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-slate-400 font-medium text-[10px] uppercase">IFSC Code</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-mono font-black text-slate-800 select-all tracking-tight">KKBK0000CMS</span>
+                                                <button 
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText('KKBK0000CMS');
+                                                        toast({ title: "IFSC copied", description: "IFSC Code copied to clipboard" });
+                                                    }}
+                                                    className="text-[9px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50"
+                                                >
+                                                    Copy
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
