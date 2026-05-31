@@ -80,16 +80,28 @@ const AdminDashboard = () => {
                 // If API returned a rate limit error (429) or other API-level failure
                 if (balanceData.error_code || (balanceData as any).status === 'FAILED' || (balanceData as any).status === 'ERROR') {
                     console.warn("KwikAPI rate limit or API warning:", balanceData);
-                    const cached = localStorage.getItem('kwik_wallet_balance');
-                    if (cached) {
-                        setGatewayBalance(cached);
-                        toast({
-                            title: "KwikAPI Rate Limited",
-                            description: "Daily API limit reached. Showing last cached balance.",
-                        });
-                    } else {
-                        setGatewayBalance("Limit Reached");
+                    
+                    // 1. Try browser local storage
+                    const localCached = localStorage.getItem('kwik_wallet_balance');
+                    if (localCached) {
+                        setGatewayBalance(localCached);
+                        return;
                     }
+
+                    // 2. Try Supabase shared system settings
+                    try {
+                        const settings = await adminService.getRewardSettings();
+                        const dbCached = settings["kwik_api_balance"];
+                        if (dbCached && dbCached.balance) {
+                            setGatewayBalance(dbCached.balance);
+                            localStorage.setItem('kwik_wallet_balance', dbCached.balance);
+                            return;
+                        }
+                    } catch (dbErr) {
+                        console.warn("Failed to fetch balance from Supabase:", dbErr);
+                    }
+
+                    setGatewayBalance("Limit Reached");
                     return;
                 }
 
@@ -98,26 +110,57 @@ const AdminDashboard = () => {
                     if (!isNaN(parsed)) {
                         const formatted = parsed.toFixed(2);
                         setGatewayBalance(formatted);
+                        
+                        // Save to browser cache
                         localStorage.setItem('kwik_wallet_balance', formatted);
+                        
+                        // Save to Supabase shared system settings so other admins see it!
+                        try {
+                            await adminService.updateRewardSetting("kwik_api_balance", { balance: formatted });
+                        } catch (dbErr) {
+                            console.warn("Failed to save balance to Supabase:", dbErr);
+                        }
                         return;
                     }
                 }
             }
             
-            // Fallback to cache if API returns empty or invalid response
-            const cached = localStorage.getItem('kwik_wallet_balance');
-            if (cached) {
-                setGatewayBalance(cached);
+            // Fallback to local cache or database cache if API returns empty response
+            const localCached = localStorage.getItem('kwik_wallet_balance');
+            if (localCached) {
+                setGatewayBalance(localCached);
             } else {
-                setGatewayBalance("0.00");
+                try {
+                    const settings = await adminService.getRewardSettings();
+                    const dbCached = settings["kwik_api_balance"];
+                    if (dbCached && dbCached.balance) {
+                        setGatewayBalance(dbCached.balance);
+                        localStorage.setItem('kwik_wallet_balance', dbCached.balance);
+                    } else {
+                        setGatewayBalance("0.00");
+                    }
+                } catch {
+                    setGatewayBalance("0.00");
+                }
             }
         } catch (e) {
             console.warn("Failed to fetch KwikAPI gateway balance:", e);
-            const cached = localStorage.getItem('kwik_wallet_balance');
-            if (cached) {
-                setGatewayBalance(cached);
+            const localCached = localStorage.getItem('kwik_wallet_balance');
+            if (localCached) {
+                setGatewayBalance(localCached);
             } else {
-                setGatewayBalance("0.00");
+                try {
+                    const settings = await adminService.getRewardSettings();
+                    const dbCached = settings["kwik_api_balance"];
+                    if (dbCached && dbCached.balance) {
+                        setGatewayBalance(dbCached.balance);
+                        localStorage.setItem('kwik_wallet_balance', dbCached.balance);
+                    } else {
+                        setGatewayBalance("0.00");
+                    }
+                } catch {
+                    setGatewayBalance("0.00");
+                }
             }
         } finally {
             setFetchingBalance(false);
