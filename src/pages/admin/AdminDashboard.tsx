@@ -494,7 +494,7 @@ const AdminDashboard = () => {
                         <Button 
                             variant="outline" 
                             className="w-full rounded-xl font-bold h-11 border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-sm flex items-center justify-center gap-1.5"
-                            onClick={() => navigate("/admin/network-diagnostics" as any)}
+                            onClick={() => navigate("/admin/network")}
                         >
                             Run Diagnostics <ExternalLink className="h-3.5 w-3.5" />
                         </Button>

@@ -550,7 +550,7 @@ const SavedPage = () => {
     const favoriteItems = filteredItems.filter(i => i.category === 'FAVORITE');
 
     return (
-        <Layout title={familyName ? `PrePe Family - ${familyName}` : "PrePe Family"} showBottomNav>
+        <Layout title="PrePe Family" showBottomNav>
             <div className="min-h-screen bg-slate-50/50 pb-28">
                 {/* Visual Accent Gradients */}
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF671F]/5 rounded-full blur-[100px] pointer-events-none" />
