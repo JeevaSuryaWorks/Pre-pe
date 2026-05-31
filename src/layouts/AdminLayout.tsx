@@ -150,12 +150,22 @@ export const AdminLayout = () => {
                     <img src="/icon_new.png" alt="Admin" className="w-8 h-8 rounded-lg bg-white object-contain shadow-sm p-0.5" />
                     <h1 className="font-bold text-lg text-slate-800 tracking-tight">PrePe Admin</h1>
                 </div>
-                <Sheet open={open} onOpenChange={setOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-slate-600">
-                            <Menu className="h-6 w-6" />
-                        </Button>
-                    </SheetTrigger>
+                <div className="flex items-center gap-1">
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => navigate('/home')} 
+                        className="text-slate-600 hover:text-slate-950 hover:bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                        title="Return User Home"
+                    >
+                        <Home className="h-5 w-5 text-slate-600" />
+                    </Button>
+                    <Sheet open={open} onOpenChange={setOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-slate-600">
+                                <Menu className="h-6 w-6" />
+                            </Button>
+                        </SheetTrigger>
                     <SheetContent side="left" className="w-72 p-0 bg-white/95 backdrop-blur-xl border-r-slate-200">
                         <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
                         <div className="h-full flex flex-col">
@@ -188,7 +198,8 @@ export const AdminLayout = () => {
                         </div>
                     </SheetContent>
                 </Sheet>
-            </header>
+            </div>
+        </header>
 
             {/* Desktop Sidebar */}
             <aside className={`hidden md:flex flex-col ${isCollapsed ? 'w-20' : 'w-72'} h-screen sticky top-0 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ease-in-out`}>
