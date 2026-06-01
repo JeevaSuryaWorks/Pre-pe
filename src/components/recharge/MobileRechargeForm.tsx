@@ -881,8 +881,8 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
   useEffect(() => {
     const loadHistory = async () => {
       if (!user) return;
-      const history = await getTransactionHistory(user.id, 5, 'MOBILE_PREPAID');
-      setRecentTransactions(history.filter((t: any) => t.status === 'SUCCESS'));
+      const history = await getTransactionHistory(user.id, 10, 'MOBILE_PREPAID');
+      setRecentTransactions(history);
     };
     loadHistory();
   }, [user?.id]);
@@ -1594,32 +1594,53 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
 
             <TabsContent value={planCategory} className="mt-0 w-full">
               <div className="grid gap-3 pr-1 pb-2 w-full">
-                {plans.filter(plan => planCategory === 'all' || matchesCategory(plan, planCategory))
+                {(() => {
+                  let filtered = plans.filter(plan => planCategory === 'all' || matchesCategory(plan, planCategory))
                     .filter(plan => 
                       plan.amount.toString().includes(planSearchQuery) || 
                       plan.description.toLowerCase().includes(planSearchQuery.toLowerCase()) ||
                       plan.validity.toLowerCase().includes(planSearchQuery.toLowerCase())
-                    ).length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 w-full">
-                       <Search className="w-8 h-8 mb-2" />
-                       <p className="text-[9px] font-black uppercase tracking-widest">No Plans Available</p>
-                    </div>
-                ) : plans
-                    .filter(plan => planCategory === 'all' || matchesCategory(plan, planCategory))
-                    .filter(plan => 
-                      plan.amount.toString().includes(planSearchQuery) || 
-                      plan.description.toLowerCase().includes(planSearchQuery.toLowerCase()) ||
-                      plan.validity.toLowerCase().includes(planSearchQuery.toLowerCase())
-                    )
-                    .map((plan, idx) => (
-                  <motion.div
-                    key={plan.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    onClick={() => handlePlanSelect(plan)}
-                    className="p-5 rounded-[28px] border-2 border-slate-100 bg-white hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98] w-full relative overflow-hidden"
-                  >
+                    );
+
+                  const searchAmtStr = planSearchQuery.trim();
+                  const searchAmount = parseInt(searchAmtStr, 10);
+                  const isNumericSearch = /^\d+$/.test(searchAmtStr) && !isNaN(searchAmount) && searchAmount > 0;
+
+                  if (isNumericSearch) {
+                    const exactMatchExists = filtered.some(p => p.amount === searchAmount);
+                    if (!exactMatchExists) {
+                      filtered = [
+                        {
+                          id: `custom-search-${searchAmount}`,
+                          operator_id: selectedOperator,
+                          amount: searchAmount,
+                          validity: 'As per operator',
+                          description: `Special Recharge Plan of ₹${searchAmount} for ${selectedOperator === '1' ? 'Airtel' : selectedOperator === '2' ? 'BSNL' : selectedOperator === '3' ? 'Jio' : 'Vi'} Prepaid`,
+                          category: 'unlimited'
+                        },
+                        ...filtered
+                      ];
+                    }
+                  }
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 w-full">
+                         <Search className="w-8 h-8 mb-2" />
+                         <p className="text-[9px] font-black uppercase tracking-widest">No Plans Available</p>
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((plan, idx) => (
+                    <motion.div
+                      key={plan.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      onClick={() => handlePlanSelect(plan)}
+                      className="p-5 rounded-[28px] border-2 border-slate-100 bg-white hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer group active:scale-[0.98] w-full relative overflow-hidden"
+                    >
                     {/* Top Highlights Banner */}
                     {(() => {
                       const lowerDesc = plan.description.toLowerCase();
@@ -1687,7 +1708,8 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
                       return null;
                     })()}
                   </motion.div>
-                ))}
+                ));
+              })()}
               </div>
             </TabsContent>
           </Tabs>
@@ -1818,48 +1840,62 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 shrink-0 text-left">Recent Transactions</h3>
         <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar pb-6 w-full">
           {(() => {
-            const filteredRecentTxns = recentTransactions.filter(txn => {
-              if (!profile?.phone) return true;
-              const selfClean = profile.phone.replace(/\D/g, '').slice(-10);
-              const txnClean = txn.mobile_number.replace(/\D/g, '').slice(-10);
-              return txnClean !== selfClean;
-            });
-
-            const displayRecentTxns = filteredRecentTxns.length > 0 ? filteredRecentTxns : [
-              { id: 'm1', mobile_number: '8668075429', amount: 239 },
-              { id: 'm2', mobile_number: '9876543210', amount: 299 },
-              { id: 'm3', mobile_number: '9123456789', amount: 749 }
-            ].filter(txn => {
-              if (!profile?.phone) return true;
-              const selfClean = profile.phone.replace(/\D/g, '').slice(-10);
-              const txnClean = txn.mobile_number.replace(/\D/g, '').slice(-10);
-              return txnClean !== selfClean;
-            });
+            const displayRecentTxns = recentTransactions.length > 0 ? recentTransactions : [
+              { id: 'm1', mobile_number: '8668075429', amount: 239, operator_id: '1', status: 'SUCCESS' },
+              { id: 'm2', mobile_number: '9876543210', amount: 299, operator_id: '3', status: 'FAILED' },
+              { id: 'm3', mobile_number: '9123456789', amount: 749, operator_id: '4', status: 'PENDING' }
+            ];
 
             if (displayRecentTxns.length === 0) {
               return (
                 <div className="text-center py-6 opacity-30">
-                  <p className="text-[9px] font-black uppercase tracking-widest">No other recent recharges</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest">No recent transactions</p>
                 </div>
               );
             }
 
-            return displayRecentTxns.map((txn) => (
-              <div
-                key={txn.id}
-                onClick={() => handleMobileChange(txn.mobile_number)}
-                className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full active:scale-[0.99]"
-              >
-                <div className="w-12 h-12 bg-slate-50 rounded-[18px] flex items-center justify-center text-xl font-black text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
-                  {txn.mobile_number.slice(0, 2)}
+            return displayRecentTxns.map((txn) => {
+              const getLogo = (t: any) => {
+                if (t.operator_id && OPERATOR_LOGOS[t.operator_id]) {
+                  return OPERATOR_LOGOS[t.operator_id];
+                }
+                const name = (t.operator_name || '').toLowerCase();
+                if (name.includes('airtel')) return '/logos/airtel_new.svg';
+                if (name.includes('vi') || name.includes('vodafone') || name.includes('idea')) return '/logos/vi_new.svg';
+                if (name.includes('jio')) return '/logos/jio_new.svg';
+                if (name.includes('bsnl')) return '/logos/bsnl_new.png';
+                return '/logos/airtel_new.svg';
+              };
+
+              const logoUrl = getLogo(txn);
+              const statusColor = txn.status === 'SUCCESS' || txn.status === 'SUCCESSFUL'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                : txn.status === 'FAILED' || txn.status === 'FAILURE'
+                  ? 'bg-red-50 text-red-700 border-red-100'
+                  : 'bg-amber-50 text-amber-700 border-amber-100';
+
+              return (
+                <div
+                  key={txn.id}
+                  onClick={() => handleMobileChange(txn.mobile_number)}
+                  className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full active:scale-[0.99]"
+                >
+                  <div className="w-12 h-12 bg-slate-50 rounded-[18px] p-2 flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
+                    <img src={logoUrl} alt="operator" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-left space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-black text-slate-800 tracking-tight leading-none truncate">{txn.mobile_number}</p>
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider shrink-0 ${statusColor}`}>
+                        {txn.status || 'SUCCESS'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none pt-0.5">₹{txn.amount}</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-blue-600 transition-all shrink-0" />
                 </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-lg font-black text-slate-800 tracking-tight leading-none truncate">{txn.mobile_number}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">₹{txn.amount}</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-blue-600 transition-all shrink-0" />
-              </div>
-            ));
+              );
+            });
           })()}
         </div>
       </div>

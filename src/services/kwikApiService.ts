@@ -220,7 +220,14 @@ export interface KwikPlansResponse {
 
 export const fetchRechargePlans = async (stateCode: string, operatorId: string): Promise<KwikPlansResponse> => {
     try {
-        return await callProxy('/recharge_plans.php', { state_code: stateCode, opid: operatorId }, 'POST');
+        const opidMap: Record<string, string> = {
+            '1': '1',   // Airtel
+            '2': '2',   // BSNL
+            '3': '12',  // Jio
+            '4': '3',   // Vi
+        };
+        const kwikOpid = opidMap[operatorId] || operatorId;
+        return await callProxy('/recharge_plans.php', { state_code: stateCode, opid: kwikOpid }, 'POST');
     } catch (error) {
         return { success: false, message: 'Network Error' };
     }
@@ -263,7 +270,14 @@ export const fetchDTHCustomerDetails = async (operatorId: string, customerId: st
 
 export const fetchROffer = async (operatorId: string, mobileNumber: string): Promise<KwikPlansResponse> => {
     try {
-        return await callProxy('/R-OFFER_check.php', { opid: operatorId, mobile: mobileNumber }, 'POST');
+        const opidMap: Record<string, string> = {
+            '1': '1',   // Airtel
+            '2': '2',   // BSNL
+            '3': '12',  // Jio
+            '4': '3',   // Vi
+        };
+        const kwikOpid = opidMap[operatorId] || operatorId;
+        return await callProxy('/R-OFFER_check.php', { opid: kwikOpid, mobile: mobileNumber }, 'POST');
     } catch (error) {
         return { success: false, message: 'Network Error' };
     }
