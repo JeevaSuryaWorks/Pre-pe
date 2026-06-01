@@ -14,6 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+import { checkAndRecordDailyStreak } from "@/services/rewards.service";
+
 interface AdRewardProps {
   userId: string;
   onComplete: (points: number) => void;
@@ -156,7 +158,12 @@ export function AdReward({ userId, onComplete }: AdRewardProps) {
     }
   };
 
-  const completeAd = (earnedPoints: number) => {
+  const completeAd = async (earnedPoints: number) => {
+    try {
+      await checkAndRecordDailyStreak(userId);
+    } catch (strkErr) {
+      console.error("Failed to record daily streak on ad completion:", strkErr);
+    }
     toast({
       title: "Reward Earned!",
       description: `Successfully credited +${earnedPoints} points to your ledger!`,

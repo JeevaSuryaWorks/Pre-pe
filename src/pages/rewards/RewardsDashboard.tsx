@@ -109,9 +109,6 @@ export default function RewardsDashboard() {
     if (!silent) setLoading(true);
     
     try {
-      // Record daily check-in activity if none exists today
-      await checkAndRecordDailyStreak(user.id);
-
       const [points, cb, strk, spinStatus, cards, availableTasks, completedIds] = await Promise.all([
         getUserTotalPoints(user.id),
         getUserTotalCashback(user.id),
@@ -217,6 +214,13 @@ export default function RewardsDashboard() {
   const handleSpinComplete = async (points: number) => {
     if (!user) return;
     
+    // Asynchronously check and record the daily streak check-in
+    try {
+      await checkAndRecordDailyStreak(user.id);
+    } catch (strkErr) {
+      console.error("Failed to check and record daily streak on spin:", strkErr);
+    }
+
     // Even if 0 points, we add a record to track the spin attempt (spins remaining logic depends on ledger)
     const success = await addRewardPoints(
         user.id, 

@@ -715,7 +715,7 @@ export async function claimTaskReward(userId: string, task: any): Promise<boolea
 export async function checkAndRecordDailyStreak(userId: string): Promise<void> {
   const { data, error } = await supabase
     .from('reward_points_ledger' as never)
-    .select('created_at')
+    .select('created_at, description')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -725,13 +725,13 @@ export async function checkAndRecordDailyStreak(userId: string): Promise<void> {
   today.setHours(0, 0, 0, 0);
   const todayTime = today.getTime();
 
-  const hasActivityToday = data && data.some((row: any) => {
+  const hasStreakToday = data && data.some((row: any) => {
     const d = new Date(row.created_at);
     d.setHours(0, 0, 0, 0);
-    return d.getTime() === todayTime;
+    return d.getTime() === todayTime && row.description === 'Daily Streak Check-in';
   });
 
-  if (!hasActivityToday) {
+  if (!hasStreakToday) {
     // Record a cashback points ledger entry with 10 reward points for daily check-in
     await addRewardPoints(userId, 10, 'CASHBACK_POINTS', 'Daily Streak Check-in');
   }
@@ -829,6 +829,14 @@ export async function triggerAutonomousRechargeRewards(userId: string, amount: n
     }
 
     console.log(`[Autonomous Rewards] Crediting ${points} points to user ${userId}: ${description}`);
+    
+    // Asynchronously credit the daily streak check-in since this is an active recharge transaction
+    try {
+      await checkAndRecordDailyStreak(userId);
+    } catch (strkErr) {
+      console.error("Failed to check and record daily streak during recharge rewards:", strkErr);
+    }
+
     return await addRewardPoints(userId, points, 'CASHBACK_POINTS', description);
   } catch (err) {
     console.error("Failed to trigger autonomous recharge rewards:", err);

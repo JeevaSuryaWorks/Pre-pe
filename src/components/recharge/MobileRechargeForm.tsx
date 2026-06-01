@@ -1697,11 +1697,40 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
   }
 
   return (
-    <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-700 pt-6 overflow-hidden h-full w-full">
-      <div className="relative group shrink-0 w-full">
+    <div className="flex-1 flex flex-col space-y-4 animate-in fade-in duration-700 pt-3 overflow-hidden h-full w-full">
+      {/* 1. Self Number Box at the very top (compact banner) */}
+      {profile?.phone && (() => {
+        return (
+          <div className="shrink-0 w-full animate-in fade-in duration-500 px-1">
+            <div
+              onClick={() => handleMobileChange(profile.phone)}
+              className="group flex items-center justify-between p-2.5 px-4 bg-gradient-to-r from-blue-50/60 to-indigo-50/40 border border-blue-100 rounded-xl hover:border-blue-300 hover:shadow-md transition-all cursor-pointer w-full active:scale-[0.99]"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm">
+                  <Smartphone className="w-4.5 h-4.5 text-white" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-black text-slate-800 leading-none truncate">
+                    {profile.full_name || user?.user_metadata?.full_name || 'My Number'} (Self)
+                  </p>
+                  <p className="text-[9px] font-extrabold text-blue-600 mt-1 tracking-wider">{profile.phone}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-1 bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider shrink-0 select-none">
+                Recharge Self <ChevronRight className="w-3.5 h-3.5 text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 2. Main Mobile Number Input Card */}
+      <div className="relative group shrink-0 w-full px-1">
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[40px] blur-2xl opacity-5 group-focus-within:opacity-10 transition duration-1000"></div>
         <div className="relative bg-white border-2 border-slate-100 rounded-[30px] p-5 focus-within:border-blue-500 transition-all shadow-xl shadow-slate-100/20 w-full">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block ml-1">Mobile Number</Label>
+          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block ml-1 text-left">Mobile Number</Label>
           <div className="flex items-center gap-4 h-12 w-full">
             <span className="text-2xl font-bold text-slate-400 select-none shrink-0">+91</span>
             <div className="w-px h-6 bg-slate-100 shrink-0" />
@@ -1734,6 +1763,7 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
         </div>
       </div>
 
+      {/* 3. Instant History horizontal bubbles directly below Mobile Number */}
       {profile?.phone && (() => {
         const selfClean = profile.phone.replace(/\D/g, '').slice(-10);
         const realSelfHistory = recentTransactions
@@ -1751,81 +1781,86 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
         ];
 
         return (
-          <div className="shrink-0 w-full mb-2 animate-in fade-in slide-in-from-bottom duration-500 space-y-3">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">My Number</h3>
-            <div
-              onClick={() => handleMobileChange(profile.phone)}
-              className="group flex items-center gap-5 p-5 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 border border-blue-100/70 rounded-[28px] hover:border-blue-300 hover:shadow-xl transition-all cursor-pointer w-full active:scale-98"
-            >
-              <div className="w-12 h-12 bg-blue-600 rounded-[18px] flex items-center justify-center text-white font-black shrink-0 shadow-md shadow-blue-100">
-                <Smartphone className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-lg font-black text-slate-800 tracking-tight leading-none truncate">
-                  {profile.full_name || user?.user_metadata?.full_name || 'My Number'} (Self)
-                </p>
-                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1.5">{profile.phone}</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-            </div>
-
-            {/* Self Recharge History row under the main card */}
-            <div className="space-y-2 px-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1">Self Recharge History</p>
-              <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-                {selfHistoryList.map((hTxn) => (
-                  <div 
-                    key={hTxn.id}
-                    onClick={() => {
-                      handleMobileChange(profile.phone);
-                      setAmount(hTxn.amount.toString());
-                      setSelectedPlan({
-                        id: 'custom',
-                        amount: hTxn.amount,
-                        validity: 'As per operator',
-                        description: 'Repeat Recharge',
-                        category: 'custom'
-                      } as any);
-                      setTimeout(() => setStep('details'), 100);
-                    }}
-                    className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-slate-100 rounded-2xl hover:border-blue-300 transition-all cursor-pointer active:scale-95 shrink-0 shadow-3xs"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-800 leading-none">₹{hTxn.amount}</span>
-                      <span className="text-[8px] font-extrabold text-slate-400 uppercase mt-1">{hTxn.dateStr}</span>
-                    </div>
+          <div className="space-y-2 px-1 shrink-0 w-full animate-in fade-in">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider ml-1 text-left">Instant History</p>
+            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+              {selfHistoryList.map((hTxn) => (
+                <div 
+                  key={hTxn.id}
+                  onClick={() => {
+                    handleMobileChange(profile.phone);
+                    setAmount(hTxn.amount.toString());
+                    setSelectedPlan({
+                      id: 'custom',
+                      amount: hTxn.amount,
+                      validity: 'As per operator',
+                      description: 'Repeat Recharge',
+                      category: 'custom'
+                    } as any);
+                    setTimeout(() => setStep('details'), 100);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-300 transition-all cursor-pointer active:scale-95 shrink-0 shadow-3xs"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-black text-slate-800 leading-none">₹{hTxn.amount}</span>
+                    <span className="text-[8px] font-extrabold text-slate-400 uppercase mt-0.5">{hTxn.dateStr}</span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         );
       })()}
 
-      <div className="flex-1 flex flex-col space-y-4 overflow-hidden w-full">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 shrink-0">Recent Transactions</h3>
+      {/* 4. Filtered Recent Transactions at the bottom */}
+      <div className="flex-1 flex flex-col space-y-4 overflow-hidden w-full px-1">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 shrink-0 text-left">Recent Transactions</h3>
         <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar pb-6 w-full">
-          {(recentTransactions.length > 0 ? recentTransactions : [
-            { id: 'm1', mobile_number: '8668075429', amount: 239 },
-            { id: 'm2', mobile_number: '9876543210', amount: 299 },
-            { id: 'm3', mobile_number: '9123456789', amount: 749 }
-          ]).map((txn) => (
-            <div
-              key={txn.id}
-              onClick={() => handleMobileChange(txn.mobile_number)}
-              className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full active:scale-[0.99]"
-            >
-              <div className="w-12 h-12 bg-slate-50 rounded-[18px] flex items-center justify-center text-xl font-black text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
-                {txn.mobile_number.slice(0, 2)}
+          {(() => {
+            const filteredRecentTxns = recentTransactions.filter(txn => {
+              if (!profile?.phone) return true;
+              const selfClean = profile.phone.replace(/\D/g, '').slice(-10);
+              const txnClean = txn.mobile_number.replace(/\D/g, '').slice(-10);
+              return txnClean !== selfClean;
+            });
+
+            const displayRecentTxns = filteredRecentTxns.length > 0 ? filteredRecentTxns : [
+              { id: 'm1', mobile_number: '8668075429', amount: 239 },
+              { id: 'm2', mobile_number: '9876543210', amount: 299 },
+              { id: 'm3', mobile_number: '9123456789', amount: 749 }
+            ].filter(txn => {
+              if (!profile?.phone) return true;
+              const selfClean = profile.phone.replace(/\D/g, '').slice(-10);
+              const txnClean = txn.mobile_number.replace(/\D/g, '').slice(-10);
+              return txnClean !== selfClean;
+            });
+
+            if (displayRecentTxns.length === 0) {
+              return (
+                <div className="text-center py-6 opacity-30">
+                  <p className="text-[9px] font-black uppercase tracking-widest">No other recent recharges</p>
+                </div>
+              );
+            }
+
+            return displayRecentTxns.map((txn) => (
+              <div
+                key={txn.id}
+                onClick={() => handleMobileChange(txn.mobile_number)}
+                className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full active:scale-[0.99]"
+              >
+                <div className="w-12 h-12 bg-slate-50 rounded-[18px] flex items-center justify-center text-xl font-black text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0">
+                  {txn.mobile_number.slice(0, 2)}
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-lg font-black text-slate-800 tracking-tight leading-none truncate">{txn.mobile_number}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">₹{txn.amount}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-blue-600 transition-all shrink-0" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-lg font-black text-slate-800 tracking-tight leading-none truncate">{txn.mobile_number}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">₹{txn.amount}</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-blue-600 transition-all shrink-0" />
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </div>
 

@@ -667,27 +667,27 @@ const SavedPage = () => {
                                                     exit={{ opacity: 0, scale: 0.95 }}
                                                     transition={{ duration: 0.3, delay: idx * 0.05 }}
                                                 >
-                                                    <Card className="overflow-hidden rounded-[28px] border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#046A38]/10 transition-all bg-white relative">
-                                                        <div className="p-5">
-                                                            <div className="flex items-center justify-between gap-4">
+                                                    <Card className="overflow-hidden rounded-2xl border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#046A38]/10 transition-all bg-white relative">
+                                                        <div className="p-3.5">
+                                                            <div className="flex items-center justify-between gap-3">
                                                                 {/* Custom Dynamic Avatar Icon */}
-                                                                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg text-white bg-gradient-to-br", styling.gradient)}>
+                                                                <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md text-white bg-gradient-to-br", styling.gradient)}>
                                                                     {styling.icon}
                                                                 </div>
 
                                                                 {/* User and Account details */}
-                                                                <div className="flex-1 min-w-0 pr-1">
+                                                                <div className="flex-1 min-w-0 pr-1 text-left">
                                                                     <div className="flex items-start justify-between">
-                                                                        <div className="flex flex-col">
-                                                                            <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <h4 className="text-sm font-black text-slate-900 truncate leading-snug" title={item.title}>
                                                                                 {item.title}
                                                                             </h4>
-                                                                            <div className="flex items-center gap-1.5 mt-1.5">
-                                                                                <Badge className={cn("text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5", styling.bgLight)}>
+                                                                            <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                                                                <Badge className={cn("text-[8px] font-black uppercase tracking-wider border-none px-2 py-0.5", styling.bgLight)}>
                                                                                     {item.service_type.replace('_', ' ')}
                                                                                 </Badge>
                                                                                 {item.metadata?.is_preset && (
-                                                                                    <Badge className="text-[9px] font-black uppercase tracking-wider border-none px-2.5 py-0.5 bg-indigo-50 text-indigo-600">
+                                                                                    <Badge className="text-[8px] font-black uppercase tracking-wider border-none px-2 py-0.5 bg-indigo-50 text-indigo-600">
                                                                                         Preset
                                                                                     </Badge>
                                                                                 )}
@@ -695,7 +695,7 @@ const SavedPage = () => {
                                                                         </div>
                                                                         
                                                                         {/* Card edit/delete actions */}
-                                                                        <div className="flex items-center gap-1 shrink-0 -mt-1 ml-2">
+                                                                        <div className="flex items-center gap-0.5 shrink-0 -mt-1 ml-1.5">
                                                                             <Button
                                                                                 variant="ghost"
                                                                                 size="icon"
@@ -703,10 +703,10 @@ const SavedPage = () => {
                                                                                     e.stopPropagation();
                                                                                     handleEditItem(item);
                                                                                 }}
-                                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-[#046A38] hover:bg-emerald-50 transition-colors"
+                                                                                className="w-7 h-7 rounded-md text-slate-400 hover:text-[#046A38] hover:bg-emerald-50 transition-colors"
                                                                                 title="Edit"
                                                                             >
-                                                                                <Edit2 className="w-4 h-4" />
+                                                                                <Edit2 className="w-3.5 h-3.5" />
                                                                             </Button>
                                                                             {!item.metadata?.is_preset && (
                                                                                 <Button
@@ -716,15 +716,15 @@ const SavedPage = () => {
                                                                                         e.stopPropagation();
                                                                                         setItemToDelete(item.id);
                                                                                     }}
-                                                                                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                                                    className="w-7 h-7 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                                                                     title="Delete"
                                                                                 >
-                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                    <Trash2 className="w-3.5 h-3.5" />
                                                                                 </Button>
                                                                             )}
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-xs font-mono font-bold text-slate-500 mt-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100/80 inline-block select-all">
+                                                                    <p className="text-[10px] font-mono font-bold text-slate-500 mt-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100/50 inline-block select-all leading-none">
                                                                         {item.account_id}
                                                                     </p>
                                                                 </div>
@@ -758,14 +758,14 @@ const SavedPage = () => {
                                                                                 <Button
                                                                                     onClick={() => handleAction(item)}
                                                                                     className={cn(
-                                                                                        "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
+                                                                                        "rounded-xl bg-gradient-to-r text-white font-black text-[9px] uppercase tracking-wider hover:opacity-95 h-8 px-3 transition-all flex items-center gap-1 active:scale-95 shadow-md shrink-0",
                                                                                         btnStyle,
                                                                                         effects
                                                                                     )}
                                                                                 >
-                                                                                    {label} <Send className="w-3 h-3" />
+                                                                                    {label} <Send className="w-2.5 h-2.5" />
                                                                                 </Button>
-                                                                                <span className={cn("text-[10px] font-black uppercase tracking-wider mt-1.5 text-right block pr-1 select-none animate-pulse", pointsColor)}>
+                                                                                <span className={cn("text-[8px] font-black uppercase tracking-wider mt-1 text-right block pr-1 select-none animate-pulse shrink-0", pointsColor)}>
                                                                                     Get {points} Points
                                                                                 </span>
                                                                             </>
@@ -887,39 +887,39 @@ const SavedPage = () => {
                                                     exit={{ opacity: 0, scale: 0.95 }}
                                                     transition={{ duration: 0.3, delay: idx * 0.05 }}
                                                 >
-                                                    <Card className="rounded-[28px] border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#FF671F]/10 transition-all bg-white relative overflow-hidden">
-                                                        <div className="p-5">
-                                                            <div className="flex items-center justify-between gap-4">
+                                                    <Card className="rounded-2xl border-none shadow-sm hover:shadow-md hover:ring-2 hover:ring-[#FF671F]/10 transition-all bg-white relative overflow-hidden">
+                                                        <div className="p-3.5">
+                                                            <div className="flex items-center justify-between gap-3">
                                                                 {/* Dynamic Service Icon with Heart Badge */}
                                                                 <div className="relative shrink-0">
-                                                                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg text-white bg-gradient-to-br", styling.gradient)}>
+                                                                    <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shadow-md text-white bg-gradient-to-br", styling.gradient)}>
                                                                         {styling.icon}
                                                                     </div>
-                                                                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center shadow-sm">
-                                                                        <Heart className="w-3 h-3 fill-current text-white animate-pulse" />
+                                                                    <div className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-rose-500 border border-white flex items-center justify-center shadow-3xs">
+                                                                        <Heart className="w-2 h-2 fill-current text-white animate-pulse" />
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Favorite Title & Amount Info */}
-                                                                <div className="flex-1 min-w-0 pr-1">
+                                                                <div className="flex-1 min-w-0 pr-1 text-left">
                                                                     <div className="flex items-start justify-between">
-                                                                        <div className="flex flex-col">
-                                                                            <h4 className="text-base font-black text-slate-900 break-words whitespace-normal leading-snug" title={item.title}>
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <h4 className="text-sm font-black text-slate-900 truncate leading-snug" title={item.title}>
                                                                                 {item.title}
                                                                             </h4>
                                                                             
-                                                                            <div className="flex items-center gap-2 mt-2">
-                                                                                <span className="text-xs font-black text-[#046A38] bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100/50">
+                                                                            <div className="flex items-center gap-1.5 mt-1">
+                                                                                <span className="text-[10px] font-black text-[#046A38] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50 leading-none">
                                                                                     ₹{item.metadata?.amount || 'N/A'}
                                                                                 </span>
-                                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                                                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">
                                                                                     {format(new Date(item.created_at), 'MMM d, yyyy')}
                                                                                 </span>
                                                                             </div>
                                                                         </div>
                                                                         
                                                                         {/* Card edit/delete actions */}
-                                                                        <div className="flex items-center gap-1 shrink-0 -mt-1 ml-2">
+                                                                        <div className="flex items-center gap-0.5 shrink-0 -mt-1 ml-1.5">
                                                                             <Button
                                                                                 variant="ghost"
                                                                                 size="icon"
@@ -927,10 +927,10 @@ const SavedPage = () => {
                                                                                     e.stopPropagation();
                                                                                     handleEditItem(item);
                                                                                 }}
-                                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-[#FF671F] hover:bg-orange-50 transition-colors"
+                                                                                className="w-7 h-7 rounded-md text-slate-400 hover:text-[#FF671F] hover:bg-orange-50 transition-colors"
                                                                                 title="Edit"
                                                                             >
-                                                                                <Edit2 className="w-4 h-4" />
+                                                                                <Edit2 className="w-3.5 h-3.5" />
                                                                             </Button>
                                                                             <Button
                                                                                 variant="ghost"
@@ -939,10 +939,10 @@ const SavedPage = () => {
                                                                                     e.stopPropagation();
                                                                                     setItemToDelete(item.id);
                                                                                 }}
-                                                                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                                                                className="w-7 h-7 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                                                                 title="Delete"
                                                                             >
-                                                                                <Trash2 className="w-4 h-4" />
+                                                                                <Trash2 className="w-3.5 h-3.5" />
                                                                             </Button>
                                                                         </div>
                                                                     </div>
@@ -977,14 +977,14 @@ const SavedPage = () => {
                                                                                 <Button
                                                                                     onClick={() => handleAction(item)}
                                                                                     className={cn(
-                                                                                        "rounded-2xl bg-gradient-to-r text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 h-10 px-4 transition-all flex items-center gap-1.5 active:scale-95 shadow-md",
+                                                                                        "rounded-xl bg-gradient-to-r text-white font-black text-[9px] uppercase tracking-wider hover:opacity-95 h-8 px-3 transition-all flex items-center gap-1 active:scale-95 shadow-md shrink-0",
                                                                                         btnStyle,
                                                                                         effects
                                                                                     )}
                                                                                 >
-                                                                                    {label} <ArrowRight className="w-3.5 h-3.5" />
+                                                                                    {label} <ArrowRight className="w-2.5 h-2.5" />
                                                                                 </Button>
-                                                                                <span className={cn("text-[10px] font-black uppercase tracking-wider mt-1.5 text-right block pr-1 select-none animate-pulse", pointsColor)}>
+                                                                                <span className={cn("text-[8px] font-black uppercase tracking-wider mt-1 text-right block pr-1 select-none animate-pulse shrink-0", pointsColor)}>
                                                                                     Get {points} Points
                                                                                 </span>
                                                                             </>
