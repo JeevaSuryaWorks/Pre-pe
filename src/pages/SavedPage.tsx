@@ -563,13 +563,21 @@ const SavedPage = () => {
                         <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-gradient-to-br from-[#FF671F]/10 via-[#046A38]/5 to-transparent rounded-full pointer-events-none blur-xl animate-pulse" />
                         <div className="absolute -left-10 top-0 w-24 h-24 bg-gradient-to-tr from-[#FF671F]/5 to-transparent rounded-full pointer-events-none blur-lg" />
                         
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-                            <div className="space-y-1.5">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3.5 py-1.5 rounded-full w-fit block shadow-sm border border-[#FF671F]/10">
-                                    PrePe Family Circle
-                                </span>
+                        <div className="flex flex-col gap-3">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-4">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3.5 py-1.5 rounded-full w-fit block shadow-sm border border-[#FF671F]/10 select-none">
+                                        PrePe Family Circle
+                                    </span>
+                                    <Button
+                                        onClick={() => setIsAddDialogOpen(true)}
+                                        className="rounded-full bg-gradient-to-r from-[#FF671F] to-orange-600 hover:scale-102 hover:shadow-md shadow-sm active:scale-98 transition-all duration-300 uppercase tracking-widest text-[8px] font-black h-8 px-3.5 flex items-center justify-center gap-1 border border-orange-400/20"
+                                    >
+                                        <Plus className="w-3 h-3 text-white" strokeWidth={3} /> Add Preset
+                                    </Button>
+                                </div>
                                 <div className="flex items-center gap-2 pt-1 group">
-                                    <h1 className="text-2xl font-black text-[#000080] tracking-tight leading-none">
+                                    <h1 className="text-3xl font-black text-[#000080] tracking-tight leading-none">
                                         {familyName ? familyName : "PrePe Family"}
                                     </h1>
                                     {familyName && (
@@ -580,21 +588,15 @@ const SavedPage = () => {
                                                 setFamilyInput(familyName);
                                                 setIsEditingFamilyName(true);
                                             }}
-                                            className="w-6 h-6 rounded-md text-slate-400 hover:text-[#000080] hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                            className="w-7 h-7 rounded-md text-slate-400 hover:text-[#000080] hover:bg-slate-100 transition-colors opacity-100 group-hover:opacity-100 focus:opacity-100"
                                             title="Edit Family Name"
                                         >
                                             <Edit2 className="w-3.5 h-3.5" />
                                         </Button>
                                     )}
                                 </div>
-                                <p className="text-xs text-slate-500 font-medium leading-relaxed">Your family members & quick billing presets</p>
+                                <p className="text-xs text-slate-500 font-semibold tracking-wide">Your family members & quick billing presets</p>
                             </div>
-                            <Button
-                                onClick={() => setIsAddDialogOpen(true)}
-                                className="w-full sm:w-auto rounded-2xl bg-gradient-to-r from-[#FF671F] via-[#FF8040] to-orange-600 hover:scale-102 hover:shadow-xl shadow-lg shadow-orange-500/20 active:scale-98 transition-all duration-300 uppercase tracking-widest text-[9px] font-black h-13 px-5 shrink-0 flex items-center justify-center gap-1.5 border border-[#FF8040]/30 select-none animate-in fade-in zoom-in duration-500"
-                            >
-                                <Plus className="w-4 h-4 text-white animate-pulse" strokeWidth={3} /> Add More & Get More Rewards
-                            </Button>
                         </div>
 
                         {/* High-visibility Glassmorphic Search Input */}
