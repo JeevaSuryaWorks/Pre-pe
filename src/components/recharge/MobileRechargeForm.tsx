@@ -1226,74 +1226,169 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
     const operatorObj = operators.find(o => o.id === selectedOperator);
     const circleObj = circles.find(c => c.id === selectedCircle);
 
+    const numAmount = parseFloat(amount) || 0;
+    
+    // Parse validity days and data
+    const valStr = selectedPlan?.validity || '28 Days';
+    const descStr = selectedPlan?.description || 'Unlimited Calls + 1.5GB/day';
+    
+    const daysMatch = valStr.match(/(\d+)/);
+    const validityDays = daysMatch ? parseInt(daysMatch[1], 10) : 28;
+    const perDayCost = (numAmount / validityDays).toFixed(2);
+    
+    // Extract data amount
+    const dataMatch = descStr.match(/(\d+(\.\d+)?\s*(GB|MB)\s*(\/\s*day)?)/i);
+    const planData = dataMatch ? dataMatch[0] : '1.5GB/day';
+
+    // Calculate balances and payment details
+    const walletBalanceUsed = Math.min(availableBalance, numAmount);
+    const payableAmount = Math.max(0, numAmount - walletBalanceUsed);
+    const estimatedCashback = Math.round(numAmount * 0.02); // 2% Cashback
+
+    // Retrieve Caller ID Name from Truecaller profile or default to Boopathi Raja for demo
+    const callerName = truecallerProfile 
+      ? `${truecallerProfile.name.first} ${truecallerProfile.name.last}` 
+      : (profile?.full_name || 'Boopathi Raja');
+
     return (
-      <div className="flex-1 flex flex-col pt-0 animate-in fade-in slide-in-from-right-8 duration-500 relative h-full overflow-hidden w-full">
-        <div className="absolute top-3 left-3 z-50">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setStep('details')} 
-            className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/30 shadow-lg"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
+      <div className="flex-1 flex flex-col pt-0 animate-in fade-in slide-in-from-right-8 duration-500 relative h-full overflow-hidden w-full bg-slate-50/50">
+        
+        {/* Clean Header (no back button, as requested: Hide the back button in only confirmation page) */}
+        <div className="flex items-center justify-center py-4 shrink-0 bg-white border-b border-slate-100 w-full mb-4">
+          <h2 className="text-base font-black text-slate-800 tracking-tight">Order Summary</h2>
         </div>
 
-        <Card className="border-none shadow-[0_20px_40px_rgba(0,0,0,0.05)] rounded-[35px] overflow-hidden flex flex-col flex-1 mb-4 w-full">
-          <div className="bg-slate-900 p-8 text-white flex flex-col items-center text-center relative overflow-hidden shrink-0 pt-12">
-             <div className="absolute top-0 right-0 p-4 opacity-5">
-              <Zap size={140} />
-            </div>
-            <div className="w-16 h-16 bg-white rounded-2xl p-4 mb-4 shadow-2xl relative z-10 flex items-center justify-center">
-              {OPERATOR_LOGOS[selectedOperator] ? (
-                 <img 
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4 custom-scrollbar w-full">
+          
+          {/* 1. Recipient Info Box (Airtel-style white card with blue accents) */}
+          <div className="bg-white rounded-[24px] border border-blue-100 shadow-sm overflow-hidden flex flex-col relative w-full">
+            <div className="p-5 flex items-center gap-4">
+              <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center p-2.5 overflow-hidden shrink-0 border border-slate-100">
+                {selectedOperator && OPERATOR_LOGOS[selectedOperator] ? (
+                  <img 
                     src={OPERATOR_LOGOS[selectedOperator]} 
                     alt="Logo" 
                     className="w-full h-full object-contain"
-                    onError={(e) => { (e.target as any).style.display = 'none'; (e.target as any).nextSibling.style.display = 'block'; }} 
                   />
-              ) : null}
-              <Smartphone className={`w-8 h-8 text-slate-200 ${OPERATOR_LOGOS[selectedOperator] ? 'hidden' : 'block'}`} />
+                ) : (
+                  <Smartphone className="w-6 h-6 text-slate-300" />
+                )}
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <h3 className="text-xl font-black text-slate-800 tracking-tighter leading-none mb-1.5">{mobileNumber}</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                  {operatorObj?.name || 'Operator'} Prepaid &bull; {circleObj?.name || 'Circle'}
+                </p>
+              </div>
             </div>
-            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-blue-400 mb-1 relative z-10">{operatorObj?.name} • {circleObj?.name}</p>
-            <h1 className="text-3xl font-black tracking-tighter relative z-10">{mobileNumber}</h1>
+            {/* Blue Banner with Caller ID name at bottom */}
+            <div className="bg-blue-600 text-white py-2 px-5 text-left flex justify-between items-center shrink-0">
+              <span className="text-[10px] font-black uppercase tracking-wider">{callerName}</span>
+              <span className="text-[8px] font-extrabold text-blue-200 uppercase tracking-widest">(Caller ID may not be accurate)</span>
+            </div>
           </div>
-          
-          <CardContent className="p-8 space-y-6 bg-white flex-1 overflow-y-auto custom-scrollbar w-full">
-            <div className="flex justify-between items-center pb-6 border-b border-slate-50">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Amount</span>
-              <h1 className="text-4xl font-black tracking-tighter text-slate-900 leading-none">₹{amount}</h1>
-            </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-400 uppercase tracking-widest text-[9px]">Plan Benefits</span>
-                <span className="text-blue-600">{selectedPlan?.validity}</span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed font-medium bg-slate-50 p-5 rounded-[24px] border border-slate-100/30">{selectedPlan?.description}</p>
-            </div>
-
-            <div className="flex items-center gap-3 p-5 bg-blue-50/40 rounded-[28px] border border-blue-100/20 shrink-0">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                <FlaskConical className="w-5 h-5 text-blue-600" />
-              </div>
+          {/* 2. Plan Details Box */}
+          <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-3xs text-left space-y-4 w-full">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-50">
               <div>
-                <p className="text-[8px] font-black text-blue-800/60 uppercase tracking-widest leading-none mb-1">PrePe Wallet</p>
-                <p className="text-lg font-black text-slate-800 leading-none">₹{availableBalance.toFixed(2)}</p>
+                <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none">₹{amount}</h1>
+                <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest leading-none block">Per Day ₹{perDayCost}</span>
+              </div>
+              <div className="flex gap-4 text-right">
+                <div>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Validity</p>
+                  <p className="text-xs font-black text-slate-800 leading-none">{valStr}</p>
+                </div>
+                <div className="border-l border-slate-100 pl-4">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Data</p>
+                  <p className="text-xs font-black text-slate-800 leading-none">{planData}</p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Plan Benefits</p>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-4 rounded-[18px] border border-slate-100/50">
+                {descStr}
+              </p>
+            </div>
+          </div>
 
-        <div className="shrink-0 px-2 pb-2 w-full">
+          {/* 3. Transaction Summary Box */}
+          <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-3xs text-left space-y-3.5 w-full">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Transaction Summary</h3>
+            
+            <div className="space-y-2.5 text-xs font-bold text-slate-500 border-b border-slate-50 pb-3.5">
+              <div className="flex justify-between">
+                <span>Recharge Amount</span>
+                <span className="text-slate-800 font-black">₹{numAmount.toFixed(2)}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span>Wallet Balance</span>
+                <span className="text-slate-800 font-black">₹{availableBalance.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Convenience Fee</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="line-through text-slate-300 font-medium">₹3.00</span>
+                  <span className="text-emerald-600 font-black">₹0.00</span>
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Additional Charges</span>
+                <span className="text-emerald-600 font-black">₹0.00</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-1.5">
+              <div>
+                <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Payable Amount</p>
+                <p className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest leading-none">Wallet balance deducted</p>
+              </div>
+              <span className="text-2xl font-black text-slate-900 tracking-tighter">₹{payableAmount.toFixed(2)}</span>
+            </div>
+
+            {/* Premium Cashback Indicator */}
+            {estimatedCashback > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-emerald-700 mt-2 shrink-0">
+                <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
+                <span className="text-[9.5px] font-black uppercase tracking-wider">
+                  You will earn +₹{estimatedCashback}.00 cashback on this recharge!
+                </span>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* Proceed to Pay Button Area */}
+        <div className="shrink-0 px-4 pb-4 pt-2 bg-white border-t border-slate-100 w-full flex flex-col gap-2">
+          {payableAmount > 0 ? (
+            <div className="text-[10px] text-amber-600 font-extrabold flex items-center justify-center gap-1 uppercase tracking-wider mb-1">
+              <Zap size={12} className="fill-current text-amber-500 animate-bounce" />
+              Shortfall of ₹{(numAmount - availableBalance).toFixed(2)} will be auto-topped up
+            </div>
+          ) : null}
+          
           <Button
-            className="w-full h-16 rounded-[28px] text-lg font-black bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-100 transition-all active:scale-[0.98]"
+            className="w-full h-15 rounded-[22px] text-base font-black bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
             onClick={() => handleExecuteRecharge()}
             disabled={processing}
           >
-            {processing ? <PrePeSpinner className="h-6 w-6" /> : "SECURE PAYMENT"}
+            {processing ? (
+              <PrePeSpinner className="h-5 w-5" />
+            ) : payableAmount > 0 ? (
+              `PROCEED TO PAY ₹${payableAmount.toFixed(2)}`
+            ) : (
+              "CONFIRM & RECHARGE NOW"
+            )}
           </Button>
         </div>
+
       </div>
     );
   }
