@@ -649,7 +649,15 @@ const matchesCategory = (plan: RechargePlan, tabId: string) => {
 
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
 
-export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: FlowStep) => void } = {}) {
+export function MobileRechargeForm({ 
+  onStepChange,
+  step: externalStep,
+  setStep: externalSetStep
+}: { 
+  onStepChange?: (step: FlowStep) => void;
+  step?: FlowStep;
+  setStep?: (step: FlowStep) => void;
+} = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { availableBalance, refetch } = useWallet();
@@ -660,7 +668,9 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
   const { limits, checkRechargeLimit } = usePlanLimits();
   const location = useLocation();
 
-  const [step, setStep] = useState<FlowStep>('number');
+  const [internalStep, setInternalStep] = useState<FlowStep>('number');
+  const step = externalStep !== undefined ? externalStep : internalStep;
+  const setStep = externalSetStep !== undefined ? externalSetStep : setInternalStep;
   const [showKYCNudge, setShowKYCNudge] = useState(false);
   const [mobileNumber, setMobileNumber] = useState(''); // Formatted with space
   const [selectedOperator, setSelectedOperator] = useState('');
@@ -1253,12 +1263,7 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
     return (
       <div className="flex-1 flex flex-col pt-0 animate-in fade-in slide-in-from-right-8 duration-500 relative h-full overflow-hidden w-full bg-slate-50/50">
         
-        {/* Clean Header (no back button, as requested: Hide the back button in only confirmation page) */}
-        <div className="flex items-center justify-center py-4 shrink-0 bg-white border-b border-slate-100 w-full mb-4">
-          <h2 className="text-base font-black text-slate-800 tracking-tight">Order Summary</h2>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4 custom-scrollbar w-full">
+        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4 space-y-4 custom-scrollbar w-full">
           
           {/* 1. Recipient Info Box (Airtel-style white card with blue accents) */}
           <div className="bg-white rounded-[24px] border border-blue-100 shadow-sm overflow-hidden flex flex-col relative w-full">
@@ -1315,9 +1320,9 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
             </div>
           </div>
 
-          {/* 3. Transaction Summary Box */}
+          {/* 3. Order Summary Box */}
           <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-3xs text-left space-y-3.5 w-full">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Transaction Summary</h3>
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Order Summary</h3>
             
             <div className="space-y-2.5 text-xs font-bold text-slate-500 border-b border-slate-50 pb-3.5">
               <div className="flex justify-between">
@@ -1325,9 +1330,12 @@ export function MobileRechargeForm({ onStepChange }: { onStepChange?: (step: Flo
                 <span className="text-slate-800 font-black">₹{numAmount.toFixed(2)}</span>
               </div>
               
-              <div className="flex justify-between">
-                <span>Wallet Balance</span>
-                <span className="text-slate-800 font-black">₹{availableBalance.toFixed(2)}</span>
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span>Wallet Balance Used</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Available: ₹{availableBalance.toFixed(2)}</span>
+                </div>
+                <span className="text-red-600 font-black">-₹{walletBalanceUsed.toFixed(2)}</span>
               </div>
 
               <div className="flex justify-between">

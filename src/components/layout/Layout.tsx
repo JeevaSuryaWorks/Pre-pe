@@ -10,13 +10,14 @@ interface LayoutProps {
   children: React.ReactNode;
   title?: string;
   showBack?: boolean;
+  onBack?: () => void;
   hideHeader?: boolean;
   showBottomNav?: boolean;
   isFullWidth?: boolean;
   noScroll?: boolean;
 }
 
-export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, isFullWidth, noScroll }: LayoutProps) => {
+export const Layout = ({ children, title, showBack, onBack, hideHeader, showBottomNav, isFullWidth, noScroll }: LayoutProps) => {
   const navigate = useNavigate();
   const { status, isApproved } = useKYC();
 
@@ -39,7 +40,10 @@ export const Layout = ({ children, title, showBack, hideHeader, showBottomNav, i
         {!hideHeader && (title ? (
           <div className="bg-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50 border-b border-gray-100 shrink-0">
             {showBack && (
-              <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+              <button 
+                onClick={onBack ? onBack : () => navigate(-1)} 
+                className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+              >
                 <ArrowLeft className="w-5 h-5 text-slate-700" />
               </button>
             )}
