@@ -255,7 +255,7 @@ const HomePage = () => {
                                         </Link>
 
                                         {/* Dynamic Metric 3: Active Streak */}
-                                        <Link to="/rewards" className="group/metric relative bg-gradient-to-br from-orange-500/[0.04] to-amber-500/[0.02] border border-orange-500/10 rounded-2xl p-3 flex flex-col justify-between hover:border-orange-500/30 hover:bg-orange-500/[0.06] transition-all duration-300 active:scale-95 overflow-hidden">
+                                        <Link to="/rewards/ads" className="group/metric relative bg-gradient-to-br from-orange-500/[0.04] to-amber-500/[0.02] border border-orange-500/10 rounded-2xl p-3 flex flex-col justify-between hover:border-orange-500/30 hover:bg-orange-500/[0.06] transition-all duration-300 active:scale-95 overflow-hidden">
                                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-orange-500/5 to-transparent -translate-y-full group-hover/metric:translate-y-full transition-transform duration-1000" />
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-[8px] font-black tracking-wider text-orange-600 uppercase">Streak</span>

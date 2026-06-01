@@ -19,9 +19,11 @@ import { checkAndRecordDailyStreak } from "@/services/rewards.service";
 interface AdRewardProps {
   userId: string;
   onComplete: (points: number) => void;
+  forceNoClose?: boolean;
+  autoStart?: boolean;
 }
 
-export function AdReward({ userId, onComplete }: AdRewardProps) {
+export function AdReward({ userId, onComplete, forceNoClose = false, autoStart = false }: AdRewardProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [muted, setMuted] = useState(true);
@@ -52,6 +54,13 @@ export function AdReward({ userId, onComplete }: AdRewardProps) {
   useEffect(() => {
     loadStatus();
   }, [userId, isPlaying]);
+
+  // Auto start ad if autoStart is requested and conditions are met
+  useEffect(() => {
+    if (autoStart && !loadingStatus && cooldown === 0 && watchedToday < dailyLimit && !isPlaying) {
+      startAd();
+    }
+  }, [autoStart, loadingStatus, cooldown, watchedToday, dailyLimit, isPlaying]);
 
   // 2. Active countdown timer logic for cooldowns
   useEffect(() => {
@@ -264,12 +273,14 @@ export function AdReward({ userId, onComplete }: AdRewardProps) {
           >
             <div className="w-full max-w-md space-y-8 relative">
               {/* Early Close Button */}
-              <button 
-                onClick={cancelAdEarly}
-                className="absolute -top-12 right-0 h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 text-slate-300"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {!forceNoClose && (
+                <button 
+                  onClick={cancelAdEarly}
+                  className="absolute -top-12 right-0 h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 text-slate-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
 
               {/* Video Player Box Mockup */}
               <div className="relative aspect-video w-full bg-slate-900 rounded-[2rem] border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-500">

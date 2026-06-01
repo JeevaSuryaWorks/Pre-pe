@@ -75,6 +75,7 @@ import PlanSelectionPage from "./pages/onboarding/PlanSelectionPage";
 import TermsAcceptancePage from "./pages/auth/TermsAcceptancePage";
 import RewardsDashboard from "./pages/rewards/RewardsDashboard";
 import RewardHistoryPage from "./pages/rewards/RewardHistoryPage";
+import AdsPage from "./pages/rewards/AdsPage";
 import ServicesPage from "./pages/ServicesPage";
 import SavedPage from "@/pages/SavedPage";
 import BulkRechargePage from "@/pages/business/BulkRechargePage";
@@ -160,6 +161,7 @@ const App = () => (
               <Route path="/mobile-recharge" element={<MobileRecharge />} />
 
               <Route path="/rewards" element={<RewardsDashboard />} />
+              <Route path="/rewards/ads" element={<AdsPage />} />
               <Route path="/rewards/history" element={<RewardHistoryPage />} />
               <Route path="/offers" element={<CashbackOffers />} />
 
