@@ -550,7 +550,7 @@ const SavedPage = () => {
     const favoriteItems = filteredItems.filter(i => i.category === 'FAVORITE');
 
     return (
-        <Layout title="PrePe Family" showBottomNav>
+        <Layout title="PrePe Family & Favorites" showBottomNav>
             <div className="min-h-screen bg-slate-50/50 pb-28">
                 {/* Visual Accent Gradients */}
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF671F]/5 rounded-full blur-[100px] pointer-events-none" />
@@ -566,11 +566,11 @@ const SavedPage = () => {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                             <div className="space-y-1.5">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#FF671F] bg-[#FF671F]/10 px-3.5 py-1.5 rounded-full w-fit block shadow-sm border border-[#FF671F]/10">
-                                    PrePe Family
+                                    PrePe Family Circle
                                 </span>
                                 <div className="flex items-center gap-2 pt-1 group">
                                     <h1 className="text-2xl font-black text-[#000080] tracking-tight leading-none">
-                                        {familyName ? `PrePe Family - ${familyName}` : "PrePe Family"}
+                                        {familyName ? familyName : "PrePe Family"}
                                     </h1>
                                     {familyName && (
                                         <Button
