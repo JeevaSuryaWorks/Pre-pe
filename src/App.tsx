@@ -77,6 +77,7 @@ import RewardsDashboard from "./pages/rewards/RewardsDashboard";
 import RewardHistoryPage from "./pages/rewards/RewardHistoryPage";
 import AdsPage from "./pages/rewards/AdsPage";
 import ServicesPage from "./pages/ServicesPage";
+import MovieBookingPage from "./pages/services/MovieBookingPage";
 import SavedPage from "@/pages/SavedPage";
 import BulkRechargePage from "@/pages/business/BulkRechargePage";
 import UpgradePlans from "./pages/UpgradePlans";
@@ -174,6 +175,7 @@ const App = () => (
 
 
               <Route path="/services" element={<ServicesPage />} />
+              <Route path="/services/movies" element={<MovieBookingPage />} />
               <Route path="/services/postpaid" element={<Postpaid />} />
               <Route path="/services/:serviceName" element={<ServicePlaceholder />} />
 

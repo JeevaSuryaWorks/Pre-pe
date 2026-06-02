@@ -17,7 +17,8 @@ import {
   HeartPulse,
   Receipt,
   FilePlus2,
-  Lock
+  Lock,
+  Film
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -57,6 +58,7 @@ const services = [
       { icon: HeartPulse, label: "Health", path: "/services/health", color: "bg-rose-50 text-rose-600" },
       { icon: CreditCard, label: "Credit Card", path: "/services/credit-card", color: "bg-slate-800 text-white" },
       { icon: Receipt, label: "Municipal Tax", path: "/services/tax", color: "bg-teal-50 text-teal-600" },
+      { icon: Film, label: "Movie Tickets", path: "/services/movies", color: "bg-rose-50 text-rose-600" },
     ]
   }
 ];
