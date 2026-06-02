@@ -1255,6 +1255,10 @@ export function MobileRechargeForm({
     const payableAmount = Math.max(0, numAmount - walletBalanceUsed);
     const estimatedCashback = Math.round(numAmount * 0.02); // 2% Cashback
 
+    // Waived Fee calculations for user's understanding
+    const calcConvFee = numAmount * 0.01;
+    const calcPgFee = numAmount * 0.02;
+
     // Retrieve Caller ID Name from Truecaller profile or default to Boopathi Raja for demo
     const callerName = truecallerProfile 
       ? `${truecallerProfile.name.first} ${truecallerProfile.name.last}` 
@@ -1342,17 +1346,26 @@ export function MobileRechargeForm({
                 <span className="text-red-600 font-black">-₹{walletBalanceUsed.toFixed(2)}</span>
               </div>
 
-              <div className="flex justify-between">
-                <span>Convenience Fee</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="line-through text-slate-300 font-medium">₹3.00</span>
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span>Convenience Fee</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">1% Waived</span>
+                </div>
+                <span className="flex items-center gap-1.5 mt-0.5">
+                  <span className="line-through text-slate-300 font-medium">₹{calcConvFee.toFixed(2)}</span>
                   <span className="text-emerald-600 font-black">₹0.00</span>
                 </span>
               </div>
 
-              <div className="flex justify-between">
-                <span>Additional Charges</span>
-                <span className="text-emerald-600 font-black">₹0.00</span>
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span>Additional Charges</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">PG / Credit Card Fee Waived</span>
+                </div>
+                <span className="flex items-center gap-1.5 mt-0.5">
+                  <span className="line-through text-slate-300 font-medium">₹{calcPgFee.toFixed(2)}</span>
+                  <span className="text-emerald-600 font-black">₹0.00</span>
+                </span>
               </div>
             </div>
 
