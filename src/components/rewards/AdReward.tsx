@@ -33,6 +33,7 @@ export function AdReward({ userId, onComplete, forceNoClose = false, autoStart =
   const [cooldown, setCooldown] = useState(0);
   const [rewardAmount, setRewardAmount] = useState(5);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [isEnabled, setIsEnabled] = useState(true);
   const { toast } = useToast();
 
   // 1. Fetch current status & cooldowns
@@ -44,6 +45,7 @@ export function AdReward({ userId, onComplete, forceNoClose = false, autoStart =
       setDailyLimit(status.dailyLimit);
       setCooldown(status.cooldownRemaining);
       setRewardAmount(config.rewardAmount);
+      setIsEnabled(status.enabled);
     } catch (e) {
       console.error(e);
     } finally {
@@ -194,6 +196,15 @@ export function AdReward({ userId, onComplete, forceNoClose = false, autoStart =
       variant: "destructive"
     });
   };
+
+  if (!loadingStatus && !isEnabled) {
+    return (
+      <div className="relative rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 bg-slate-900 border border-slate-800 opacity-60 text-white shadow-2xl overflow-hidden w-full text-center">
+        <p className="text-sm font-black uppercase tracking-widest text-slate-400">Ad Rewards Paused</p>
+        <p className="text-[10px] text-slate-500 font-bold mt-1">Check back later for new reward videos.</p>
+      </div>
+    );
+  }
 
   const isLimitReached = watchedToday >= dailyLimit;
 

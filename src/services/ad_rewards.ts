@@ -118,10 +118,11 @@ export async function getAdWatchStatus(userId: string): Promise<{
   dailyLimit: number;
   cooldownRemaining: number;
   canWatch: boolean;
+  enabled: boolean;
 }> {
   const config = await getAdRewardConfig();
   if (!config.enabled) {
-    return { watchedToday: 0, dailyLimit: config.dailyLimit, cooldownRemaining: 0, canWatch: false };
+    return { watchedToday: 0, dailyLimit: config.dailyLimit, cooldownRemaining: 0, canWatch: false, enabled: false };
   }
 
   const startOfDay = new Date();
@@ -151,7 +152,8 @@ export async function getAdWatchStatus(userId: string): Promise<{
     if (lastAd && lastAd.length > 0) {
       const lastWatchedTime = new Date((lastAd[0] as any).created_at).getTime();
       const elapsedSeconds = Math.floor((Date.now() - lastWatchedTime) / 1000);
-      if (elapsedSeconds < config.cooldownDuration) {
+      // Allow a 3-second grace period for clock drift / network latency
+      if (elapsedSeconds < config.cooldownDuration - 3) {
         cooldownRemaining = config.cooldownDuration - elapsedSeconds;
       }
     }
@@ -160,7 +162,8 @@ export async function getAdWatchStatus(userId: string): Promise<{
       watchedToday,
       dailyLimit: config.dailyLimit,
       cooldownRemaining,
-      canWatch: watchedToday < config.dailyLimit && cooldownRemaining <= 0
+      canWatch: watchedToday < config.dailyLimit && cooldownRemaining <= 0,
+      enabled: true
     };
 
   } catch (e) {
@@ -176,7 +179,8 @@ export async function getAdWatchStatus(userId: string): Promise<{
     if (localLogs.length > 0) {
       const lastTime = new Date(localLogs[localLogs.length - 1].created_at).getTime();
       const elapsed = Math.floor((Date.now() - lastTime) / 1000);
-      if (elapsed < config.cooldownDuration) {
+      // Allow a 3-second grace period for clock drift / network latency
+      if (elapsed < config.cooldownDuration - 3) {
         cooldownRemaining = config.cooldownDuration - elapsed;
       }
     }
@@ -185,7 +189,8 @@ export async function getAdWatchStatus(userId: string): Promise<{
       watchedToday,
       dailyLimit: config.dailyLimit,
       cooldownRemaining,
-      canWatch: watchedToday < config.dailyLimit && cooldownRemaining <= 0
+      canWatch: watchedToday < config.dailyLimit && cooldownRemaining <= 0,
+      enabled: true
     };
   }
 }
