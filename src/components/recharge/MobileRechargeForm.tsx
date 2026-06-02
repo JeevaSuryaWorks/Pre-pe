@@ -1287,10 +1287,14 @@ export function MobileRechargeForm({
               </div>
             </div>
             {/* Blue Banner with Caller ID name at bottom */}
-            <div className="bg-blue-600 text-white py-2 px-5 text-left flex justify-between items-center shrink-0">
-              <span className="text-[10px] font-black uppercase tracking-wider">{callerName}</span>
-              <span className="text-[8px] font-extrabold text-blue-200 uppercase tracking-widest">(Caller ID may not be accurate)</span>
-            </div>
+            {truecallerProfile && (
+              <div className="bg-blue-600 text-white py-2 px-5 text-left flex justify-between items-center shrink-0 animate-in slide-in-from-top-4 duration-300">
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  {truecallerProfile.name.first} {truecallerProfile.name.last}
+                </span>
+                <span className="text-[8px] font-extrabold text-blue-200 uppercase tracking-widest">(Caller ID may not be accurate)</span>
+              </div>
+            )}
           </div>
 
           {/* 2. Plan Details Box */}
