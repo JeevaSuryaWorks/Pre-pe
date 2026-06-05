@@ -211,28 +211,30 @@ export function AdReward({ userId, onComplete, forceNoClose = false, autoStart =
   return (
     <>
       <motion.div 
-        whileHover={!isLimitReached && cooldown === 0 ? { scale: 1.02, y: -2 } : {}}
-        whileTap={!isLimitReached && cooldown === 0 ? { scale: 0.98 } : {}}
-        onClick={!isLimitReached && cooldown === 0 ? startAd : undefined}
+        whileHover={!loadingStatus && !isLimitReached && cooldown === 0 ? { scale: 1.02, y: -2 } : {}}
+        whileTap={!loadingStatus && !isLimitReached && cooldown === 0 ? { scale: 0.98 } : {}}
+        onClick={!loadingStatus && !isLimitReached && cooldown === 0 ? startAd : undefined}
         className={`relative rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 text-white shadow-2xl overflow-hidden group w-full ${
-          isLimitReached 
-            ? 'bg-slate-900 border border-slate-800 opacity-60 cursor-not-allowed'
-            : cooldown > 0
-              ? 'bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 cursor-not-allowed'
-              : 'bg-gradient-to-br from-indigo-600 to-indigo-800 border border-indigo-500/20 cursor-pointer'
+          loadingStatus
+            ? 'bg-slate-900 border border-slate-800 opacity-60 cursor-wait'
+            : isLimitReached 
+              ? 'bg-slate-900 border border-slate-800 opacity-60 cursor-not-allowed'
+              : cooldown > 0
+                ? 'bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 cursor-not-allowed'
+                : 'bg-gradient-to-br from-indigo-600 to-indigo-800 border border-indigo-500/20 cursor-pointer'
         }`}
       >
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-15"></div>
         
         <div className="relative z-10 flex flex-col sm:flex-row items-center sm:text-left gap-4 sm:gap-6 text-center sm:text-left">
           <div className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl border shadow-xl transition-transform shrink-0 ${
-            isLimitReached 
+            loadingStatus || isLimitReached 
               ? 'bg-slate-850 border-slate-700 text-slate-500'
               : cooldown > 0
                 ? 'bg-slate-750 border-slate-600 text-slate-400'
                 : 'bg-white/20 border-white/20 text-white group-hover:rotate-12'
           }`}>
-            {cooldown > 0 ? (
+            {loadingStatus || cooldown > 0 ? (
               <Timer className="w-6 h-6 sm:w-8 sm:h-8 animate-spin" />
             ) : (
               <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
@@ -241,19 +243,21 @@ export function AdReward({ userId, onComplete, forceNoClose = false, autoStart =
           
           <div className="flex-1 min-w-0">
             <h4 className="text-lg sm:text-xl font-black tracking-tight mb-0.5 sm:mb-2 uppercase tracking-[0.1em] truncate">
-              {isLimitReached ? 'Ad Limit Reached' : cooldown > 0 ? 'Video Cooldown' : 'Watch & Earn'}
+              {loadingStatus ? 'Loading Status...' : isLimitReached ? 'Ad Limit Reached' : cooldown > 0 ? 'Video Cooldown' : 'Watch & Earn'}
             </h4>
             <div className="flex flex-col sm:items-start gap-2">
               <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 justify-center sm:justify-start">
                 <Zap className="w-3 h-3 fill-current animate-pulse text-yellow-400" />
-                {cooldown > 0 
-                  ? `Wait ${cooldown}s before next video` 
-                  : isLimitReached 
-                    ? `Watched ${watchedToday}/${dailyLimit} today` 
-                    : `Earn ${rewardAmount} Points Instantly`
+                {loadingStatus
+                  ? 'Connecting to ledger...'
+                  : cooldown > 0 
+                    ? `Wait ${cooldown}s before next video` 
+                    : isLimitReached 
+                      ? `Watched ${watchedToday}/${dailyLimit} today` 
+                      : `Earn ${rewardAmount} Points Instantly`
                 }
               </p>
-              {!isLimitReached && cooldown === 0 && (
+              {!loadingStatus && !isLimitReached && cooldown === 0 && (
                 <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1 max-w-[150px] mx-auto sm:mx-0">
                   <motion.div 
                     className="h-full bg-emerald-400"
@@ -265,10 +269,10 @@ export function AdReward({ userId, onComplete, forceNoClose = false, autoStart =
               )}
             </div>
           </div>
-
+ 
           <div className="shrink-0 bg-slate-950/40 px-4 py-2 rounded-2xl border border-white/5 flex flex-col items-center">
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">TODAY</span>
-            <span className="text-sm font-black mt-0.5">{watchedToday} / {dailyLimit}</span>
+            <span className="text-sm font-black mt-0.5">{loadingStatus ? '...' : `${watchedToday} / ${dailyLimit}`}</span>
           </div>
         </div>
       </motion.div>

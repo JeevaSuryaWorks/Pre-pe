@@ -453,9 +453,9 @@ export default function RewardsDashboard() {
                 const leftUnit = showLeftCashback ? '' : (streak === 1 ? 'Day' : 'Days');
 
                 const showRightStreak = planType === 'PRO';
-                const rightLabel = planType === 'BUSINESS' ? 'Commission' : (showRightStreak ? 'Streak' : 'Earned');
+                const rightLabel = planType === 'BUSINESS' ? 'Cashback' : (showRightStreak ? 'Streak' : 'Earned');
                 const rightIcon = planType === 'BUSINESS' ? (
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                  <Banknote className="w-3.5 h-3.5 text-green-400" />
                 ) : (
                   showRightStreak ? (
                     <CalendarDays className="w-3.5 h-3.5 text-orange-300" />
@@ -468,7 +468,7 @@ export default function RewardsDashboard() {
                 ) : (
                   `₹${kycLoading ? "..." : (isApproved ? cashback.toFixed(2) : "**.**")}`
                 );
-                const rightColorClass = planType === 'BUSINESS' ? 'text-emerald-400/80' : (showRightStreak ? 'text-orange-300/80' : 'text-green-400/80');
+                const rightColorClass = planType === 'BUSINESS' ? 'text-green-400/80' : (showRightStreak ? 'text-orange-300/80' : 'text-green-400/80');
                 const rightUnit = showRightStreak ? (streak === 1 ? 'Day' : 'Days') : '';
 
                 return (
