@@ -465,15 +465,15 @@ export function TransactionHistory() {
                   >
                     <div className="p-5 flex items-center justify-between gap-4">
                       {/* Left Badge branding & Info */}
-                      <div className="flex items-center gap-4 min-w-0">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
                         <div className="shrink-0 transition-transform duration-300 group-hover:scale-105">
                           {getServiceIcon(tx)}
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors truncate">
                             {tx.operator_name || (tx.service_type === 'WALLET' ? 'Wallet Topup' : 'Recharge')}
                           </h4>
-                          <p className="text-xs text-slate-500 font-bold tracking-tight mt-1 flex items-center gap-1.5">
+                          <p className="text-xs text-slate-500 font-bold tracking-tight mt-1 flex items-center gap-1.5 truncate">
                             {tx.mobile_number || tx.dth_id || 'Internal Record'}
                           </p>
                         </div>

@@ -125,6 +125,43 @@ const TransactionsPage = () => {
         {/* Main Content Area */}
         <div className="max-w-5xl mx-auto px-6 -mt-10 relative z-20">
           
+          {/* Advanced Analytics Section */}
+          <div className="mb-8 space-y-4">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-3">
+              <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
+              Advanced Analytics
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div 
+                onClick={() => navigate('/wallet/ledger')}
+                className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group"
+               >
+                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                   <Wallet className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="font-black text-slate-800 tracking-tight">Wallet Ledger</h3>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Credit & Debit History</p>
+                 </div>
+                 <ChevronRight className="ml-auto w-5 h-5 text-slate-200" />
+               </div>
+
+               <div 
+                onClick={() => navigate('/reports/history')}
+                className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group"
+               >
+                 <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                   <FileBarChart className="w-6 h-6" />
+                 </div>
+                 <div>
+                    <h3 className="font-black text-slate-800 tracking-tight">Account Statement</h3>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Monthly PDF Exports</p>
+                 </div>
+                 <ChevronRight className="ml-auto w-5 h-5 text-slate-200" />
+               </div>
+            </div>
+          </div>
+
           <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
             <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 p-2 border border-slate-100 mb-6">
               <TabsList className="grid grid-cols-4 w-full bg-transparent h-12">
@@ -187,28 +224,26 @@ const TransactionsPage = () => {
 
                       {/* Detail Section */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <p className="text-lg font-black text-slate-800 tracking-tighter leading-none">
-                            {txn.mobile_number || 'Internal'}
-                          </p>
-                          <p className="text-lg font-black text-slate-900 leading-none">₹{Number(txn.amount).toFixed(0)}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
-                             {txn.operator_id || 'RECHARGE'} • {format(new Date(txn.created_at), 'MMM dd, HH:mm')}
-                           </p>
-                        </div>
+                        <p className="text-lg font-black text-slate-800 tracking-tighter leading-none mb-1.5 truncate">
+                          {txn.mobile_number || 'Internal'}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
+                          {txn.operator_id || 'RECHARGE'} • {format(new Date(txn.created_at), 'MMM dd, HH:mm')}
+                        </p>
                       </div>
 
                       {/* Status Section */}
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black tracking-widest border-none ${
-                          normalizeTransactionStatus(txn.status) === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
-                          normalizeTransactionStatus(txn.status) === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                          'bg-rose-100 text-rose-700'
-                        }`}>
-                          {normalizeTransactionStatus(txn.status)}
-                        </Badge>
+                      <div className="flex items-center gap-4 shrink-0 text-right">
+                        <div className="flex flex-col items-end gap-1.5">
+                          <p className="text-lg font-black text-slate-900 leading-none">₹{Number(txn.amount).toFixed(2)}</p>
+                          <Badge className={`rounded-full px-2.5 py-0.5 text-[9px] font-black tracking-widest border-none ${
+                            normalizeTransactionStatus(txn.status) === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' :
+                            normalizeTransactionStatus(txn.status) === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                            'bg-rose-100 text-rose-700'
+                          }`}>
+                            {normalizeTransactionStatus(txn.status)}
+                          </Badge>
+                        </div>
                         <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-blue-600 transition-colors" />
                       </div>
                     </motion.div>
@@ -218,42 +253,6 @@ const TransactionsPage = () => {
             </TabsContent>
           </Tabs>
 
-          {/* Advanced Reports Section */}
-          <div className="mt-12 space-y-6">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-3">
-              <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
-              Advanced Analytics
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div 
-                onClick={() => navigate('/wallet/ledger')}
-                className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group"
-               >
-                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                   <Wallet className="w-6 h-6" />
-                 </div>
-                 <div>
-                    <h3 className="font-black text-slate-800 tracking-tight">Wallet Ledger</h3>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Credit & Debit History</p>
-                 </div>
-                 <ChevronRight className="ml-auto w-5 h-5 text-slate-200" />
-               </div>
-
-               <div 
-                onClick={() => navigate('/reports/history')}
-                className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-lg transition-all cursor-pointer group"
-               >
-                 <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                   <FileBarChart className="w-6 h-6" />
-                 </div>
-                 <div>
-                    <h3 className="font-black text-slate-800 tracking-tight">Account Statement</h3>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Monthly PDF Exports</p>
-                 </div>
-                 <ChevronRight className="ml-auto w-5 h-5 text-slate-200" />
-               </div>
-            </div>
-          </div>
 
           {/* Quick Action FAB-style Button */}
           <motion.div 

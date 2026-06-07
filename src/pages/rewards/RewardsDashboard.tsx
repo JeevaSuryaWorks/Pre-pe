@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { 
     getUserTotalPoints, 
     getUserTotalCashback, 
@@ -14,7 +15,9 @@ import {
     getUserCompletedTasks,
     claimTaskReward,
     addRewardPoints,
-    checkAndRecordDailyStreak
+    checkAndRecordDailyStreak,
+    hasUserCheckedInToday,
+    claimDailyStreakCheckIn
 } from '@/services/rewards.service';
 import { 
     Sparkles, 
@@ -103,20 +106,23 @@ export default function RewardsDashboard() {
   const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
   const [taskLoading, setTaskLoading] = useState(false);
   const [planType, setPlanType] = useState<string>('BASIC');
+  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+  const [checkInLoading, setCheckInLoading] = useState(false);
 
   const loadData = async (silent = false) => {
     if (!user) return;
     if (!silent) setLoading(true);
     
     try {
-      const [points, cb, strk, spinStatus, cards, availableTasks, completedIds] = await Promise.all([
+      const [points, cb, strk, spinStatus, cards, availableTasks, completedIds, checkedIn] = await Promise.all([
         getUserTotalPoints(user.id),
         getUserTotalCashback(user.id),
         getUserStreak(user.id),
         getSpinWheelStatus(user.id),
         getUserScratchCards(user.id),
         getAvailableTasks(),
-        getUserCompletedTasks(user.id)
+        getUserCompletedTasks(user.id),
+        hasUserCheckedInToday(user.id)
       ]);
 
       setTotalPoints(points);
@@ -128,6 +134,7 @@ export default function RewardsDashboard() {
       setScratchCards(cards);
       setTasks(availableTasks);
       setCompletedTaskIds(completedIds);
+      setHasCheckedInToday(checkedIn);
 
       // Check KYC status from kyc_verifications table
       const { data: kycData } = await (supabase as any)
@@ -153,6 +160,35 @@ export default function RewardsDashboard() {
     } finally {
       if (!silent) setLoading(false);
       setKycLoading(false);
+    }
+  };
+
+  const handleDailyCheckIn = async () => {
+    if (!user || hasCheckedInToday || checkInLoading) return;
+    setCheckInLoading(true);
+    try {
+      const success = await claimDailyStreakCheckIn(user.id);
+      if (success) {
+        toast({
+          title: "Check-in Successful!",
+          description: "Earned +10 Points and extended your daily streak!",
+        });
+        await loadData(true);
+      } else {
+        toast({
+          title: "Already Checked In",
+          description: "You have already completed your check-in for today.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Check-in Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setCheckInLoading(false);
     }
   };
 
@@ -547,9 +583,94 @@ export default function RewardsDashboard() {
                    >
                      {/* Featured Earn: Watch Ad */}
                      {(planType === 'BASIC' || planType === 'FREE') && <AdReward userId={user?.id || ''} onComplete={(p) => loadData(true)} />} 
-                        
-                        
-                     
+
+                     {/* Daily Streak Check-In Card */}
+                     <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-6 sm:p-8 space-y-6 border border-white">
+                       <div className="flex items-center justify-between">
+                         <div className="space-y-1">
+                           <h4 className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                             <Calendar className="w-5 h-5 text-indigo-600 animate-pulse" />
+                             Daily Streak
+                           </h4>
+                           <p className="text-xs font-medium text-slate-500">
+                             {streak > 0 
+                               ? `You're on a ${streak}-day check-in streak!`
+                               : "Start your daily check-in streak today!"}
+                           </p>
+                         </div>
+                         <div className="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-sm">
+                           <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                           <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider">{streak} Days</span>
+                         </div>
+                       </div>
+
+                       {/* 7-Day Grid Calendar Nodes */}
+                       <div className="grid grid-cols-7 gap-2">
+                         {Array.from({ length: 7 }).map((_, i) => {
+                           const dayNum = i + 1;
+                           const currentCycleDay = hasCheckedInToday 
+                             ? (streak % 7 === 0 ? 7 : streak % 7) 
+                             : (streak % 7);
+                           const isCompleted = dayNum <= currentCycleDay;
+                           const isToday = dayNum === currentCycleDay + 1;
+
+                           return (
+                             <motion.button
+                               key={i}
+                               whileHover={!isCompleted && !hasCheckedInToday && isToday ? { scale: 1.05 } : {}}
+                               whileTap={!isCompleted && !hasCheckedInToday && isToday ? { scale: 0.95 } : {}}
+                               disabled={isCompleted || hasCheckedInToday || !isToday}
+                               onClick={handleDailyCheckIn}
+                               className={cn(
+                                 "aspect-square rounded-2xl flex flex-col items-center justify-center border transition-all p-1.5 relative overflow-hidden",
+                                 isCompleted 
+                                   ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
+                                   : isToday && !hasCheckedInToday
+                                     ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-md shadow-indigo-100 ring-2 ring-indigo-500/20"
+                                     : "bg-slate-50/50 border-slate-100/60 text-slate-400"
+                                )}
+                             >
+                               {isCompleted ? (
+                                 <CheckCircle2 className="w-5 h-5 fill-emerald-50 text-emerald-600" />
+                               ) : isToday && !hasCheckedInToday ? (
+                                 <Zap className="w-5 h-5 text-indigo-600 fill-indigo-600/20 animate-bounce" />
+                               ) : (
+                                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">D{dayNum}</span>
+                                )}
+                               <span className={cn(
+                                 "text-[8px] font-black mt-1 uppercase",
+                                 isCompleted ? "text-emerald-600" : isToday && !hasCheckedInToday ? "text-indigo-600" : "text-slate-400"
+                                )}>
+                                 +10
+                               </span>
+                             </motion.button>
+                           );
+                         })}
+                       </div>
+
+                       {/* Easy Click Action Check-in Button */}
+                       <Button
+                         onClick={handleDailyCheckIn}
+                         disabled={hasCheckedInToday || checkInLoading}
+                         className={cn(
+                           "w-full h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg",
+                           hasCheckedInToday
+                             ? "bg-slate-100 text-slate-400 border-none shadow-none cursor-not-allowed"
+                             : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-98"
+                         )}
+                       >
+                         {checkInLoading ? (
+                           <Loader2 className="w-4 h-4 animate-spin mx-auto text-white" />
+                         ) : hasCheckedInToday ? (
+                           <div className="flex items-center justify-center gap-1.5">
+                             <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                             Checked In Today
+                           </div>
+                         ) : (
+                           "Claim Daily Check-in (+10 PTS)"
+                         )}
+                       </Button>
+                     </Card>
 
                      {/* Task Earning List */}
                      <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-8 space-y-6 border border-white">

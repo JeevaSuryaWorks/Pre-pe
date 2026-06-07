@@ -843,3 +843,43 @@ export async function triggerAutonomousRechargeRewards(userId: string, amount: n
     return false;
   }
 }
+
+/**
+ * Check if the user has checked in today (Daily Streak Check-in event logged)
+ */
+export async function hasUserCheckedInToday(userId: string): Promise<boolean> {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString();
+
+    const { data, error } = await supabase
+      .from('reward_points_ledger' as never)
+      .select('id')
+      .eq('user_id', userId)
+      .eq('description', 'Daily Streak Check-in')
+      .gte('created_at', todayStr);
+
+    if (error || !data) return false;
+    return data.length > 0;
+  } catch (err) {
+    console.error("Error checking daily check-in:", err);
+    return false;
+  }
+}
+
+/**
+ * Claim the daily streak check-in (adds 10 points to user ledger)
+ */
+export async function claimDailyStreakCheckIn(userId: string): Promise<boolean> {
+  try {
+    const alreadyCheckedIn = await hasUserCheckedInToday(userId);
+    if (alreadyCheckedIn) return false;
+
+    // Record check-in points (10 pts)
+    return await addRewardPoints(userId, 10, 'CASHBACK_POINTS', 'Daily Streak Check-in');
+  } catch (err) {
+    console.error("Error claiming daily streak check-in:", err);
+    return false;
+  }
+}
