@@ -273,7 +273,7 @@ const LedgerPage = () => {
                                     <RefreshCw className={cn("h-4.5 w-4.5", isSyncing && "animate-spin text-indigo-600")} />
                                 </button>
                             </div>
-                            <p className="text-xs text-slate-500 font-medium">Digital asset ledger desk & statements</p>
+                            <p className="text-xs text-slate-500 font-medium">Balance history and statements</p>
                         </div>
                     </div>
                 </div>
@@ -296,7 +296,7 @@ const LedgerPage = () => {
                             )}
                         </div>
                         <div className="space-y-1 mt-4">
-                            <h3 className="text-3xl font-black text-white tracking-tighter">
+                            <h3 className="text-2xl sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black text-white tracking-tighter truncate" title={`₹${walletBalance ? walletBalance.balance.toFixed(2) : '0.00'}`}>
                                 ₹{walletBalance ? walletBalance.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                             </h3>
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Available for recharges</p>
@@ -316,10 +316,10 @@ const LedgerPage = () => {
                             </div>
                         </div>
                         <div className="space-y-1 mt-4">
-                            <h3 className="text-3xl font-black text-white tracking-tighter">
+                            <h3 className="text-2xl sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black text-white tracking-tighter truncate" title={`+₹${stats.totalCredits.toFixed(2)}`}>
                                 +₹{stats.totalCredits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h3>
-                            <p className="text-[9px] text-emerald-300/60 font-bold uppercase tracking-wider">Credits & refunds inside view</p>
+                            <p className="text-[9px] text-emerald-300/60 font-bold uppercase tracking-wider">Credits & refunds</p>
                         </div>
                     </div>
 
@@ -336,10 +336,10 @@ const LedgerPage = () => {
                             </div>
                         </div>
                         <div className="space-y-1 mt-4">
-                            <h3 className="text-3xl font-black text-white tracking-tighter">
+                            <h3 className="text-2xl sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black text-white tracking-tighter truncate" title={`-₹${stats.totalDebits.toFixed(2)}`}>
                                 -₹{stats.totalDebits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h3>
-                            <p className="text-[9px] text-rose-300/60 font-bold uppercase tracking-wider">Debits & locks inside view</p>
+                            <p className="text-[9px] text-rose-300/60 font-bold uppercase tracking-wider">Debits & locked funds</p>
                         </div>
                     </div>
                 </div>
@@ -406,7 +406,7 @@ const LedgerPage = () => {
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-4">
                             <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] animate-pulse">Reconciling ledger desk...</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] animate-pulse">Loading history...</p>
                         </div>
                     ) : filteredLedger.length === 0 ? (
                         <motion.div 
@@ -426,7 +426,7 @@ const LedgerPage = () => {
                                 className="rounded-full font-black text-[10px] uppercase tracking-wider border-slate-200" 
                                 onClick={() => { setSearchQuery(''); setTypeFilter('ALL'); }}
                             >
-                                Reset Ledger Desk
+                                Reset Filters
                             </Button>
                         </motion.div>
                     ) : (
