@@ -194,4 +194,61 @@ export class ProductsService {
             return review;
         });
     }
+
+    async getSuggestedProducts(limit: number) {
+        // 1. Fetch sales volumes per product from ecommerce_order_items grouped by product_id
+        const salesVolumes = await this.prisma.ecommerce_order_items.groupBy({
+            by: ['product_id'],
+            _sum: {
+                quantity: true
+            }
+        });
+
+        // 2. Map sales volumes to product IDs
+        const salesVolumeMap = new Map<string, number>();
+        for (const vol of salesVolumes) {
+            if (vol.product_id && vol._sum?.quantity) {
+                salesVolumeMap.set(vol.product_id, vol._sum.quantity);
+            }
+        }
+
+        // 3. Fetch active products with category and variants relations
+        const products = await this.prisma.ecommerce_products.findMany({
+            where: { is_active: true },
+            include: {
+                category: true,
+                variants: true
+            }
+        });
+
+        // 4. Calculate recommendation score: (salesVolume * 6.0) + (rating * 8.0)
+        const scoredProducts = products.map(product => {
+            const salesVolume = salesVolumeMap.get(product.id) || 0;
+            const rating = Number(product.rating) || 0;
+            const score = (salesVolume * 6.0) + (rating * 8.0);
+            return {
+                product,
+                salesVolume,
+                score
+            };
+        });
+
+        // Sort scored products by score desc, then created_at desc
+        scoredProducts.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+            return b.product.created_at.getTime() - a.product.created_at.getTime();
+        });
+
+        // Slice to limit and map to standard response
+        return scoredProducts.slice(0, limit).map(sp => ({
+            ...sp.product,
+            price: Number(sp.product.price),
+            compare_at_price: sp.product.compare_at_price ? Number(sp.product.compare_at_price) : null,
+            rating: Number(sp.product.rating),
+            totalStock: sp.product.variants.reduce((acc, v) => acc + v.stock, 0),
+            units_sold: sp.salesVolume
+        }));
+    }
 }

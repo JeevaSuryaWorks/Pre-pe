@@ -35,6 +35,11 @@ export default function ShopListingPage() {
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
 
+  // Suggested & spotlight states
+  const [suggestedProducts, setSuggestedProducts] = useState<ProductItem[]>([]);
+  const [suggestedLoading, setSuggestedLoading] = useState(true);
+  const [selectedBrand, setSelectedBrand] = useState<string>("");
+
   // Market and access states
   const [marketTab, setMarketTab] = useState<'retail' | 'wholesale'>('retail');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -47,14 +52,70 @@ export default function ShopListingPage() {
   const [sortBy, setSortBy] = useState<string>("popular");
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
+  const SPOTLIGHT_BRANDS = [
+    {
+      name: "Spigen",
+      tagline: "Ultimate Armor Shield",
+      desc: "Drop tested military protection",
+      gradFrom: "from-slate-800",
+      gradTo: "to-slate-950",
+      textColor: "text-white",
+      btnColor: "bg-white text-slate-900"
+    },
+    {
+      name: "Anker",
+      tagline: "Next-Gen GaN Power",
+      desc: "Charge 3x faster with compact plugs",
+      gradFrom: "from-sky-600",
+      gradTo: "to-indigo-900",
+      textColor: "text-white",
+      btnColor: "bg-white text-sky-900"
+    },
+    {
+      name: "OnePlus",
+      tagline: "Never Settle Sound",
+      desc: "Immersive audio & premium ANC",
+      gradFrom: "from-red-600",
+      gradTo: "to-rose-800",
+      textColor: "text-white",
+      btnColor: "bg-white text-red-900"
+    },
+    {
+      name: "Belkin",
+      tagline: "Premium Connect",
+      desc: "Ultra-durable cables & chargers",
+      gradFrom: "from-emerald-600",
+      gradTo: "to-teal-800",
+      textColor: "text-white",
+      btnColor: "bg-white text-emerald-950"
+    }
+  ];
+
+  const getPromoLabel = (price: number, index: number) => {
+    if (index % 2 === 0) {
+      const promoPrice = Math.round(price * 0.90);
+      return {
+        text: `₹${promoPrice} with UPI offer`,
+        subText: `+ more`
+      };
+    } else {
+      const promoPrice = Math.round(price * 0.92);
+      return {
+        text: `₹${promoPrice} with Plus Deal`,
+        subText: ``
+      };
+    }
+  };
+
   useEffect(() => {
     loadCategories();
     loadCartCount();
+    loadSuggestedProducts();
   }, []);
 
   useEffect(() => {
     loadProducts();
-  }, [selectedCategory, sortBy, marketTab]);
+  }, [selectedCategory, selectedBrand, sortBy, marketTab]);
 
   const loadCategories = async () => {
     try {
@@ -65,11 +126,24 @@ export default function ShopListingPage() {
     }
   };
 
+  const loadSuggestedProducts = async () => {
+    setSuggestedLoading(true);
+    try {
+      const data = await shopService.getSuggestedProducts(10);
+      setSuggestedProducts(data);
+    } catch (err) {
+      console.error("Suggested products fetch failed:", err);
+    } finally {
+      setSuggestedLoading(false);
+    }
+  };
+
   const loadProducts = async () => {
     setLoading(true);
     try {
       const data = await shopService.getProducts({
         categoryId: selectedCategory || undefined,
+        brand: selectedBrand || undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         sortBy
@@ -207,6 +281,146 @@ export default function ShopListingPage() {
           </div>
         </div>
 
+        {/* Suggested For You Carousel */}
+        {!suggestedLoading && suggestedProducts.length > 0 && (
+          <div className="px-5 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-black text-slate-800 tracking-tight">
+                Suggested For You
+              </h3>
+              <button 
+                onClick={() => {
+                  const gridElement = document.getElementById('catalog-listing');
+                  gridElement?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="h-8 w-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-3">
+              {suggestedProducts.map((item, index) => {
+                const promo = getPromoLabel(item.price, index);
+                return (
+                  <Link
+                    key={`suggested-${item.id}`}
+                    to={`/product/${item.id}`}
+                    className="w-[145px] shrink-0 bg-white border border-slate-100 rounded-[1.8rem] p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition-all relative group"
+                  >
+                    <div className="flex-1 flex flex-col justify-between">
+                      {/* Image Box */}
+                      <div className="relative aspect-square rounded-2xl bg-slate-50 mb-3 flex items-center justify-center p-2 border border-slate-100/50 overflow-hidden">
+                        <img
+                          src={item.images?.[0] || "https://placehold.co/400x400/png?text=Gear"}
+                          alt={item.title}
+                          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-108 transition-transform duration-300"
+                        />
+                        {/* Rating Badge */}
+                        <div className="absolute bottom-1.5 left-1.5 bg-white/95 backdrop-blur-xs shadow-xs text-slate-800 border border-slate-100 font-extrabold text-[8px] px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
+                          <span>{item.rating ? item.rating.toFixed(item.rating % 1 === 0 ? 0 : 1) : "5"}</span>
+                          <Star className="w-2.5 h-2.5 fill-emerald-500 text-emerald-500" />
+                        </div>
+                      </div>
+                      
+                      {/* Title */}
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug min-h-[30px]">
+                          {item.title}
+                        </h4>
+                        
+                        {/* Price Row */}
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span className="text-[10px] text-slate-400 line-through">
+                            ₹{item.compare_at_price ? Math.round(item.compare_at_price) : Math.round(item.price * 1.3)}
+                          </span>
+                          <span className="text-xs font-black text-slate-900">
+                            ₹{Math.round(item.price)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Promo Discount line */}
+                    <div className="mt-2 pt-2 border-t border-slate-50 flex items-baseline gap-1">
+                      <span className="text-[9px] font-black text-[#0052CC] leading-none">
+                        {promo.text}
+                      </span>
+                      {promo.subText && (
+                        <span className="text-[8px] font-bold text-slate-400 leading-none">
+                          {promo.subText}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Brands in Spotlight Banner Section */}
+        <div className="px-5 mt-6">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-black text-slate-800 tracking-tight">
+              Brands in Spotlight
+            </h3>
+            {selectedBrand && (
+              <button 
+                onClick={() => setSelectedBrand("")} 
+                className="text-[10px] font-black text-[#FF671F] uppercase tracking-wider"
+              >
+                Clear Brand
+              </button>
+            )}
+          </div>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-3">
+            {SPOTLIGHT_BRANDS.map((brand) => (
+              <button
+                key={brand.name}
+                onClick={() => setSelectedBrand(brand.name === selectedBrand ? "" : brand.name)}
+                className={cn(
+                  "w-[260px] shrink-0 rounded-[2rem] p-5 flex flex-col justify-between h-[120px] relative overflow-hidden transition-all text-left shadow-sm border active:scale-98",
+                  brand.gradFrom,
+                  brand.gradTo,
+                  selectedBrand === brand.name 
+                    ? "ring-4 ring-orange-500 border-orange-500 scale-[1.01]" 
+                    : "border-transparent"
+                )}
+              >
+                <div className="space-y-1 z-10">
+                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#FF671F] bg-white/10 px-2 py-0.5 rounded-full">
+                    Spotlight
+                  </span>
+                  <h4 className={`text-lg font-black tracking-tight ${brand.textColor} pt-1`}>
+                    {brand.name}
+                  </h4>
+                  <p className={`text-[10px] font-medium opacity-90 ${brand.textColor}`}>
+                    {brand.tagline}
+                  </p>
+                </div>
+                
+                <div className="flex justify-between items-center w-full z-10 mt-auto">
+                  <span className={`text-[8px] font-bold opacity-75 ${brand.textColor}`}>
+                    {brand.desc}
+                  </span>
+                  <span className={`text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg ${brand.btnColor} shadow-sm`}>
+                    Shop Now
+                  </span>
+                </div>
+                
+                <div className="absolute right-[-10px] bottom-[-20px] opacity-10 text-[90px] font-black select-none pointer-events-none">
+                  {brand.name.substring(0, 2).toUpperCase()}
+                </div>
+
+                <div className="absolute right-3 top-3 bg-black/30 backdrop-blur-xs text-[7px] font-black text-white px-1.5 py-0.5 rounded-sm uppercase tracking-widest opacity-80">
+                  AD
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Categories Horizontal Carousel */}
         <div className="px-5 mt-6">
           <div className="flex justify-between items-center mb-3">
@@ -328,8 +542,10 @@ export default function ShopListingPage() {
 
         {/* Product Grid Listing */}
         <main className="px-5 mt-6">
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="text-xs uppercase font-extrabold text-slate-400 tracking-[0.2em]">Latest Catalog</h3>
+          <div className="flex justify-between items-center mb-4 px-1" id="catalog-listing">
+            <h3 className="text-xs uppercase font-extrabold text-slate-400 tracking-[0.2em]">
+              {selectedBrand ? `${selectedBrand} Collection` : "Latest Catalog"}
+            </h3>
             <p className="text-[10px] font-bold text-slate-500">{products.length} Products Available</p>
           </div>
 

@@ -11,6 +11,12 @@ export class ProductsController {
         return this.productsService.getCategories();
     }
 
+    @Get('suggested')
+    async getSuggested(@Query('limit') limit?: string) {
+        const parsedLimit = limit ? Number(limit) : 6;
+        return this.productsService.getSuggestedProducts(parsedLimit);
+    }
+
     @Get()
     async findAll(
         @Query('categoryId') categoryId?: string,

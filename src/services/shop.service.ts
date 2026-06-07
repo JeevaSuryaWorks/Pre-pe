@@ -122,6 +122,10 @@ export const shopService = {
         return this.request('/products/categories');
     },
 
+    async getSuggestedProducts(limit = 6): Promise<ProductItem[]> {
+        return this.request(`/products/suggested?limit=${limit}`);
+    },
+
     async getProducts(params: {
         categoryId?: string;
         query?: string;
