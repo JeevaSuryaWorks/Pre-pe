@@ -14,6 +14,29 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+function SkeletonCard({ layout = "grid" }: { layout?: "grid" | "carousel" }) {
+  return (
+    <div className={cn(
+      "bg-white border border-slate-100 rounded-[2rem] p-4 space-y-3 shadow-xs relative overflow-hidden animate-pulse",
+      layout === "carousel" ? "w-[145px] shrink-0" : "w-full"
+    )}>
+      <div className="aspect-square bg-slate-100/70 rounded-2xl w-full" />
+      <div className="h-2 bg-slate-100 rounded-md w-1/4" />
+      <div className="space-y-1.5">
+        <div className="h-3 bg-slate-100 rounded-md w-11/12" />
+        <div className="h-3 bg-slate-100 rounded-md w-8/12" />
+      </div>
+      <div className="flex justify-between items-center pt-2">
+        <div className="space-y-1 w-1/2">
+          <div className="h-4 bg-slate-100 rounded-md w-3/4" />
+          <div className="h-2 bg-slate-50 rounded-md w-1/2" />
+        </div>
+        <div className="h-8 w-8 rounded-full bg-slate-100" />
+      </div>
+    </div>
+  );
+}
+
 export default function ShopListingPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -229,8 +252,8 @@ export default function ShopListingPage() {
               <Smartphone className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-lg font-black text-[#000080] tracking-tight">Accessories Hub</h1>
-              <p className="text-[9px] font-extrabold uppercase tracking-widest text-[#046A38]">Premium Mobile Gears</p>
+              <h1 className="text-lg font-black text-[#000080] tracking-tight">Accessories Store</h1>
+              <p className="text-[9px] font-extrabold uppercase tracking-widest text-[#046A38]">Premium Accessories</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -262,7 +285,7 @@ export default function ShopListingPage() {
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
-              Retail Shop
+              Shop
             </button>
             <button
               onClick={handleWholesaleTabClick}
@@ -273,7 +296,7 @@ export default function ShopListingPage() {
                   : "text-slate-500 hover:text-slate-800"
               )}
             >
-              Wholesale (B2B)
+              Wholesale
               {!isBusinessUser && (
                 <span className="text-[7px] font-black tracking-widest text-[#FF671F] bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full uppercase scale-90">PRO</span>
               )}
@@ -282,7 +305,20 @@ export default function ShopListingPage() {
         </div>
 
         {/* Suggested For You Carousel */}
-        {!suggestedLoading && suggestedProducts.length > 0 && (
+        {suggestedLoading ? (
+          <div className="px-5 mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-black text-slate-800 tracking-tight">
+                Suggested For You
+              </h3>
+            </div>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-3">
+              {[1, 2, 3].map((i) => (
+                <SkeletonCard key={`suggested-skeleton-${i}`} layout="carousel" />
+              ))}
+            </div>
+          </div>
+        ) : suggestedProducts.length > 0 ? (
           <div className="px-5 mt-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-black text-slate-800 tracking-tight">
@@ -357,7 +393,7 @@ export default function ShopListingPage() {
               })}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Brands in Spotlight Banner Section */}
         <div className="px-5 mt-6">
@@ -424,7 +460,7 @@ export default function ShopListingPage() {
         {/* Categories Horizontal Carousel */}
         <div className="px-5 mt-6">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xs uppercase font-extrabold text-slate-400 tracking-[0.15em]">Browse Categories</h3>
+            <h3 className="text-xs uppercase font-extrabold text-slate-400 tracking-[0.15em]">Categories</h3>
             {selectedCategory && (
               <button onClick={() => setSelectedCategory("")} className="text-[10px] font-black text-[#FF671F] uppercase tracking-wider">
                 Clear Category
@@ -454,7 +490,7 @@ export default function ShopListingPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Search screen glass, chargers, covers..."
+              placeholder="Search glass, chargers, covers..."
               className="pl-10 h-11 bg-white border-slate-100 rounded-2xl focus-visible:ring-[#FF671F]/20 text-xs font-semibold shadow-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -544,7 +580,7 @@ export default function ShopListingPage() {
         <main className="px-5 mt-6">
           <div className="flex justify-between items-center mb-4 px-1" id="catalog-listing">
             <h3 className="text-xs uppercase font-extrabold text-slate-400 tracking-[0.2em]">
-              {selectedBrand ? `${selectedBrand} Collection` : "Latest Catalog"}
+              {selectedBrand ? `${selectedBrand} Collection` : "All Accessories"}
             </h3>
             <p className="text-[10px] font-bold text-slate-500">{products.length} Products Available</p>
           </div>
@@ -552,15 +588,7 @@ export default function ShopListingPage() {
           {loading ? (
             <div className="grid grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white border border-slate-100 rounded-[2rem] p-4 space-y-3 shadow-sm animate-pulse">
-                  <div className="aspect-square bg-slate-50 rounded-2xl w-full" />
-                  <div className="h-4 bg-slate-100 rounded-md w-3/4" />
-                  <div className="h-3 bg-slate-50 rounded-md w-1/2" />
-                  <div className="flex justify-between items-center pt-2">
-                    <div className="h-5 bg-slate-100 rounded-md w-1/3" />
-                    <div className="h-8 bg-slate-100 rounded-full w-8" />
-                  </div>
-                </div>
+                <SkeletonCard key={`grid-skeleton-${i}`} layout="grid" />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -569,7 +597,7 @@ export default function ShopListingPage() {
                 <Package className="w-8 h-8" />
               </div>
               <div>
-                <h4 className="text-sm font-black text-slate-800">No Accessories Listed</h4>
+                <h4 className="text-sm font-black text-slate-800">No Accessories Found</h4>
                 <p className="text-xs text-slate-400 mt-1 max-w-[220px] mx-auto">There are no products listed matching your selected criteria.</p>
               </div>
             </div>
@@ -646,8 +674,8 @@ export default function ShopListingPage() {
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-black text-[#000080] uppercase tracking-wider">Pre-pe Assured Standard</h4>
-              <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">100% Genuine Mobile Accessories. Quality audited, secured transactions, and immediate delivery.</p>
+              <h4 className="text-xs font-black text-[#000080] uppercase tracking-wider">Pre-pe Assured</h4>
+              <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">100% Genuine Accessories. Quality checked, secure payments, and fast delivery.</p>
             </div>
           </div>
         </div>
@@ -681,9 +709,9 @@ export default function ShopListingPage() {
                   <span className="text-[9px] font-black uppercase tracking-widest text-[#FF671F] bg-orange-50 border border-orange-100 px-3 py-1 rounded-full w-fit mx-auto">
                     Business Plan Exclusive
                   </span>
-                  <h3 className="text-xl font-black text-[#000080] tracking-tight pt-1">Wholesale Shop Restricted</h3>
+                  <h3 className="text-xl font-black text-[#000080] tracking-tight pt-1">Wholesale Access</h3>
                   <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-[240px] mx-auto">
-                    Wholesale B2B lower rates, bulk packings, and direct reseller benefits are exclusive to our **Business Plan** partners.
+                    Wholesale prices, bulk orders, and reseller benefits are exclusive to our **Business Plan** partners.
                   </p>
                 </div>
 
