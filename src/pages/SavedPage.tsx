@@ -58,6 +58,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const SavedPage = () => {
     const { user } = useAuth();
@@ -1294,15 +1296,50 @@ const SavedPage = () => {
                             />
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 flex flex-col">
                             <Label htmlFor="edit_due_date" className="text-xs font-bold text-slate-500 ml-1 uppercase">Payment Due Date</Label>
-                            <Input 
-                                id="edit_due_date"
-                                type="date"
-                                className="h-12 rounded-xl border-slate-200 focus:border-blue-500 px-4 cursor-pointer font-semibold text-slate-800"
-                                value={editFormData.due_date}
-                                onChange={(e) => setEditFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="edit_due_date"
+                                        variant="outline"
+                                        type="button"
+                                        className="h-12 w-full rounded-xl border-slate-200 focus:border-blue-500 px-4 cursor-pointer font-semibold text-slate-800 flex items-center justify-between bg-white text-left hover:bg-white hover:text-slate-800"
+                                    >
+                                        <span>
+                                            {editFormData.due_date 
+                                                ? (() => {
+                                                    const parts = editFormData.due_date.split('-');
+                                                    if (parts.length === 3) {
+                                                        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                                                    }
+                                                    return format(new Date(editFormData.due_date), 'dd/MM/yyyy');
+                                                })()
+                                                : "Select Due Date"
+                                            }
+                                        </span>
+                                        <Calendar className="h-4.5 w-4.5 text-slate-400 shrink-0" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border border-slate-100 bg-white" align="start">
+                                    <ShadcnCalendar
+                                        mode="single"
+                                        selected={editFormData.due_date ? (() => {
+                                            const parts = editFormData.due_date.split('-');
+                                            if (parts.length === 3) {
+                                                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                            }
+                                            return new Date(editFormData.due_date);
+                                        })() : undefined}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                setEditFormData(prev => ({ ...prev, due_date: format(date, 'yyyy-MM-dd') }));
+                                            }
+                                        }}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         <DialogFooter className="pt-4 flex flex-row gap-3 w-full">

@@ -6,8 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addSavedItem } from '@/services/saved.service';
 import { toast } from '@/hooks/use-toast';
-import { Users, Smartphone, Tv, Lightbulb, Flame, Droplet, Wifi } from 'lucide-react';
+import { Users, Smartphone, Tv, Lightbulb, Flame, Droplet, Wifi, Calendar } from 'lucide-react';
 import { PrePeSpinner } from '@/components/ui/BrandLoader';
+import { format } from 'date-fns';
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface AddCircleMemberDialogProps {
   isOpen: boolean;
@@ -122,15 +125,50 @@ export function AddCircleMemberDialog({ isOpen, onClose, onSuccess, userId }: Ad
                 />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
                 <Label htmlFor="due_date" className="text-xs font-bold text-slate-500 ml-1 uppercase">Payment Due Date</Label>
-                <Input 
-                    id="due_date"
-                    type="date"
-                    className="h-12 rounded-xl border-slate-200 focus:border-blue-500 px-4 cursor-pointer font-semibold text-slate-700"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-                />
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            id="due_date"
+                            variant="outline"
+                            type="button"
+                            className="h-12 w-full rounded-xl border-slate-200 focus:border-blue-500 px-4 cursor-pointer font-semibold text-slate-700 flex items-center justify-between bg-white text-left hover:bg-white hover:text-slate-700"
+                        >
+                            <span>
+                                {formData.due_date 
+                                    ? (() => {
+                                        const parts = formData.due_date.split('-');
+                                        if (parts.length === 3) {
+                                            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                                        }
+                                        return format(new Date(formData.due_date), 'dd/MM/yyyy');
+                                    })()
+                                    : "Select Due Date"
+                                }
+                            </span>
+                            <Calendar className="h-4.5 w-4.5 text-slate-400 shrink-0" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border border-slate-100 bg-white" align="start">
+                        <ShadcnCalendar
+                            mode="single"
+                            selected={formData.due_date ? (() => {
+                                const parts = formData.due_date.split('-');
+                                if (parts.length === 3) {
+                                    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                }
+                                return new Date(formData.due_date);
+                            })() : undefined}
+                            onSelect={(date) => {
+                                if (date) {
+                                    setFormData(prev => ({ ...prev, due_date: format(date, 'yyyy-MM-dd') }));
+                                }
+                            }}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
             </div>
 
             <DialogFooter className="pt-4">
