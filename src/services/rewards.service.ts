@@ -396,46 +396,48 @@ export async function getUserStreak(userId: string): Promise<number> {
     .from('reward_points_ledger' as never)
     .select('created_at')
     .eq('user_id', userId)
+    .eq('description', 'Daily Streak Check-in')
     .order('created_at', { ascending: false });
 
   if (error || !data || data.length === 0) return 0;
 
+  // Helper to format Date to YYYY-MM-DD in local time
+  const getLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const uniqueDays = Array.from(new Set(
     data.map((row: any) => {
       const d = new Date(row.created_at);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
+      return getLocalDateString(d);
     })
   ));
 
-  uniqueDays.sort((a, b) => b - a);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTime = today.getTime();
+  const todayStr = getLocalDateString(new Date());
   
-  const yesterday = new Date(today);
+  const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayTime = yesterday.getTime();
+  const yesterdayStr = getLocalDateString(yesterday);
 
   let streak = 0;
-  let lastTime: number;
+  let currentDate = new Date();
 
-  if (uniqueDays[0] === todayTime) {
-    streak = 1;
-    lastTime = todayTime;
-  } else if (uniqueDays[0] === yesterdayTime) {
-    streak = 1;
-    lastTime = yesterdayTime;
+  if (uniqueDays.includes(todayStr)) {
+    currentDate = new Date();
+  } else if (uniqueDays.includes(yesterdayStr)) {
+    currentDate = yesterday;
   } else {
     return 0;
   }
 
-  for (let i = 1; i < uniqueDays.length; i++) {
-    const expectedTime = lastTime - (24 * 60 * 60 * 1000);
-    if (uniqueDays[i] === expectedTime) {
+  while (true) {
+    const dateStr = getLocalDateString(currentDate);
+    if (uniqueDays.includes(dateStr)) {
       streak++;
-      lastTime = expectedTime;
+      currentDate.setDate(currentDate.getDate() - 1);
     } else {
       break;
     }
@@ -713,27 +715,13 @@ export async function claimTaskReward(userId: string, task: any): Promise<boolea
 }
 
 export async function checkAndRecordDailyStreak(userId: string): Promise<void> {
-  const { data, error } = await supabase
-    .from('reward_points_ledger' as never)
-    .select('created_at, description')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) return;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTime = today.getTime();
-
-  const hasStreakToday = data && data.some((row: any) => {
-    const d = new Date(row.created_at);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() === todayTime && row.description === 'Daily Streak Check-in';
-  });
-
-  if (!hasStreakToday) {
-    // Record a cashback points ledger entry with 10 reward points for daily check-in
-    await addRewardPoints(userId, 10, 'CASHBACK_POINTS', 'Daily Streak Check-in');
+  try {
+    const hasStreakToday = await hasUserCheckedInToday(userId);
+    if (!hasStreakToday) {
+      await addRewardPoints(userId, 10, 'CASHBACK_POINTS', 'Daily Streak Check-in');
+    }
+  } catch (err) {
+    console.error("Error checking and recording daily streak:", err);
   }
 }
 
@@ -849,19 +837,30 @@ export async function triggerAutonomousRechargeRewards(userId: string, amount: n
  */
 export async function hasUserCheckedInToday(userId: string): Promise<boolean> {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString();
-
     const { data, error } = await supabase
       .from('reward_points_ledger' as never)
-      .select('id')
+      .select('created_at')
       .eq('user_id', userId)
       .eq('description', 'Daily Streak Check-in')
-      .gte('created_at', todayStr);
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    if (error || !data) return false;
-    return data.length > 0;
+    if (error || !data || data.length === 0) return false;
+
+    // Helper to format Date to YYYY-MM-DD in local time
+    const getLocalDateString = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const todayStr = getLocalDateString(new Date());
+    
+    return data.some((row: any) => {
+      const d = new Date(row.created_at);
+      return getLocalDateString(d) === todayStr;
+    });
   } catch (err) {
     console.error("Error checking daily check-in:", err);
     return false;
