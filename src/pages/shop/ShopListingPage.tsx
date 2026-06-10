@@ -342,25 +342,25 @@ export default function ShopListingPage() {
                   <Link
                     key={`suggested-${item.id}`}
                     to={`/product/${item.id}`}
-                    className="w-[145px] shrink-0 bg-white border border-slate-100 rounded-[1.8rem] p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition-all relative group"
+                    className="w-[145px] shrink-0 bg-white border border-slate-100 rounded-[1.8rem] flex flex-col justify-between shadow-xs hover:shadow-md transition-all relative group overflow-hidden"
                   >
                     <div className="flex-1 flex flex-col justify-between">
                       {/* Image Box */}
-                      <div className="relative aspect-square rounded-2xl bg-slate-50 mb-3 flex items-center justify-center p-2 border border-slate-100/50 overflow-hidden">
+                      <div className="relative aspect-square overflow-hidden bg-slate-50 flex items-center justify-center border-b border-slate-100">
                         <img
                           src={item.images?.[0] || "https://placehold.co/400x400/png?text=Gear"}
                           alt={item.title}
-                          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-108 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
                         />
                         {/* Rating Badge */}
-                        <div className="absolute bottom-1.5 left-1.5 bg-white/95 backdrop-blur-xs shadow-xs text-slate-800 border border-slate-100 font-extrabold text-[8px] px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
+                        <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-xs shadow-xs text-slate-800 border border-slate-100 font-extrabold text-[8px] px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
                           <span>{item.rating ? item.rating.toFixed(item.rating % 1 === 0 ? 0 : 1) : "5"}</span>
                           <Star className="w-2.5 h-2.5 fill-emerald-500 text-emerald-500" />
                         </div>
                       </div>
                       
-                      {/* Title */}
-                      <div className="space-y-1">
+                      {/* Title & Details */}
+                      <div className="space-y-1 p-3 pb-3">
                         <h4 className="text-[10px] font-bold text-slate-700 line-clamp-2 leading-snug min-h-[30px]">
                           {item.title}
                         </h4>
@@ -374,19 +374,19 @@ export default function ShopListingPage() {
                             ₹{Math.round(item.price)}
                           </span>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Promo Discount line */}
-                    <div className="mt-2 pt-2 border-t border-slate-50 flex items-baseline gap-1">
-                      <span className="text-[9px] font-black text-[#0052CC] leading-none">
-                        {promo.text}
-                      </span>
-                      {promo.subText && (
-                        <span className="text-[8px] font-bold text-slate-400 leading-none">
-                          {promo.subText}
-                        </span>
-                      )}
+                        {/* Promo Discount line */}
+                        <div className="mt-2 pt-2 border-t border-slate-50 flex items-baseline gap-1">
+                          <span className="text-[9px] font-black text-[#0052CC] leading-none">
+                            {promo.text}
+                          </span>
+                          {promo.subText && (
+                            <span className="text-[8px] font-bold text-slate-400 leading-none">
+                              {promo.subText}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </Link>
                 );
@@ -607,14 +607,14 @@ export default function ShopListingPage() {
                 <motion.div
                   key={item.id}
                   whileHover={{ y: -4, shadow: "0 10px 30px rgba(0,0,0,0.05)" }}
-                  className="bg-white border border-slate-100 rounded-[2rem] p-4 flex flex-col justify-between shadow-sm relative overflow-hidden group transition-all"
+                  className="bg-white border border-slate-100 rounded-[2rem] flex flex-col justify-between shadow-sm relative overflow-hidden group transition-all"
                 >
                   <Link to={`/product/${item.id}`} className="flex-1 flex flex-col justify-between">
-                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-50 mb-3 flex items-center justify-center p-2 border border-slate-50">
+                    <div className="relative aspect-square overflow-hidden bg-slate-50 flex items-center justify-center border-b border-slate-100/50">
                       <img
                         src={item.images?.[0] || "https://placehold.co/400x400/png?text=Gear"}
                         alt={item.title}
-                        className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                       {item.compare_at_price && (
                         <div className="absolute top-2 left-2 bg-[#046A38] text-white font-black text-[8px] uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm">
@@ -623,7 +623,7 @@ export default function ShopListingPage() {
                       )}
                     </div>
                     
-                    <div className="space-y-1">
+                    <div className="space-y-1 p-4 pb-2">
                       <p className="text-[8px] font-black uppercase tracking-widest text-[#FF671F]">{item.brand}</p>
                       <h4 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-[#000080] transition-colors">{item.title}</h4>
                       
@@ -633,13 +633,13 @@ export default function ShopListingPage() {
                           <span>{item.rating || "5.0"}</span>
                         </div>
                         <span className="text-[8px] font-extrabold uppercase text-slate-400 tracking-wider">
-                          {item.totalStock > 0 ? "In Stock" : "Sold Out"}
+                          {item.totalStock > 0 ? "Available" : "Out of Stock"}
                         </span>
                       </div>
                     </div>
                   </Link>
 
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-50">
+                  <div className="flex justify-between items-center px-4 pb-4 pt-3 border-t border-slate-50">
                     <div className="flex flex-col">
                       <span className="text-sm font-black text-[#000080]">₹{item.price.toFixed(2)}</span>
                       {item.compare_at_price && (

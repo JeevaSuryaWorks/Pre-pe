@@ -282,11 +282,11 @@ export default function ProductDetailsPage() {
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Availability</span>
               {isOutOfStock ? (
                 <span className="text-[9px] font-black uppercase tracking-wider bg-rose-50 border border-rose-100 text-rose-600 px-3 py-1.5 rounded-full">
-                  Sold Out
+                  Out of Stock
                 </span>
               ) : (
                 <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 border border-emerald-100 text-emerald-600 px-3 py-1.5 rounded-full">
-                  In Stock ({selectedVariant?.stock || product.totalStock} units)
+                  Available
                 </span>
               )}
             </div>
