@@ -22,11 +22,11 @@ const MOCK_OPERATORS: Operator[] = [
   { id: '4', name: 'BSNL', code: 'BSNL', type: 'prepaid', logo: '/logos/bsnl_new.png' },
   { id: '5', name: 'Airtel Postpaid', code: 'AIRTEL_POST', type: 'postpaid', logo: '/operators/airtel.svg' },
   { id: '6', name: 'Jio Postpaid', code: 'JIO_POST', type: 'postpaid', logo: '/operators/jio.svg' },
-  { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth', logo: '/operators/tataplay.svg' },
-  { id: '8', name: 'Airtel DTH', code: 'AIRTEL_DTH', type: 'dth', logo: '/operators/airtel-dth.svg' },
-  { id: '9', name: 'Dish TV', code: 'DISH', type: 'dth', logo: '/operators/dishtv.svg' },
-  { id: '10', name: 'Videocon D2H', code: 'D2H', type: 'dth', logo: '/operators/videocon-d2h.svg' },
-  { id: '11', name: 'Sun Direct', code: 'SUN', type: 'dth', logo: '/operators/sun-direct.svg' },
+  { id: '7', name: 'Tata Play', code: 'TATAPLAY', type: 'dth', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Tata_Play_2022_logo.svg' },
+  { id: '8', name: 'Airtel DTH', code: 'AIRTEL_DTH', type: 'dth', logo: 'https://s3-ap-southeast-1.amazonaws.com/bsy/iportal/images/airtel-logo-red-text-horizontal.jpg' },
+  { id: '9', name: 'Dish TV', code: 'DISH', type: 'dth', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/DishTV_logo_%282025%29.svg/250px-DishTV_logo_%282025%29.svg.png?_=20251024063354' },
+  { id: '10', name: 'Videocon D2H', code: 'D2H', type: 'dth', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/D2h_logo.jpg' },
+  { id: '11', name: 'Sun Direct', code: 'SUN', type: 'dth', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/f2/SD-HD-Logo.svg' },
 ];
 
 // Cached official Indian telecom circles matching KwikAPI codes - Bypasses the 2/day API rate limit
@@ -77,11 +77,11 @@ export async function getOperators(type?: 'prepaid' | 'postpaid' | 'dth'): Promi
       let logoPath: string | undefined = undefined;
 
       if (mappedType === 'dth') {
-        if (rawName.includes('tata')) logoPath = '/operators/tataplay.svg';
-        else if (rawName.includes('airtel')) logoPath = '/operators/airtel-dth.svg';
-        else if (rawName.includes('dish')) logoPath = '/operators/dishtv.svg';
-        else if (rawName.includes('sun')) logoPath = '/operators/sun-direct.svg';
-        else if (rawName.includes('videocon') || rawName.includes('d2h')) logoPath = '/operators/videocon-d2h.svg';
+        if (rawName.includes('tata')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/2/29/Tata_Play_2022_logo.svg';
+        else if (rawName.includes('airtel')) logoPath = 'https://s3-ap-southeast-1.amazonaws.com/bsy/iportal/images/airtel-logo-red-text-horizontal.jpg';
+        else if (rawName.includes('dish')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/DishTV_logo_%282025%29.svg/250px-DishTV_logo_%282025%29.svg.png?_=20251024063354';
+        else if (rawName.includes('sun')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/f/f2/SD-HD-Logo.svg';
+        else if (rawName.includes('videocon') || rawName.includes('d2h')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/b/b3/D2h_logo.jpg';
       } else {
         if (rawName.includes('airtel')) logoPath = '/operators/airtel.svg';
         else if (rawName.includes('jio')) logoPath = '/operators/jio.svg';

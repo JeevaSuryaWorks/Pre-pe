@@ -24,16 +24,16 @@ export const SelectProviderPage = ({ type, title = "Select Provider" }: SelectPr
         if (type === 'dth') {
             return {
                 recent: [
-                    { id: 'd2h', name: 'Videocon D2H', logo: '/operators/videocon-d2h.svg' },
-                    { id: 'tatasky', name: 'Tata Play', logo: '/operators/tataplay.svg' },
-                    { id: 'sundirect', name: 'Sun Direct TV', logo: '/operators/sun-direct.svg' },
+                    { id: 'd2h', name: 'Videocon D2H', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/D2h_logo.jpg' },
+                    { id: 'tatasky', name: 'Tata Play', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Tata_Play_2022_logo.svg' },
+                    { id: 'sundirect', name: 'Sun Direct TV', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/f2/SD-HD-Logo.svg' },
                 ],
                 all: [
-                    { id: 'airtel', name: 'Airtel DTH', logo: '/operators/airtel-dth.svg' },
-                    { id: 'dishtv', name: 'Dish TV', logo: '/operators/dishtv.svg' },
-                    { id: 'sundirect', name: 'Sun Direct TV', logo: '/operators/sun-direct.svg' },
-                    { id: 'tatasky', name: 'Tata Play', logo: '/operators/tataplay.svg' },
-                    { id: 'd2h', name: 'Videocon D2H', logo: '/operators/videocon-d2h.svg' },
+                    { id: 'airtel', name: 'Airtel DTH', logo: 'https://s3-ap-southeast-1.amazonaws.com/bsy/iportal/images/airtel-logo-red-text-horizontal.jpg' },
+                    { id: 'dishtv', name: 'Dish TV', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/DishTV_logo_%282025%29.svg/250px-DishTV_logo_%282025%29.svg.png?_=20251024063354' },
+                    { id: 'sundirect', name: 'Sun Direct TV', logo: 'https://upload.wikimedia.org/wikipedia/commons/f/f2/SD-HD-Logo.svg' },
+                    { id: 'tatasky', name: 'Tata Play', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Tata_Play_2022_logo.svg' },
+                    { id: 'd2h', name: 'Videocon D2H', logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/D2h_logo.jpg' },
                 ]
             };
         }

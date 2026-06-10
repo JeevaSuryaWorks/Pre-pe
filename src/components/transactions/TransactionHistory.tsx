@@ -166,14 +166,14 @@ export function TransactionHistory() {
     let logoPath = '';
     
     if (operator.includes('jio')) logoPath = '/operators/jio.svg';
-    else if (operator.includes('airtel') && (tx.service_type === 'DTH' || operator.includes('dth'))) logoPath = '/operators/airtel-dth.svg';
+    else if (operator.includes('airtel') && (tx.service_type === 'DTH' || operator.includes('dth'))) logoPath = 'https://s3-ap-southeast-1.amazonaws.com/bsy/iportal/images/airtel-logo-red-text-horizontal.jpg';
     else if (operator.includes('airtel')) logoPath = '/operators/airtel.svg';
     else if (operator.includes('vi') || operator.includes('vodafone') || operator.includes('idea')) logoPath = '/operators/vi.svg';
     else if (operator.includes('bsnl')) logoPath = '/logos/bsnl_new.png';
-    else if (operator.includes('tata') || operator.includes('tataplay') || operator.includes('sky')) logoPath = '/operators/tataplay.svg';
-    else if (operator.includes('dish')) logoPath = '/operators/dishtv.svg';
-    else if (operator.includes('sun')) logoPath = '/operators/sun-direct.svg';
-    else if (operator.includes('videocon') || operator.includes('d2h')) logoPath = '/operators/videocon-d2h.svg';
+    else if (operator.includes('tata') || operator.includes('tataplay') || operator.includes('sky')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/2/29/Tata_Play_2022_logo.svg';
+    else if (operator.includes('dish')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/DishTV_logo_%282025%29.svg/250px-DishTV_logo_%282025%29.svg.png?_=20251024063354';
+    else if (operator.includes('sun')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/f/f2/SD-HD-Logo.svg';
+    else if (operator.includes('videocon') || operator.includes('d2h')) logoPath = 'https://upload.wikimedia.org/wikipedia/commons/b/b3/D2h_logo.jpg';
 
     if (logoPath) {
       return (
