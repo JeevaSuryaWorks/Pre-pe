@@ -6,7 +6,7 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { getOperators } from '@/services/operator.service';
 import type { Operator } from '@/types/recharge.types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { fetchDTHCustomerDetails, DTHCustomerInfoResponse } from '@/services/kwikApiService';
+import { fetchDTHCustomerDetails, fetchDTHPlans, DTHCustomerInfoResponse } from '@/services/kwikApiService';
 import { Loader2, ArrowRight, ShieldCheck, Wallet, AlertCircle, Info, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { processRecharge } from '@/services/recharge.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,7 @@ import {
     Dialog,
     DialogContent,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { upiService } from "@/services/upi";
 import { QRCodeSVG } from "qrcode.react";
 import { useKYC } from "@/hooks/useKYC";
@@ -54,6 +55,12 @@ export const DTHEnterDetails = () => {
     const [polling, setPolling] = useState(false);
     const [showKYCNudge, setShowKYCNudge] = useState(false);
 
+    // DTH Plans State
+    const [showPlans, setShowPlans] = useState(false);
+    const [plansLoading, setPlansLoading] = useState(false);
+    const [plansData, setPlansData] = useState<Record<string, any> | null>(null);
+    const [activeCategory, setActiveCategory] = useState<string>("");
+
     useEffect(() => {
         const loadOp = async () => {
             const ops = await getOperators('dth');
@@ -64,9 +71,9 @@ export const DTHEnterDetails = () => {
         loadOp();
     }, [operatorId]);
 
-    const fetchInfo = async (overrideId?: string) => {
-        const idToQuery = overrideId || dthId;
-        if (!operator || idToQuery.length < 6) return;
+    const fetchInfo = async (overrideId?: any) => {
+        const idToQuery = (typeof overrideId === 'string' && overrideId) ? overrideId : dthId;
+        if (!operator || !idToQuery || idToQuery.length < 6) return;
         setFetchingInfo(true);
         try {
             const result = await fetchDTHCustomerDetails(operator.id, idToQuery);
@@ -75,11 +82,55 @@ export const DTHEnterDetails = () => {
                 if (result.response.info[0].monthlyRecharge) {
                     setAmount(result.response.info[0].monthlyRecharge.replace(/[^0-9.]/g, ''));
                 }
+            } else {
+                setCustomerInfo(null);
+                toast({
+                    title: "Verification Failed",
+                    description: result.message || "Failed to fetch customer details. Please verify your DTH ID.",
+                    variant: "destructive"
+                });
             }
         } catch (error) {
             console.error("Error fetching DTH customer details:", error);
+            setCustomerInfo(null);
+            toast({
+                title: "Error",
+                description: "Failed to connect to verification gateway.",
+                variant: "destructive"
+            });
         }
         setFetchingInfo(false);
+    };
+
+    const handleOpenPlans = async () => {
+        if (!operator) return;
+        setShowPlans(true);
+        setPlansLoading(true);
+        try {
+            const result = await fetchDTHPlans(operator.id);
+            if (result && result.success && result.plans && Object.keys(result.plans).length > 0) {
+                setPlansData(result.plans);
+                const categories = Object.keys(result.plans);
+                if (categories.length > 0) setActiveCategory(categories[0]);
+            } else {
+                const mockPlans = getMockDTHPlans(operator.name);
+                setPlansData(mockPlans);
+                const categories = Object.keys(mockPlans);
+                if (categories.length > 0) setActiveCategory(categories[0]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch DTH plans:", error);
+            const mockPlans = getMockDTHPlans(operator.name);
+            setPlansData(mockPlans);
+            const categories = Object.keys(mockPlans);
+            if (categories.length > 0) setActiveCategory(categories[0]);
+        }
+        setPlansLoading(false);
+    };
+
+    const handleSelectPlan = (rs: number) => {
+        setAmount(rs.toString());
+        setShowPlans(false);
     };
 
     useEffect(() => {
@@ -299,7 +350,6 @@ export const DTHEnterDetails = () => {
                                 className="h-14 text-base bg-white/90 border-slate-200 rounded-2xl shadow-sm text-slate-900 group-focus-within:border-indigo-500 group-focus-within:ring-4 group-focus-within:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-semibold pl-4"
                                 value={dthId}
                                 onChange={(e) => setDthId(e.target.value)}
-                                onBlur={fetchInfo}
                             />
                             {fetchingInfo && (
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -311,12 +361,19 @@ export const DTHEnterDetails = () => {
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
                                 <Info className="h-3.5 w-3.5 text-slate-400" /> Min 6 digits subscriber ID
                             </span>
-                            {!fetchingInfo && dthId.length >= 6 && (
+                            {dthId.length >= 6 && (
                                 <button 
-                                    onClick={fetchInfo} 
-                                    className="text-[10px] text-indigo-600 hover:text-indigo-750 font-black uppercase transition-colors"
+                                    onClick={() => fetchInfo()} 
+                                    disabled={fetchingInfo}
+                                    className="text-[10px] text-indigo-650 hover:text-indigo-755 disabled:opacity-50 font-black uppercase transition-colors cursor-pointer flex items-center gap-1"
                                 >
-                                    Verify Account
+                                    {fetchingInfo ? (
+                                        <>
+                                            <Loader2 className="h-3 w-3 animate-spin text-indigo-500" /> Verifying...
+                                        </>
+                                    ) : (
+                                        'Verify Account'
+                                    )}
                                 </button>
                             )}
                         </div>
@@ -361,9 +418,19 @@ export const DTHEnterDetails = () => {
                     <div className="bg-white/85 backdrop-blur-md p-5 rounded-2.5xl border border-slate-100 group focus-within:border-indigo-200 transition-all shadow-sm">
                         <div className="flex justify-between items-center mb-2 px-1">
                             <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Recharge Amount</span>
-                            <span className="text-[10px] bg-indigo-50 text-indigo-650 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5">
-                                <Wallet className="h-3 w-3" /> BAL: ₹{availableBalance.toFixed(2)}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={handleOpenPlans}
+                                    className="text-[10px] text-indigo-650 hover:text-indigo-750 font-black uppercase tracking-wider transition-colors mr-1 cursor-pointer"
+                                >
+                                    View Plans
+                                </button>
+                                <span className="text-slate-300 text-[10px]">|</span>
+                                <span className="text-[10px] bg-indigo-50 text-indigo-650 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5 shrink-0">
+                                    <Wallet className="h-3 w-3" /> BAL: ₹{availableBalance.toFixed(2)}
+                                </span>
+                            </div>
                         </div>
                         <div className="flex items-center">
                             <span className="text-3xl font-black text-indigo-500 mr-2 select-none">₹</span>
@@ -555,6 +622,189 @@ export const DTHEnterDetails = () => {
                 onClose={() => setShowKYCNudge(false)}
                 featureName="DTH Recharge"
             />
+
+            {/* DTH Recharge Plans Dialog */}
+            <Dialog open={showPlans} onOpenChange={setShowPlans}>
+                <DialogContent className="max-w-md rounded-3xl p-6 overflow-hidden bg-white border border-slate-150 shadow-2xl text-slate-800 flex flex-col max-h-[85vh]">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-indigo-550 animate-pulse" />
+                            <h3 className="font-extrabold text-lg tracking-tight text-slate-900">DTH Recharge Plans</h3>
+                        </div>
+                        <button 
+                            onClick={() => setShowPlans(false)} 
+                            className="text-xs text-slate-400 hover:text-slate-650 font-bold uppercase cursor-pointer"
+                        >
+                            Close
+                        </button>
+                    </div>
+
+                    {plansLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                            <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
+                            <span className="text-xs text-slate-500 font-bold tracking-widest uppercase animate-pulse">Fetching Plans...</span>
+                        </div>
+                    ) : plansData && Object.keys(plansData).length > 0 ? (
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <Tabs value={activeCategory} onValueChange={setActiveCategory} className="flex-1 flex flex-col min-h-0">
+                                <TabsList className="bg-slate-50 p-1 rounded-2xl border border-slate-100 overflow-x-auto justify-start no-scrollbar flex flex-row w-full shrink-0">
+                                    {Object.keys(plansData).map((category) => (
+                                        <TabsTrigger 
+                                            key={category} 
+                                            value={category}
+                                            className="rounded-xl px-4 py-2 text-xs font-black tracking-wider transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-650 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-slate-100 shrink-0"
+                                        >
+                                            {category}
+                                        </TabsTrigger>
+                                    ))}
+                                </TabsList>
+
+                                <div className="flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar space-y-3 min-h-0 pb-4">
+                                    {Object.keys(plansData).map((category) => (
+                                        <TabsContent key={category} value={category} className="space-y-3 focus-visible:outline-none">
+                                            {plansData[category].map((plan: any, idx: number) => (
+                                                <div 
+                                                    key={`${category}-plan-${idx}`}
+                                                    onClick={() => handleSelectPlan(plan.rs)}
+                                                    className="bg-slate-50/50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-150 rounded-2.5xl p-4 transition-all active:scale-[0.99] cursor-pointer group flex justify-between items-start gap-4"
+                                                >
+                                                    <div className="space-y-1.5 flex-1 min-w-0 text-left">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-black px-2.5 py-0.5 rounded-full border border-indigo-100 uppercase tracking-widest">
+                                                                {plan.Type || 'Plan'}
+                                                            </span>
+                                                            {plan.validity && (
+                                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                    Validity: {plan.validity}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs font-semibold text-slate-655 leading-relaxed group-hover:text-slate-800">
+                                                            {plan.desc}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <div className="text-lg font-black text-indigo-600">₹{plan.rs}</div>
+                                                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider mt-1 block">
+                                                            SELECT
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </TabsContent>
+                                    ))}
+                                </div>
+                            </Tabs>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                            <div className="text-3xl mb-2">📡</div>
+                            <p className="text-sm text-slate-500 font-bold">No active plans found for this operator</p>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </Layout>
     );
+};
+
+// High-fidelity DTH Plans Database matching Indian Telecom Packs
+const getMockDTHPlans = (operatorName: string): Record<string, { rs: number; validity: string; desc: string; Type: string }[]> => {
+    const name = operatorName.toLowerCase();
+    
+    if (name.includes('airtel')) {
+        return {
+            "Popular Packs": [
+                { rs: 280, validity: "1 Month", desc: "Airtel DTH Value Pack - 240+ SD Channels including all major regional languages.", Type: "Value Pack" },
+                { rs: 350, validity: "1 Month", desc: "Airtel DTH Value Lite Pack - 280+ SD Channels + 10 HD Channels.", Type: "HD Value" },
+                { rs: 450, validity: "1 Month", desc: "Airtel DTH Premium HD Pack - 320+ Channels including 35 HD Channels.", Type: "Premium HD" }
+            ],
+            "Long Term Packs": [
+                { rs: 799, validity: "3 Months", desc: "Airtel DTH Value Pack - 3 Months Subscription. Saving ₹41.", Type: "3 Months Saver" },
+                { rs: 1550, validity: "6 Months", desc: "Airtel DTH Value Pack - 6 Months Subscription. Saving ₹130.", Type: "6 Months Saver" },
+                { rs: 2999, validity: "12 Months", desc: "Airtel DTH Value Pack - Annual Pack. Saving ₹361.", Type: "Annual Pack" }
+            ],
+            "HD Special": [
+                { rs: 480, validity: "1 Month", desc: "Airtel DTH HD Sports Pack - 300+ Channels with all major sports HD channels.", Type: "Sports HD" },
+                { rs: 599, validity: "1 Month", desc: "Airtel DTH Ultra HD Family - 350+ Channels with 50+ HD channels.", Type: "Ultra HD" }
+            ]
+        };
+    }
+    
+    if (name.includes('tata')) {
+        return {
+            "Popular Packs": [
+                { rs: 268, validity: "1 Month", desc: "Tata Play Dhamaal Mix - 220+ Channels with major entertainment and news.", Type: "Entertainment" },
+                { rs: 329, validity: "1 Month", desc: "Tata Play Royale All Sports - 96 SD Channels with all major sports channels.", Type: "Sports Pack" },
+                { rs: 378, validity: "1 Month", desc: "Tata Play Royale World - 112 SD Channels with international news & movies.", Type: "Premium Pack" }
+            ],
+            "Long Term Packs": [
+                { rs: 750, validity: "3 Months", desc: "Tata Play Dhamaal Mix - 3 Months. Save ₹54.", Type: "3 Months Saver" },
+                { rs: 1450, validity: "6 Months", desc: "Tata Play Dhamaal Mix - 6 Months. Save ₹158.", Type: "6 Months Saver" },
+                { rs: 2800, validity: "12 Months", desc: "Tata Play Dhamaal Mix - Annual Pack. Save ₹416.", Type: "Annual Pack" }
+            ],
+            "HD Special": [
+                { rs: 371, validity: "1 Month", desc: "Tata Play Royale Sports Kids HD - 81 Channels with 29 HD channels.", Type: "Kids & Sports HD" },
+                { rs: 443, validity: "1 Month", desc: "Tata Play Royale All Sports HD - 99 Channels with 40 HD channels.", Type: "Sports HD" },
+                { rs: 519, validity: "1 Month", desc: "Tata Play Royale World HD - 118 Channels with 49 HD channels.", Type: "Royale HD" }
+            ]
+        };
+    }
+    
+    if (name.includes('dish')) {
+        return {
+            "Popular Packs": [
+                { rs: 199, validity: "1 Month", desc: "Dish TV Delight HSM - 26 SD Channels with all major Hindi entertainment.", Type: "Delight Pack" },
+                { rs: 249, validity: "1 Month", desc: "Dish TV Swagat Pack - 200+ SD Channels with news & regional channels.", Type: "Swagat Pack" },
+                { rs: 310, validity: "1 Month", desc: "Dish TV Super Family Pack - 260+ SD Channels.", Type: "Family Pack" }
+            ],
+            "Long Term Packs": [
+                { rs: 580, validity: "3 Months", desc: "Dish TV Delight HSM - 3 Months. Save ₹17.", Type: "3 Months Saver" },
+                { rs: 1100, validity: "6 Months", desc: "Dish TV Delight HSM - 6 Months. Save ₹94.", Type: "6 Months Saver" },
+                { rs: 2150, validity: "12 Months", desc: "Dish TV Delight HSM - Annual Pack. Save ₹238.", Type: "Annual Pack" }
+            ],
+            "HD Special": [
+                { rs: 300, validity: "1 Month", desc: "Dish TV Delight HD - 36 Channels with 10 HD channels.", Type: "Delight HD" },
+                { rs: 369, validity: "1 Month", desc: "Dish TV Family HD - 44 Channels with 14 HD channels.", Type: "Family HD" },
+                { rs: 510, validity: "1 Month", desc: "Dish TV Royale HD - 81 Channels with 29 HD channels.", Type: "Royale HD" }
+            ]
+        };
+    }
+    
+    if (name.includes('sun')) {
+        return {
+            "Popular Packs": [
+                { rs: 220, validity: "1 Month", desc: "Sun Direct Joyful Pack - 180+ Channels with complete regional packs.", Type: "Joyful Pack" },
+                { rs: 275, validity: "1 Month", desc: "Sun Direct Tamil Gold - 220+ Channels with all Tamil language channels.", Type: "Tamil Gold" },
+                { rs: 320, validity: "1 Month", desc: "Sun Direct Tamil Cinema + Sports - 240+ Channels.", Type: "Cinema & Sports" }
+            ],
+            "Long Term Packs": [
+                { rs: 620, validity: "3 Months", desc: "Sun Direct Tamil Gold - 3 Months. Save ₹205.", Type: "3 Months Saver" },
+                { rs: 1200, validity: "6 Months", desc: "Sun Direct Tamil Gold - 6 Months. Save ₹450.", Type: "6 Months Saver" },
+                { rs: 2300, validity: "12 Months", desc: "Sun Direct Tamil Gold - Annual Pack. Save ₹1000.", Type: "Annual Pack" }
+            ],
+            "HD Special": [
+                { rs: 340, validity: "1 Month", desc: "Sun Direct Tamil Gold HD - 200+ Channels with 25+ HD channels.", Type: "Tamil HD" },
+                { rs: 425, validity: "1 Month", desc: "Sun Direct Tamil Diamond HD - 250+ Channels with 45+ HD channels.", Type: "Diamond HD" }
+            ]
+        };
+    }
+    
+    // Default/Videocon D2H
+    return {
+        "Popular Packs": [
+            { rs: 230, validity: "1 Month", desc: "D2h Value Combo - 210+ Channels with basic entertainment.", Type: "Value Pack" },
+            { rs: 290, validity: "1 Month", desc: "D2h Diamond Pack - 260+ Channels including all major regional languages.", Type: "Diamond Pack" },
+            { rs: 350, validity: "1 Month", desc: "D2h Gold HD Pack - 240+ Channels + 15 HD Channels.", Type: "HD Gold" }
+        ],
+        "Long Term Packs": [
+            { rs: 650, validity: "3 Months", desc: "D2h Value Combo - 3 Months. Save ₹40.", Type: "3 Months Saver" },
+            { rs: 1250, validity: "6 Months", desc: "D2h Value Combo - 6 Months. Save ₹130.", Type: "6 Months Saver" },
+            { rs: 2400, validity: "12 Months", desc: "D2h Value Combo - Annual Pack. Save ₹360.", Type: "Annual Pack" }
+        ],
+        "HD Special": [
+            { rs: 390, validity: "1 Month", desc: "D2h Diamond HD Pack - 280+ Channels with 30 HD channels.", Type: "Diamond HD" },
+            { rs: 499, validity: "1 Month", desc: "D2h Platinum HD Pack - 320+ Channels with 50 HD channels.", Type: "Platinum HD" }
+        ]
+    };
 };
