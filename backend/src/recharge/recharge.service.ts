@@ -371,4 +371,224 @@ export class RechargeService {
       req.end();
     });
   }
+
+  async updateTransactionStatus(
+    transactionId: string,
+    status: 'SUCCESS' | 'FAILED' | 'PENDING',
+    apiTxId?: string,
+    reason?: string
+  ) {
+    this.logger.log(`[RECHARGE:UPDATE_STATUS] Id: ${transactionId}, Status: ${status}, ApiTxId: ${apiTxId}, Reason: ${reason}`);
+
+    const txn = await this.prisma.transactions.findUnique({
+      where: { id: transactionId }
+    });
+
+    if (!txn) {
+      this.logger.warn(`[RECHARGE:UPDATE_STATUS] Transaction ${transactionId} not found`);
+      return null;
+    }
+
+    if (txn.status !== 'PENDING') {
+      this.logger.log(`[RECHARGE:UPDATE_STATUS] Transaction ${transactionId} already finalized as ${txn.status}`);
+      return txn;
+    }
+
+    if (status === 'SUCCESS') {
+      const updated = await this.prisma.transactions.update({
+        where: { id: transactionId },
+        data: {
+          status: 'SUCCESS',
+          api_transaction_id: apiTxId || txn.api_transaction_id,
+          updated_at: new Date()
+        }
+      });
+
+      this.sendStatusNotification(txn.user_id, 'SUCCESS', Number(txn.amount), txn.mobile_number || txn.dth_id || '', txn.reference_id);
+      return updated;
+    }
+
+    if (status === 'FAILED') {
+      return await this.prisma.$transaction(async (tx) => {
+        // Double check in transaction to prevent race conditions
+        const currentTxn = await tx.transactions.findUnique({ where: { id: transactionId } });
+        if (currentTxn.status !== 'PENDING') {
+          return currentTxn;
+        }
+
+        const refundRef = `REFUND_${txn.reference_id}`;
+
+        // 1. Credit user's wallet using the shared prisma transaction
+        const wallet = await this.walletService.getOrCreateWallet(tx, txn.user_id);
+
+        const existingRefund = await tx.wallet_ledger.findFirst({
+          where: { reference_id: refundRef }
+        });
+
+        if (!existingRefund) {
+          const updatedWallet = await tx.wallets.update({
+            where: { id: wallet.id },
+            data: {
+              balance: { increment: txn.amount },
+              updated_at: new Date(),
+            }
+          });
+
+          await tx.wallet_ledger.create({
+            data: {
+              wallet_id: wallet.id,
+              type: 'CREDIT',
+              amount: txn.amount,
+              balance_after: updatedWallet.balance,
+              description: `REFUND_${txn.reference_id}: ${reason || 'Recharge Failed'}`,
+              reference_id: refundRef,
+              created_at: new Date()
+            }
+          });
+          this.logger.log(`[RECHARGE:REFUND] Credited ₹${txn.amount} to user ${txn.user_id} (Ref: ${txn.reference_id})`);
+        }
+
+        // 2. Update transaction status
+        const updated = await tx.transactions.update({
+          where: { id: transactionId },
+          data: {
+            status: 'FAILED',
+            api_transaction_id: apiTxId || txn.api_transaction_id,
+            updated_at: new Date()
+          }
+        });
+
+        this.sendStatusNotification(txn.user_id, 'FAILED', Number(txn.amount), txn.mobile_number || txn.dth_id || '', txn.reference_id);
+        return updated;
+      });
+    }
+
+    return txn;
+  }
+
+  async queryKwikApiStatusDirectly(
+    referenceId: string,
+  ): Promise<{ status: string; operatorRef?: string; message?: string }> {
+    const apiKey = this.configService.get<string>('KWIK_API_KEY');
+
+    if (!apiKey) {
+      this.logger.error('[KwikAPI] Missing KWIK_API_KEY in configuration');
+      return { status: 'PENDING', message: 'API Configuration missing' };
+    }
+
+    const query = new URLSearchParams({
+      api_key: apiKey,
+      order_id: referenceId,
+    }).toString();
+
+    const options: https.RequestOptions = {
+      hostname: 'www.kwikapi.com',
+      port: 443,
+      path: `/api/v2/status.php?${query}`,
+      method: 'GET',
+      family: 4,
+      timeout: 10000, // 10 seconds timeout
+    };
+
+    this.logger.log(`[KwikAPI:STATUS_REQ] Calling: https://www.kwikapi.com/api/v2/status.php?order_id=${referenceId}`);
+
+    return new Promise((resolve) => {
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          this.logger.log(`[KwikAPI:STATUS_RES] Raw for ${referenceId}: ${data}`);
+          try {
+            const parsed = JSON.parse(data);
+            
+            // Check for explicit error responses
+            if (parsed.error_code || parsed.response?.error_code) {
+              const msg = parsed.message || parsed.response?.message || 'API Error';
+              resolve({
+                status: 'FAILED',
+                message: msg
+              });
+              return;
+            }
+
+            const resp = parsed.response;
+            if (resp) {
+              resolve({
+                status: resp.status || 'PENDING',
+                operatorRef: resp.operator_ref || resp.opr_id || undefined,
+                message: resp.message || undefined
+              });
+            } else {
+              resolve({
+                status: parsed.status || 'PENDING',
+                message: parsed.message || 'No response details'
+              });
+            }
+          } catch (e) {
+            this.logger.error(`[KwikAPI:STATUS_PARSE_ERROR] Failed for ${referenceId}: ${data}`);
+            const lData = data.toLowerCase();
+            if (lData.includes('success')) {
+              resolve({ status: 'SUCCESS' });
+            } else if (lData.includes('failed') || lData.includes('reversal')) {
+              resolve({ status: 'FAILED' });
+            } else {
+              resolve({ status: 'PENDING', message: 'Invalid status response' });
+            }
+          }
+        });
+      });
+
+      req.on('timeout', () => {
+        this.logger.error(`[KwikAPI:STATUS_TIMEOUT] Request timed out for ${referenceId}`);
+        req.destroy();
+        resolve({ status: 'PENDING', message: 'Timeout' });
+      });
+
+      req.on('error', (err) => {
+        this.logger.error(`[KwikAPI:STATUS_NET_ERROR] ${err.message} for ${referenceId}`);
+        resolve({ status: 'PENDING', message: `Network error: ${err.message}` });
+      });
+
+      req.end();
+    });
+  }
+
+  async checkStatus(userId: string, transactionId: string) {
+    if (!this.isValidUuid(userId)) {
+      throw new BadRequestException('Invalid User ID');
+    }
+
+    const txn = await this.prisma.transactions.findFirst({
+      where: { id: transactionId, user_id: userId }
+    });
+
+    if (!txn) {
+      throw new BadRequestException('Transaction not found');
+    }
+
+    if (txn.status !== 'PENDING') {
+      return txn;
+    }
+
+    try {
+      const result = await this.queryKwikApiStatusDirectly(txn.reference_id);
+      this.logger.log(`[RECHARGE:STATUS_CHECK] KwikAPI returned status: ${result.status} for Ref: ${txn.reference_id}`);
+
+      const targetStatus = result.status === 'SUCCESS' ? 'SUCCESS' : ((result.status === 'FAILED' || result.status === 'REVERSAL') ? 'FAILED' : 'PENDING');
+      
+      if (targetStatus !== 'PENDING') {
+        const updated = await this.updateTransactionStatus(
+          txn.id,
+          targetStatus,
+          result.operatorRef,
+          result.message || `Status check resolved as: ${result.status}`
+        );
+        return updated || txn;
+      }
+    } catch (err) {
+      this.logger.error(`[RECHARGE:STATUS_CHECK_ERROR] Error checking status for ${transactionId}: ${err.message}`);
+    }
+
+    return txn;
+  }
 }

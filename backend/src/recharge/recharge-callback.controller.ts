@@ -1,11 +1,15 @@
 import { Controller, Get, Query, Logger } from '@nestjs/common';
 import { PrismaService, RechargeStatus } from '../prisma/prisma.service';
+import { RechargeService } from './recharge.service';
 
 @Controller('payment/callback')
 export class RechargeCallbackController {
     private readonly logger = new Logger(RechargeCallbackController.name);
 
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private rechargeService: RechargeService
+    ) {}
 
     @Get()
     async handleCallback(
@@ -42,15 +46,13 @@ export class RechargeCallbackController {
                 return { status: 'ERROR', message: 'Transaction not found' };
             }
 
-            // Update transaction status
-            const updated = await this.prisma.transactions.update({
-                where: { id: txn.id },
-                data: {
-                    status: txnStatus,
-                    api_transaction_id: operator_ref || payid,
-                    updated_at: new Date(),
-                },
-            });
+            // Update transaction status and process refund/notifications
+            const updated = await this.rechargeService.updateTransactionStatus(
+                txn.id,
+                txnStatus as any,
+                operator_ref || payid,
+                `Callback status: ${status}`
+            );
 
             this.logger.log(`Transaction ${txn.id} (Ref: ${txn.reference_id}) updated to ${txnStatus}`);
             

@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Transaction } from "@/types/recharge.types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { getTransactionStatus } from "@/services/recharge.service";
 
 export default function TransactionDetailsPage() {
     const { id } = useParams();
@@ -32,12 +33,59 @@ export default function TransactionDetailsPage() {
     const [transaction, setTransaction] = useState<Transaction | null>(null);
 
     useEffect(() => {
-        if (location.state?.transaction) {
-            setTransaction(location.state.transaction);
-        } else {
-            console.warn("Transaction data expected in state");
-        }
+        const loadInitialTransaction = async () => {
+            if (location.state?.transaction) {
+                setTransaction(location.state.transaction);
+                if (normalizeTransactionStatus(location.state.transaction.status) === 'PENDING' && id) {
+                    const latest = await getTransactionStatus(id);
+                    if (latest) setTransaction(latest);
+                }
+            } else if (id) {
+                const latest = await getTransactionStatus(id);
+                if (latest) {
+                    setTransaction(latest);
+                }
+            }
+        };
+        loadInitialTransaction();
     }, [id, location.state]);
+
+    // Polling effect for PENDING status
+    useEffect(() => {
+        if (!transaction || !id) return;
+        
+        const isTxPending = normalizeTransactionStatus(transaction.status) === 'PENDING';
+        if (!isTxPending) return;
+
+        let intervalId: NodeJS.Timeout;
+
+        const checkStatus = async () => {
+            try {
+                const updatedTx = await getTransactionStatus(id);
+                if (updatedTx) {
+                    setTransaction(updatedTx);
+                    if (normalizeTransactionStatus(updatedTx.status) !== 'PENDING') {
+                        clearInterval(intervalId);
+                        toast({
+                            title: normalizeTransactionStatus(updatedTx.status) === 'SUCCESS' ? "Recharge Successful!" : "Recharge Failed",
+                            description: normalizeTransactionStatus(updatedTx.status) === 'SUCCESS' 
+                                ? `Operator Reference ID updated.` 
+                                : `Money has been refunded to your wallet.`,
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to check status", err);
+            }
+        };
+
+        // Start polling every 3 seconds
+        intervalId = setInterval(checkStatus, 3000);
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [id, transaction?.status, toast]);
 
     if (!transaction) {
         return (
@@ -170,6 +218,81 @@ export default function TransactionDetailsPage() {
                             <p className="text-slate-500 text-[13px] font-medium leading-relaxed max-w-[200px] mx-auto">
                                 {cfg.subtitle}
                             </p>
+                        </div>
+                    </motion.div>
+
+                    {/* Detailed Status Tracker Stepper */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.05 }}
+                        className="bg-white border border-slate-100 rounded-[2rem] p-5 shadow-xs space-y-4"
+                    >
+                        <h4 className="text-xs uppercase font-extrabold text-[#000080]/70 tracking-[0.12em] text-left">
+                            Detailed Status Tracker
+                        </h4>
+                        
+                        <div className="space-y-4 relative pl-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                            {/* Step 1: Payment Processed */}
+                            <div className="relative">
+                                <div className={cn(
+                                    "absolute -left-6 top-0.5 w-[24px] h-[24px] rounded-full flex items-center justify-center border-2 text-[10px] font-black bg-white z-10",
+                                    "border-emerald-500 text-emerald-500"
+                                )}>
+                                    ✓
+                                </div>
+                                <div className="space-y-0.5 text-left">
+                                    <p className="text-xs font-bold text-slate-800 font-sans">Payment Processed</p>
+                                    <p className="text-[10px] text-slate-400 font-medium font-sans">₹{Number(transaction.amount).toFixed(2)} deducted from PrePe Wallet</p>
+                                </div>
+                            </div>
+
+                            {/* Step 2: Request Sent */}
+                            <div className="relative">
+                                <div className={cn(
+                                    "absolute -left-6 top-0.5 w-[24px] h-[24px] rounded-full flex items-center justify-center border-2 text-[10px] font-black bg-white z-10",
+                                    isFailed 
+                                        ? "border-rose-500 text-rose-500" 
+                                        : (isSuccess ? "border-emerald-500 text-emerald-500" : "border-amber-500 text-amber-500 animate-pulse")
+                                )}>
+                                    {isSuccess || isFailed ? "✓" : "⌛"}
+                                </div>
+                                <div className="space-y-0.5 text-left">
+                                    <p className="text-xs font-bold text-slate-800 font-sans">Operator Processing</p>
+                                    <p className="text-[10px] text-slate-400 font-medium font-sans">
+                                        {isFailed 
+                                            ? "Request rejected by operator" 
+                                            : (isSuccess ? "Request completed successfully" : "Awaiting operator confirmation (takes up to 2 min)")
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Step 3: Success or Refund */}
+                            <div className="relative">
+                                <div className={cn(
+                                    "absolute -left-6 top-0.5 w-[24px] h-[24px] rounded-full flex items-center justify-center border-2 text-[10px] font-black bg-white z-10",
+                                    isSuccess 
+                                        ? "border-emerald-500 text-emerald-500" 
+                                        : (isFailed ? "border-rose-500 bg-rose-500 text-white" : "border-slate-200 text-slate-300")
+                                )}>
+                                    {isSuccess || isFailed ? "✓" : "3"}
+                                </div>
+                                <div className="space-y-0.5 text-left">
+                                    <p className="text-xs font-bold text-slate-800 font-sans">
+                                        {isSuccess ? "Recharge Active" : (isFailed ? "Wallet Refund Credited" : "Final Status")}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 font-medium font-sans">
+                                        {isSuccess 
+                                            ? `Operator Ref ID: ${transaction.api_transaction_id || transaction.reference_id || 'N/A'}` 
+                                            : (isFailed 
+                                                ? `₹${Number(transaction.amount).toFixed(2)} refunded to PrePe Wallet` 
+                                                : "Final verification pending"
+                                              )
+                                        }
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
 

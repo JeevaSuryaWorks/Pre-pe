@@ -205,3 +205,27 @@ export async function processPostpaidBill(
     operator_id: billDetails.operator_id,
   });
 }
+
+/**
+ * Get the real-time status of a transaction
+ */
+export async function getTransactionStatus(
+  transactionId: string
+): Promise<Transaction | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(`${API_BASE_URL}/recharge/status/${transactionId}`, {
+      headers: {
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.error('Error fetching transaction status:', error);
+  }
+  return null;
+}
