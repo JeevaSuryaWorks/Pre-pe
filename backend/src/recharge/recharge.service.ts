@@ -136,7 +136,7 @@ export class RechargeService {
         });
 
         this.logger.log(`[RECHARGE:SUCCESS] Completed for ${mobileNumber}`);
-        this.sendStatusNotification(userId, isPending ? 'PENDING' : 'SUCCESS', amount, mobileNumber, referenceId);
+        this.sendStatusNotification(userId, isPending ? 'PENDING' : 'SUCCESS', amount, mobileNumber, referenceId, serviceType);
         
         return {
           success: true,
@@ -147,7 +147,7 @@ export class RechargeService {
       } else {
         // ✅ AUTO-REFUND ON FAILURE
         this.logger.warn(`[RECHARGE:API_FAILED] Refunding ${userId} due to: ${result.message}`);
-        this.sendStatusNotification(userId, 'FAILED', amount, mobileNumber, referenceId);
+        this.sendStatusNotification(userId, 'FAILED', amount, mobileNumber, referenceId, serviceType);
 
         await this.walletService.credit(
           userId,
@@ -253,7 +253,7 @@ export class RechargeService {
     };
   }
 
-  private async sendStatusNotification(userId: string, status: string, amount: number, mobileNumber: string, referenceId: string) {
+  private async sendStatusNotification(userId: string, status: string, amount: number, mobileNumber: string, referenceId: string, serviceType: string = 'MOBILE_PREPAID') {
     try {
       const results: any[] = await this.prisma.$queryRawUnsafe(
         `SELECT fcm_token FROM profiles WHERE user_id = $1::uuid LIMIT 1`,
@@ -265,15 +265,42 @@ export class RechargeService {
         let title = '';
         let body = '';
 
+        const isDth = serviceType === 'DTH';
+        const isPostpaid = serviceType === 'MOBILE_POSTPAID';
+
         if (status === 'SUCCESS') {
-          title = 'Bill Paid Successfully! 🎉';
-          body = `Your postpaid mobile payment of ₹${amount} for ${mobileNumber} is successful. Ref: ${referenceId}`;
+          if (isDth) {
+            title = 'DTH Recharge Successful! 🎉';
+            body = `Your DTH recharge of ₹${amount} for subscriber ID ${mobileNumber} is successful. Ref: ${referenceId}`;
+          } else if (isPostpaid) {
+            title = 'Bill Paid Successfully! 🎉';
+            body = `Your postpaid bill payment of ₹${amount} for mobile number ${mobileNumber} is successful. Ref: ${referenceId}`;
+          } else {
+            title = 'Recharge Successful! 🎉';
+            body = `Your mobile recharge of ₹${amount} for ${mobileNumber} is successful. Ref: ${referenceId}`;
+          }
         } else if (status === 'PENDING') {
-          title = 'Payment Pending ⏳';
-          body = `Your postpaid mobile payment of ₹${amount} for ${mobileNumber} is pending. We'll update you soon.`;
+          if (isDth) {
+            title = 'DTH Recharge Pending ⏳';
+            body = `Your DTH recharge of ₹${amount} for subscriber ID ${mobileNumber} is pending. We'll update you soon.`;
+          } else if (isPostpaid) {
+            title = 'Payment Pending ⏳';
+            body = `Your postpaid bill payment of ₹${amount} for mobile number ${mobileNumber} is pending. We'll update you soon.`;
+          } else {
+            title = 'Recharge Pending ⏳';
+            body = `Your mobile recharge of ₹${amount} for ${mobileNumber} is pending. We'll update you soon.`;
+          }
         } else if (status === 'FAILED') {
-          title = 'Payment Failed ❌';
-          body = `Postpaid mobile payment of ₹${amount} failed. Refund initiated to your wallet.`;
+          if (isDth) {
+            title = 'DTH Recharge Failed ❌';
+            body = `DTH recharge of ₹${amount} failed. Refund initiated to your wallet.`;
+          } else if (isPostpaid) {
+            title = 'Payment Failed ❌';
+            body = `Postpaid bill payment of ₹${amount} failed. Refund initiated to your wallet.`;
+          } else {
+            title = 'Recharge Failed ❌';
+            body = `Mobile recharge of ₹${amount} failed. Refund initiated to your wallet.`;
+          }
         }
 
         await this.notificationService.sendPushNotification(profile.fcm_token, title, body);
@@ -404,7 +431,7 @@ export class RechargeService {
         }
       });
 
-      this.sendStatusNotification(txn.user_id, 'SUCCESS', Number(txn.amount), txn.mobile_number || txn.dth_id || '', txn.reference_id);
+      this.sendStatusNotification(txn.user_id, 'SUCCESS', Number(txn.amount), txn.mobile_number || txn.dth_id || '', txn.reference_id, txn.service_type);
       return updated;
     }
 
@@ -458,7 +485,7 @@ export class RechargeService {
           }
         });
 
-        this.sendStatusNotification(txn.user_id, 'FAILED', Number(txn.amount), txn.mobile_number || txn.dth_id || '', txn.reference_id);
+        this.sendStatusNotification(txn.user_id, 'FAILED', Number(txn.amount), txn.mobile_number || txn.dth_id || '', txn.reference_id, txn.service_type);
         return updated;
       });
     }
