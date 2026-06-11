@@ -15,7 +15,17 @@ export class NotificationService implements OnModuleInit {
       try {
         const cert = JSON.parse(serviceAccount);
         if (cert && cert.private_key) {
-          cert.private_key = cert.private_key.replace(/\\n/g, '\n');
+          // Robustly clean private key from double-escaped newlines, spaces, and carriage returns
+          let cleanKey = cert.private_key;
+          cleanKey = cleanKey.replace(/\\n/g, '\n');
+          cleanKey = cleanKey.replace(/\\\\n/g, '\n');
+          
+          // Split by newline, trim whitespace/carriage returns, and join back
+          cert.private_key = cleanKey
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join('\n');
         }
         admin.initializeApp({
           credential: admin.credential.cert(cert),
