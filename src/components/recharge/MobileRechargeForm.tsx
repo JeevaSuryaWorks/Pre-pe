@@ -1138,7 +1138,7 @@ export function MobileRechargeForm({
             amount,
             operator: operatorObj?.name || selectedOperator,
             number: rawNumber,
-            refId: (result as any).referenceId || 'N/A',
+            refId: result.transaction_id || 'N/A',
             type: 'Mobile Recharge'
           }
         });

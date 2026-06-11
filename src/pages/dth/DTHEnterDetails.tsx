@@ -198,7 +198,7 @@ export const DTHEnterDetails = () => {
                     amount, 
                     operator: operator.name, 
                     number: dthId, 
-                    refId: (result as any).referenceId || 'N/A',
+                    refId: result.transaction_id || 'N/A',
                     type: 'DTH Recharge'
                 } 
             });
@@ -286,7 +286,7 @@ export const DTHEnterDetails = () => {
                         amount, 
                         operator: operator!.name, 
                         number: dthId, 
-                        refId: (result as any).referenceId || 'N/A',
+                        refId: result.transaction_id || 'N/A',
                         type: 'DTH Recharge'
                     } 
                 });
