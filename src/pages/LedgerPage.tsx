@@ -41,6 +41,30 @@ interface LedgerEntry {
     status?: string;
 }
 
+const formatDescription = (desc: string) => {
+    if (!desc) return 'Wallet Transaction';
+    const lower = desc.toLowerCase();
+    
+    if (lower.includes('refund') || lower.includes('reversal')) {
+      if (lower.includes('prepaid')) return 'Refund: Prepaid Recharge';
+      if (lower.includes('postpaid')) return 'Refund: Postpaid Bill';
+      if (lower.includes('dth')) return 'Refund: DTH Recharge';
+      return 'Wallet Refund / Reversal';
+    }
+    
+    if (lower.includes('prepaid') && lower.includes('recharge')) {
+      return 'Prepaid Recharge';
+    }
+    if (lower.includes('postpaid') && (lower.includes('bill') || lower.includes('recharge'))) {
+      return 'Postpaid Bill Payment';
+    }
+    if (lower.includes('dth') && (lower.includes('recharge') || lower.includes('payment'))) {
+      return 'DTH Recharge';
+    }
+    
+    return desc.replace(/\s*[\(\[].*?[\)\]]/g, '').replace(/:\s*\d+.*/g, '').trim();
+};
+
 const LedgerPage = () => {
     const navigate = useNavigate();
     const { user, loading } = useAuth();
@@ -452,8 +476,8 @@ const LedgerPage = () => {
                                                         {getTypeIcon(entry.type)}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <h4 className="font-black text-slate-900 tracking-tight leading-tight group-hover:text-indigo-600 transition-colors">
-                                                            {entry.description || 'Wallet Transaction'}
+                                                        <h4 className="font-black text-slate-900 tracking-tight leading-tight group-hover:text-indigo-600 transition-colors break-words line-clamp-2 text-sm sm:text-base">
+                                                            {formatDescription(entry.description)}
                                                         </h4>
                                                         <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                                             <Badge className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border-none scale-90 origin-left", badgeClass)}>
@@ -499,13 +523,6 @@ const LedgerPage = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Sub-strip detailing references */}
-                                            <div className="px-5 py-2.5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-[9px] font-bold text-slate-400 font-mono">
-                                                <span>REF ID: #{entry.id}</span>
-                                                {entry.transaction_id && (
-                                                    <span className="opacity-75">TXN: {entry.transaction_id.substring(0, 15)}...</span>
-                                                )}
-                                            </div>
                                         </motion.div>
                                     );
                                 })}

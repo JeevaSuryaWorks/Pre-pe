@@ -17,6 +17,30 @@ interface UserInfo {
     phone?: string;
 }
 
+const formatDescription = (desc: string) => {
+    if (!desc) return 'Wallet Transaction';
+    const lower = desc.toLowerCase();
+    
+    if (lower.includes('refund') || lower.includes('reversal')) {
+      if (lower.includes('prepaid')) return 'Refund: Prepaid Recharge';
+      if (lower.includes('postpaid')) return 'Refund: Postpaid Bill';
+      if (lower.includes('dth')) return 'Refund: DTH Recharge';
+      return 'Wallet Refund / Reversal';
+    }
+    
+    if (lower.includes('prepaid') && lower.includes('recharge')) {
+      return 'Prepaid Recharge';
+    }
+    if (lower.includes('postpaid') && (lower.includes('bill') || lower.includes('recharge'))) {
+      return 'Postpaid Bill Payment';
+    }
+    if (lower.includes('dth') && (lower.includes('recharge') || lower.includes('payment'))) {
+      return 'DTH Recharge';
+    }
+    
+    return desc.replace(/\s*[\(\[].*?[\)\]]/g, '').replace(/:\s*\d+.*/g, '').trim();
+};
+
 export const generateTransactionPDF = async (
     data: LedgerEntry[], 
     user: UserInfo, 
@@ -57,7 +81,7 @@ export const generateTransactionPDF = async (
     // Table
     const tableData = data.map(entry => [
         format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm'),
-        entry.description,
+        formatDescription(entry.description),
         entry.type,
         `INR ${entry.amount.toFixed(2)}`,
         `INR ${entry.balance_after.toFixed(2)}`
