@@ -22,11 +22,11 @@ const ConfettiEffect = () => {
         const rotate = Math.random() * 360;
         const color = [
           "#10B981", // Emerald Green
-          "#06B6D4", // Cyan
+          "#059669", // Medium Emerald
           "#F59E0B", // Amber/Gold
-          "#EC4899", // Pink
-          "#6366F1", // Indigo
-          "#34D399"  // Mint
+          "#34D399", // Mint Green
+          "#0D9488", // Teal
+          "#6EE7B7"  // Light Mint
         ][i % 6];
         
         const isCircle = i % 3 === 0;
@@ -88,7 +88,7 @@ const FloatingBackgroundSparkles = () => {
               ease: "easeInOut",
               delay: Math.random() * 2
             }}
-            className="absolute text-teal-300/20"
+            className="absolute text-emerald-300/20"
             style={{
               top: `${top}%`,
               left: `${left}%`,
@@ -132,7 +132,7 @@ const BackgroundBlobs = () => {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-400/25 blur-[90px]"
+        className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-teal-400/20 blur-[90px]"
       />
       <motion.div
         animate={{
@@ -144,7 +144,7 @@ const BackgroundBlobs = () => {
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="absolute top-1/4 left-1/3 w-80 h-80 rounded-full bg-purple-300/20 blur-[80px]"
+        className="absolute top-1/4 left-1/3 w-80 h-80 rounded-full bg-green-300/15 blur-[80px]"
       />
     </div>
   );
@@ -226,11 +226,11 @@ _Thank you for using Prepe!_`;
       });
 
       // Background color
-      doc.setFillColor(248, 251, 254);
+      doc.setFillColor(248, 252, 250);
       doc.rect(0, 0, 105, 148, 'F');
 
-      // Top Navy Header Banner
-      doc.setFillColor(0, 0, 128); // #000080 Navy Blue
+      // Top Green Header Banner (Professional Green Theme)
+      doc.setFillColor(15, 118, 110); // #0F766E Deep Teal/Green
       doc.rect(0, 0, 105, 22, 'F');
       
       // Header Text
@@ -243,14 +243,14 @@ _Thank you for using Prepe!_`;
       doc.setFontSize(7);
       doc.text('SECURE TRANSACTION', 68, 14);
 
-      // Total Paid Amount Hero
-      doc.setTextColor(0, 0, 128);
+      // Total Paid Amount Hero (Helvetica fallback: 'Rs.' to prevent Unicode encoding error '¹')
+      doc.setTextColor(15, 118, 110); // Match deep green theme
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(22);
-      doc.text(`₹${Number(amount).toFixed(2)}`, 52.5, 42, { align: 'center' });
+      doc.text(`Rs. ${Number(amount).toFixed(2)}`, 52.5, 42, { align: 'center' });
       
       doc.setFontSize(10);
-      doc.setTextColor(16, 185, 129); // Success Green
+      doc.setTextColor(16, 185, 129); // Success Emerald Green
       doc.text(`${typeLabel} Successful`, 52.5, 50, { align: 'center' });
 
       // Dashed Separator line
@@ -295,10 +295,10 @@ _Thank you for using Prepe!_`;
       doc.text('This receipt is computer-generated and verified by BBPS.', 52.5, 117, { align: 'center' });
 
       // Footer Banner
-      doc.setFillColor(241, 245, 249);
+      doc.setFillColor(240, 249, 245); // Soft green footer tint
       doc.rect(0, 126, 105, 22, 'F');
       
-      doc.setTextColor(71, 85, 105);
+      doc.setTextColor(15, 118, 110);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.text('Thank you for using PrePe!', 52.5, 134, { align: 'center' });
@@ -353,9 +353,9 @@ _Thank you for using Prepe!_`;
           <motion.div 
             animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -inset-4 bg-emerald-450/20 rounded-full blur-xl"
+            className="absolute -inset-4 bg-emerald-500/20 rounded-full blur-xl"
           />
-          <div className="w-24 h-24 bg-gradient-to-tr from-emerald-500 via-emerald-400 to-teal-350 rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/20 border-4 border-white z-10 relative">
+          <div className="w-24 h-24 bg-gradient-to-tr from-emerald-500 via-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/20 border-4 border-white z-10 relative">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -392,7 +392,7 @@ _Thank you for using Prepe!_`;
             {/* Amount Section */}
             <div className="text-center pb-6 border-b border-dashed border-slate-200/80">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">TOTAL AMOUNT PAID</span>
-              <span className="text-5xl font-black text-[#000080] tracking-tighter">₹{amount}</span>
+              <span className="text-5xl font-black text-[#0f766e] tracking-tighter">₹{amount}</span>
             </div>
 
             {/* Details Section */}
@@ -421,7 +421,7 @@ _Thank you for using Prepe!_`;
 
               <div className="flex justify-between items-center">
                 <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Payment Mode</span>
-                <span className="font-bold text-blue-600 text-sm">Wallet</span>
+                <span className="font-bold text-emerald-600 text-sm">Wallet</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Status</span>
@@ -473,7 +473,7 @@ _Thank you for using Prepe!_`;
               PRINT RECEIPT
             </Button>
             <Button 
-              className="h-14 rounded-2xl bg-[#000080] hover:bg-[#000080]/90 text-white font-black gap-2 shadow-md hover:shadow-lg active:scale-98 transition-all text-sm"
+              className="h-14 rounded-2xl bg-[#0f766e] hover:bg-[#0f766e]/90 text-white font-black gap-2 shadow-md hover:shadow-lg active:scale-98 transition-all text-sm"
               onClick={() => navigate('/home')}
             >
               <Home className="w-4.5 h-4.5" />
@@ -489,8 +489,8 @@ _Thank you for using Prepe!_`;
           transition={{ delay: 0.55 }}
           className="mt-auto pt-8 flex items-center gap-2 select-none z-10"
         >
-          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" strokeWidth={3} />
+          <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" strokeWidth={3} />
           </div>
           <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase leading-none">100% SECURE TRANSACTION</span>
         </motion.div>
