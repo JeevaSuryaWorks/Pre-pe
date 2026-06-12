@@ -1961,9 +1961,9 @@ export function MobileRechargeForm({
         <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar pb-6 w-full">
           {(() => {
             const displayRecentTxns = recentTransactions.length > 0 ? recentTransactions : [
-              { id: 'm1', mobile_number: '8668075429', amount: 239, operator_id: '1', status: 'SUCCESS' },
-              { id: 'm2', mobile_number: '9876543210', amount: 299, operator_id: '3', status: 'FAILED' },
-              { id: 'm3', mobile_number: '9123456789', amount: 749, operator_id: '4', status: 'PENDING' }
+              { id: 'm1', mobile_number: '8668075429', amount: 239, operator_id: '1', status: 'SUCCESS', created_at: new Date().toISOString(), service_type: 'MOBILE_PREPAID' },
+              { id: 'm2', mobile_number: '9876543210', amount: 299, operator_id: '3', status: 'FAILED', created_at: new Date().toISOString(), service_type: 'MOBILE_PREPAID' },
+              { id: 'm3', mobile_number: '9123456789', amount: 749, operator_id: '4', status: 'PENDING', created_at: new Date().toISOString(), service_type: 'MOBILE_PREPAID' }
             ];
 
             if (displayRecentTxns.length === 0) {
@@ -1997,7 +1997,7 @@ export function MobileRechargeForm({
               return (
                 <div
                   key={txn.id}
-                  onClick={() => handleMobileChange(txn.mobile_number)}
+                  onClick={() => navigate(`/transaction/${txn.id}`, { state: { transaction: txn } })}
                   className="group flex items-center gap-5 p-5 bg-white border border-slate-100 rounded-[28px] hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer w-full active:scale-[0.99]"
                 >
                   <div className="w-12 h-12 bg-slate-50 rounded-[18px] p-2 flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
