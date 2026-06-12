@@ -1377,12 +1377,12 @@ export function MobileRechargeForm({
               <span className="text-2xl font-black text-slate-900 tracking-tighter">₹{payableAmount.toFixed(2)}</span>
             </div>
 
-            {/* Premium Cashback Indicator */}
+            {/* Premium Rewards Indicator */}
             {estimatedCashback > 0 && (
               <div className="flex items-center gap-2 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-emerald-700 mt-2 shrink-0">
                 <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
                 <span className="text-[9.5px] font-black uppercase tracking-wider">
-                  You will earn +₹{estimatedCashback}.00 cashback on this recharge!
+                  You will earn +{estimatedCashback} reward points on this recharge!
                 </span>
               </div>
             )}
