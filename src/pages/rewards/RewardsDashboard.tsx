@@ -17,7 +17,8 @@ import {
     addRewardPoints,
     checkAndRecordDailyStreak,
     hasUserCheckedInToday,
-    claimDailyStreakCheckIn
+    claimDailyStreakCheckIn,
+    getUserCheckInDates
 } from '@/services/rewards.service';
 import { 
     Sparkles, 
@@ -52,7 +53,9 @@ import {
     Image,
     Lock,
     ShieldCheck,
-    Home
+    Home,
+    Check,
+    X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';

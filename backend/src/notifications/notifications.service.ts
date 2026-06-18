@@ -15,17 +15,34 @@ export class NotificationService implements OnModuleInit {
       try {
         const cert = JSON.parse(serviceAccount);
         if (cert && cert.private_key) {
-          // Robustly clean private key from double-escaped newlines, spaces, and carriage returns
           let cleanKey = cert.private_key;
+          // Convert any escaped newlines to actual newlines
           cleanKey = cleanKey.replace(/\\n/g, '\n');
           cleanKey = cleanKey.replace(/\\\\n/g, '\n');
-          
-          // Split by newline, trim whitespace/carriage returns, and join back
-          cert.private_key = cleanKey
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .join('\n');
+
+          let beginHeader = "-----BEGIN PRIVATE KEY-----";
+          let endHeader = "-----END PRIVATE KEY-----";
+          if (cleanKey.includes("-----BEGIN RSA PRIVATE KEY-----")) {
+            beginHeader = "-----BEGIN RSA PRIVATE KEY-----";
+            endHeader = "-----END RSA PRIVATE KEY-----";
+          }
+
+          if (cleanKey.includes(beginHeader) && cleanKey.includes(endHeader)) {
+            const startIdx = cleanKey.indexOf(beginHeader) + beginHeader.length;
+            const endIdx = cleanKey.indexOf(endHeader);
+            const body = cleanKey.substring(startIdx, endIdx);
+
+            // Strip any character that is not a valid base64 character (including backslashes, spaces, etc.)
+            const cleanedBody = body.replace(/[^A-Za-z0-9+/=]/g, '');
+
+            // Chunk body into standard 64-character lines
+            const lines = [];
+            for (let i = 0; i < cleanedBody.length; i += 64) {
+              lines.push(cleanedBody.substring(i, i + 64));
+            }
+
+            cert.private_key = `${beginHeader}\n${lines.join('\n')}\n${endHeader}\n`;
+          }
         }
         admin.initializeApp({
           credential: admin.credential.cert(cert),
