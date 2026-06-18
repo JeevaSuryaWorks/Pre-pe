@@ -107,6 +107,7 @@ export default function RewardsDashboard() {
   const [taskLoading, setTaskLoading] = useState(false);
   const [planType, setPlanType] = useState<string>('BASIC');
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+  const [checkedInDates, setCheckedInDates] = useState<Set<string>>(new Set());
   const [checkInLoading, setCheckInLoading] = useState(false);
 
   const loadData = async (silent = false) => {
@@ -114,7 +115,7 @@ export default function RewardsDashboard() {
     if (!silent) setLoading(true);
     
     try {
-      const [points, cb, strk, spinStatus, cards, availableTasks, completedIds, checkedIn] = await Promise.all([
+      const [points, cb, strk, spinStatus, cards, availableTasks, completedIds, checkedIn, checkInHistory] = await Promise.all([
         getUserTotalPoints(user.id),
         getUserTotalCashback(user.id),
         getUserStreak(user.id),
@@ -122,7 +123,8 @@ export default function RewardsDashboard() {
         getUserScratchCards(user.id),
         getAvailableTasks(),
         getUserCompletedTasks(user.id),
-        hasUserCheckedInToday(user.id)
+        hasUserCheckedInToday(user.id),
+        getUserCheckInDates(user.id)
       ]);
 
       setTotalPoints(points);
@@ -135,6 +137,7 @@ export default function RewardsDashboard() {
       setTasks(availableTasks);
       setCompletedTaskIds(completedIds);
       setHasCheckedInToday(checkedIn);
+      setCheckedInDates(new Set(checkInHistory));
 
       // Check KYC status from kyc_verifications table
       const { data: kycData } = await (supabase as any)
@@ -604,49 +607,84 @@ export default function RewardsDashboard() {
                          </div>
                        </div>
 
-                       {/* 7-Day Grid Calendar Nodes */}
-                       <div className="grid grid-cols-7 gap-2">
-                         {Array.from({ length: 7 }).map((_, i) => {
-                           const dayNum = i + 1;
-                           const currentCycleDay = hasCheckedInToday 
-                             ? (streak % 7 === 0 ? 7 : streak % 7) 
-                             : (streak % 7);
-                           const isCompleted = dayNum <= currentCycleDay;
-                           const isToday = dayNum === currentCycleDay + 1;
+                        {/* Weekly Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-2">
+                          {(() => {
+                            const today = new Date();
+                            const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
+                            const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                            const monday = new Date(today);
+                            monday.setDate(today.getDate() - distanceToMonday);
+                            monday.setHours(0, 0, 0, 0);
 
-                           return (
-                             <motion.button
-                               key={i}
-                               whileHover={!isCompleted && !hasCheckedInToday && isToday ? { scale: 1.05 } : {}}
-                               whileTap={!isCompleted && !hasCheckedInToday && isToday ? { scale: 0.95 } : {}}
-                               disabled={isCompleted || hasCheckedInToday || !isToday}
-                               onClick={handleDailyCheckIn}
-                               className={cn(
-                                 "aspect-square rounded-2xl flex flex-col items-center justify-center border transition-all p-1.5 relative overflow-hidden",
-                                 isCompleted 
-                                   ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
-                                   : isToday && !hasCheckedInToday
-                                     ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-md shadow-indigo-100 ring-2 ring-indigo-500/20"
-                                     : "bg-slate-50/50 border-slate-100/60 text-slate-400"
-                                )}
-                             >
-                               {isCompleted ? (
-                                 <CheckCircle2 className="w-5 h-5 fill-emerald-50 text-emerald-600" />
-                               ) : isToday && !hasCheckedInToday ? (
-                                 <Zap className="w-5 h-5 text-indigo-600 fill-indigo-600/20 animate-bounce" />
-                               ) : (
-                                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">D{dayNum}</span>
-                                )}
-                               <span className={cn(
-                                 "text-[8px] font-black mt-1 uppercase",
-                                 isCompleted ? "text-emerald-600" : isToday && !hasCheckedInToday ? "text-indigo-600" : "text-slate-400"
-                                )}>
-                                 +10
-                               </span>
-                             </motion.button>
-                           );
-                         })}
-                       </div>
+                            const WEEKDAYS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
+
+                            return Array.from({ length: 7 }).map((_, i) => {
+                              const day = new Date(monday);
+                              day.setDate(monday.getDate() + i);
+                              
+                              // Local date string YYYY-MM-DD
+                              const year = day.getFullYear();
+                              const month = String(day.getMonth() + 1).padStart(2, '0');
+                              const dateNum = String(day.getDate()).padStart(2, '0');
+                              const dateStr = `${year}-${month}-${dateNum}`;
+
+                              const hasCheckedIn = checkedInDates.has(dateStr);
+                              const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                              
+                              const isToday = dateStr === todayStr;
+                              const isFuture = day.getTime() > new Date().setHours(23, 59, 59, 999);
+                              const isPast = day.getTime() < new Date().setHours(0, 0, 0, 0);
+
+                              let status: 'CLAIMED' | 'MISSED' | 'PENDING' | 'LOCKED' = 'LOCKED';
+                              if (hasCheckedIn) {
+                                status = 'CLAIMED';
+                              } else if (isFuture) {
+                                status = 'LOCKED';
+                              } else if (isToday) {
+                                status = 'PENDING';
+                              } else if (isPast) {
+                                status = 'MISSED';
+                              }
+
+                              return (
+                                <motion.button
+                                  key={i}
+                                  whileHover={status === 'PENDING' ? { scale: 1.05 } : {}}
+                                  whileTap={status === 'PENDING' ? { scale: 0.95 } : {}}
+                                  disabled={status !== 'PENDING' || checkInLoading}
+                                  onClick={handleDailyCheckIn}
+                                  className={cn(
+                                    "rounded-2xl flex flex-col items-center justify-between border transition-all p-1.5 relative overflow-hidden h-[4.5rem] w-full select-none",
+                                    status === 'CLAIMED'
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
+                                      : status === 'MISSED'
+                                        ? "bg-rose-50 border-rose-200 text-rose-600 shadow-sm"
+                                        : status === 'PENDING'
+                                          ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-md shadow-indigo-100 ring-2 ring-indigo-500/20"
+                                          : "bg-slate-50/50 border-slate-100/60 text-slate-400"
+                                  )}
+                                >
+                                  <span className="text-[8px] font-black uppercase text-slate-400">
+                                    {WEEKDAYS_SHORT[i]}
+                                  </span>
+                                  <span className="text-xs font-black text-slate-800">
+                                    {day.getDate()}
+                                  </span>
+                                  {status === 'CLAIMED' ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3.5]" />
+                                  ) : status === 'MISSED' ? (
+                                    <X className="w-3.5 h-3.5 text-rose-600 stroke-[3.5]" />
+                                  ) : status === 'PENDING' ? (
+                                    <Zap className="w-3.5 h-3.5 text-indigo-600 fill-indigo-600/20 animate-pulse" />
+                                  ) : (
+                                    <span className="text-[7.5px] font-bold text-slate-400">+10</span>
+                                  )}
+                                </motion.button>
+                              );
+                            });
+                          })()}
+                        </div>
 
                        {/* Easy Click Action Check-in Button */}
                        <Button

@@ -882,3 +882,32 @@ export async function claimDailyStreakCheckIn(userId: string): Promise<boolean> 
     return false;
   }
 }
+
+/**
+ * Get all dates on which user checked in
+ */
+export async function getUserCheckInDates(userId: string): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('reward_points_ledger' as never)
+      .select('created_at')
+      .eq('user_id', userId)
+      .eq('description', 'Daily Streak Check-in')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+    
+    // Helper to format Date to YYYY-MM-DD in local time
+    const getLocalDateString = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return data.map((row: any) => getLocalDateString(new Date(row.created_at)));
+  } catch (err) {
+    console.error("Error getting user check in dates:", err);
+    return [];
+  }
+}

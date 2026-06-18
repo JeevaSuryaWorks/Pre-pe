@@ -667,18 +667,7 @@ export default function ShopListingPage() {
           )}
         </main>
 
-        {/* Quality Assured Seal */}
-        <div className="px-5 mt-10">
-          <div className="bg-[#000080]/5 rounded-[2rem] border border-[#000080]/10 p-5 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-2xl bg-white flex items-center justify-center text-[#000080] shadow-sm shrink-0">
-              <Award className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-[#000080] uppercase tracking-wider">Pre-pe Assured</h4>
-              <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">100% Genuine Accessories. Quality checked, secure payments, and fast delivery.</p>
-            </div>
-          </div>
-        </div>
+
 
         {/* Business Upgrade Promotion Modal */}
         <AnimatePresence>
