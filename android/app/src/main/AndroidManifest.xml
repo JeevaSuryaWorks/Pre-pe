@@ -29,8 +29,6 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
-
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
