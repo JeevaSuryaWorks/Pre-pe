@@ -35,7 +35,6 @@ export const ApiPanel = () => {
                         name="KwikAPI"
                         scrolling="yes"
                         allowFullScreen
-                        sandbox="allow-scripts allow-same-origin allow-forms"
                         loading="lazy"
                         style={{
                             border: "none",
