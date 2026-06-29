@@ -47,6 +47,7 @@ import NetworkDiagnostics from "./pages/admin/NetworkDiagnostics";
 import GiftVoucherManager from "./pages/admin/GiftVoucherManager";
 import GiftCardsPage from "./pages/GiftCardsPage";
 import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
+import { ApiPanel } from "./pages/admin/ApiPanel";
 
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
@@ -242,6 +243,7 @@ const App = () => (
                 <Route path="gift-vouchers" element={<GiftVoucherManager />} />
                 <Route path="network" element={<NetworkDiagnostics />} />
                 <Route path="feedbacks" element={<AdminFeedbacks />} />
+                <Route path="api-panel" element={<ApiPanel />} />
               </Route>
             </Route>
 

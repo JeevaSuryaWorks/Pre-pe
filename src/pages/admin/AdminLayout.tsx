@@ -110,6 +110,7 @@ const AdminLayout = () => {
         { icon: Gift, label: "Rewards Manager", path: "/admin/rewards" },
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
+        { icon: Terminal, label: "API Panel", path: "/admin/api-panel" },
     ];
 
     // E-Commerce sub-section

@@ -90,21 +90,19 @@ export const DTHEnterDetails = () => {
                 }
             } else {
                 setCustomerInfo(null);
-                setAmount("");
                 toast({
-                    title: "Verification Failed",
-                    description: result.message || "Failed to fetch customer details. Please verify your DTH ID.",
-                    variant: "destructive"
+                    title: "Verification Unavailable",
+                    description: "We couldn't verify DTH account info, but you can still enter your plan amount manually to recharge.",
+                    variant: "default"
                 });
             }
         } catch (error) {
             console.error("Error fetching DTH customer details:", error);
             setCustomerInfo(null);
-            setAmount("");
             toast({
-                title: "Error",
-                description: "Failed to connect to verification gateway.",
-                variant: "destructive"
+                title: "Verification Offline",
+                description: "Account verification is offline. Please enter your recharge amount manually to proceed.",
+                variant: "default"
             });
         }
         setFetchingInfo(false);
