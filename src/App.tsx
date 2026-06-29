@@ -48,6 +48,7 @@ import GiftVoucherManager from "./pages/admin/GiftVoucherManager";
 import GiftCardsPage from "./pages/GiftCardsPage";
 import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
 import { ApiPanel } from "./pages/admin/ApiPanel";
+import { Automation } from "./pages/admin/Automation";
 
 
 import TransactionDetailsPage from "./pages/TransactionDetailsPage";
@@ -244,6 +245,7 @@ const App = () => (
                 <Route path="network" element={<NetworkDiagnostics />} />
                 <Route path="feedbacks" element={<AdminFeedbacks />} />
                 <Route path="api-panel" element={<ApiPanel />} />
+                <Route path="automation" element={<Automation />} />
               </Route>
             </Route>
 

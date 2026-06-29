@@ -11,6 +11,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import * as https from 'https';
 
 import { NotificationService } from '../notifications/notifications.service';
+import { WhatsappService } from '../automation/whatsapp.service';
 
 @Injectable()
 export class RechargeService {
@@ -21,6 +22,7 @@ export class RechargeService {
     private walletService: WalletService,
     private configService: ConfigService,
     private notificationService: NotificationService,
+    private whatsappService: WhatsappService,
   ) { }
 
   async initiateRecharge(
@@ -256,53 +258,62 @@ export class RechargeService {
   private async sendStatusNotification(userId: string, status: string, amount: number, mobileNumber: string, referenceId: string, serviceType: string = 'MOBILE_PREPAID') {
     try {
       const results: any[] = await this.prisma.$queryRawUnsafe(
-        `SELECT fcm_token FROM profiles WHERE user_id = $1::uuid LIMIT 1`,
+        `SELECT fcm_token, phone FROM profiles WHERE user_id = $1::uuid LIMIT 1`,
         userId
       );
       const profile = results?.[0];
 
-      if (profile && profile.fcm_token) {
-        let title = '';
-        let body = '';
+      let title = '';
+      let body = '';
 
-        const isDth = serviceType === 'DTH';
-        const isPostpaid = serviceType === 'MOBILE_POSTPAID';
+      const isDth = serviceType === 'DTH';
+      const isPostpaid = serviceType === 'MOBILE_POSTPAID';
 
-        if (status === 'SUCCESS') {
-          if (isDth) {
-            title = 'DTH Recharge Successful! 🎉';
-            body = `Your DTH recharge of ₹${amount} for subscriber ID ${mobileNumber} is successful. Ref: ${referenceId}`;
-          } else if (isPostpaid) {
-            title = 'Bill Paid Successfully! 🎉';
-            body = `Your postpaid bill payment of ₹${amount} for mobile number ${mobileNumber} is successful. Ref: ${referenceId}`;
-          } else {
-            title = 'Recharge Successful! 🎉';
-            body = `Your mobile recharge of ₹${amount} for ${mobileNumber} is successful. Ref: ${referenceId}`;
-          }
-        } else if (status === 'PENDING') {
-          if (isDth) {
-            title = 'DTH Recharge Pending ⏳';
-            body = `Your DTH recharge of ₹${amount} for subscriber ID ${mobileNumber} is pending. We'll update you soon.`;
-          } else if (isPostpaid) {
-            title = 'Payment Pending ⏳';
-            body = `Your postpaid bill payment of ₹${amount} for mobile number ${mobileNumber} is pending. We'll update you soon.`;
-          } else {
-            title = 'Recharge Pending ⏳';
-            body = `Your mobile recharge of ₹${amount} for ${mobileNumber} is pending. We'll update you soon.`;
-          }
-        } else if (status === 'FAILED') {
-          if (isDth) {
-            title = 'DTH Recharge Failed ❌';
-            body = `DTH recharge of ₹${amount} failed. Refund initiated to your wallet.`;
-          } else if (isPostpaid) {
-            title = 'Payment Failed ❌';
-            body = `Postpaid bill payment of ₹${amount} failed. Refund initiated to your wallet.`;
-          } else {
-            title = 'Recharge Failed ❌';
-            body = `Mobile recharge of ₹${amount} failed. Refund initiated to your wallet.`;
-          }
+      if (status === 'SUCCESS') {
+        if (isDth) {
+          title = 'DTH Recharge Successful! 🎉';
+          body = `Your DTH recharge of ₹${amount} for subscriber ID ${mobileNumber} is successful. Ref: ${referenceId}`;
+        } else if (isPostpaid) {
+          title = 'Bill Paid Successfully! 🎉';
+          body = `Your postpaid bill payment of ₹${amount} for mobile number ${mobileNumber} is successful. Ref: ${referenceId}`;
+        } else {
+          title = 'Recharge Successful! 🎉';
+          body = `Your mobile recharge of ₹${amount} for ${mobileNumber} is successful. Ref: ${referenceId}`;
         }
 
+        // WhatsApp Automated Success Alert
+        const targetPhone = profile?.phone || (mobileNumber.length === 10 ? mobileNumber : null);
+        if (targetPhone) {
+          this.logger.log(`Triggering WhatsApp recharge alert to phone: ${targetPhone}`);
+          this.whatsappService.sendWhatsAppMessage(targetPhone, body, referenceId).catch(err => {
+            this.logger.error(`Error sending automated WhatsApp notification: ${err.message}`);
+          });
+        }
+      } else if (status === 'PENDING') {
+        if (isDth) {
+          title = 'DTH Recharge Pending ⏳';
+          body = `Your DTH recharge of ₹${amount} for subscriber ID ${mobileNumber} is pending. We'll update you soon.`;
+        } else if (isPostpaid) {
+          title = 'Payment Pending ⏳';
+          body = `Your postpaid bill payment of ₹${amount} for mobile number ${mobileNumber} is pending. We'll update you soon.`;
+        } else {
+          title = 'Recharge Pending ⏳';
+          body = `Your mobile recharge of ₹${amount} for ${mobileNumber} is pending. We'll update you soon.`;
+        }
+      } else if (status === 'FAILED') {
+        if (isDth) {
+          title = 'DTH Recharge Failed ❌';
+          body = `DTH recharge of ₹${amount} failed. Refund initiated to your wallet.`;
+        } else if (isPostpaid) {
+          title = 'Payment Failed ❌';
+          body = `Postpaid bill payment of ₹${amount} failed. Refund initiated to your wallet.`;
+        } else {
+          title = 'Recharge Failed ❌';
+          body = `Mobile recharge of ₹${amount} failed. Refund initiated to your wallet.`;
+        }
+      }
+
+      if (profile && profile.fcm_token && title && body) {
         await this.notificationService.sendPushNotification(profile.fcm_token, title, body);
       }
     } catch (e) {

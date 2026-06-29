@@ -11,6 +11,7 @@ import { AiModule } from './ai/ai.module';
 import { SupportModule } from './support/support.module';
 import { PayuModule } from './payu/payu.module';
 import { EcommerceModule } from './ecommerce/ecommerce.module';
+import { AutomationModule } from './automation/automation.module';
 import * as path from 'path';
 
 @Module({
@@ -33,7 +34,8 @@ import * as path from 'path';
         AiModule,
         SupportModule,
         PayuModule,
-        EcommerceModule
+        EcommerceModule,
+        AutomationModule
     ],
     controllers: [],
     providers: [],

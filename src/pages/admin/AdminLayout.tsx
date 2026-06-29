@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, ChevronDown, Menu, X, ShoppingBag, Package, ShoppingCart, Store, ExternalLink } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, Receipt, Wallet, Settings, LogOut, Shield, Banknote, CreditCard, Gift, HelpCircle, Bell, UserCheck, ChevronRight, ChevronDown, Menu, X, ShoppingBag, Package, ShoppingCart, Store, ExternalLink, MessageSquare } from "lucide-react";
 import { BrandLoader } from "@/components/ui/BrandLoader";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -111,6 +111,7 @@ const AdminLayout = () => {
         { icon: Receipt, label: "Transactions", path: "/admin/transactions" },
         { icon: Wallet, label: "Commissions", path: "/admin/commissions" },
         { icon: Terminal, label: "API Panel", path: "/admin/api-panel" },
+        { icon: MessageSquare, label: "Automation", path: "/admin/automation" },
     ];
 
     // E-Commerce sub-section
