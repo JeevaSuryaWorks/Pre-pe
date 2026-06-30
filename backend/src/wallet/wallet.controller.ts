@@ -55,6 +55,20 @@ export class WalletController {
         return this.walletService.handleRazorpayWebhook(req.rawBody, body, signature);
     }
 
+    /**
+     * UPIPAY WEBHOOK (Public Endpoint)
+     */
+    @Post('webhook/upipay')
+    async handleUpiPayWebhook(
+        @Req() req: RawBodyRequest<any>,
+        @Body() body: any,
+        @Headers('x-verify') xVerify: string,
+        @Headers('checksumhash') checksum: string,
+    ) {
+        const signature = xVerify || checksum || '';
+        return this.walletService.handleUpiPayWebhook(req.rawBody, body, signature);
+    }
+
     @Post('credit')
     async credit(@Body() body: { userId: string, amount: number, ref?: string }) {
         return this.walletService.credit(body.userId, body.amount, body.ref);

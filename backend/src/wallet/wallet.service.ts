@@ -2,16 +2,19 @@ import {
     Injectable,
     BadRequestException,
     Logger,
+    OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
+import { UPIPay } from 'upipay';
 
 @Injectable()
-export class WalletService {
+export class WalletService implements OnModuleInit {
     private razorpay: Razorpay | null = null;
+    private upiPayClient: UPIPay | null = null;
     private readonly logger = new Logger(WalletService.name);
 
     constructor(
@@ -35,6 +38,47 @@ export class WalletService {
         } catch (error: any) {
             this.logger.error('❌ Failed to initialize Razorpay SDK', error.stack);
             this.razorpay = null;
+        }
+    }
+
+    onModuleInit() {
+        this.initUpiPay();
+    }
+
+    private initUpiPay() {
+        const provider = this.configService.get<string>('UPIPAY_PROVIDER') as 'phonepe' | 'paytm';
+        const env = this.configService.get<string>('UPIPAY_ENVIRONMENT') as 'sandbox' | 'production';
+        
+        if (!provider) {
+            this.logger.log('ℹ️ [UPIPAY] Provider not configured in env. Falling back to manual UPI intent.');
+            return;
+        }
+
+        try {
+            const credentials: Record<string, string> = {};
+            if (provider === 'phonepe') {
+                credentials.merchantId = this.configService.get<string>('PHONEPE_MERCHANT_ID') || '';
+                credentials.saltKey = this.configService.get<string>('PHONEPE_SALT_KEY') || '';
+                credentials.saltIndex = this.configService.get<string>('PHONEPE_SALT_INDEX') || '1';
+            } else if (provider === 'paytm') {
+                credentials.merchantId = this.configService.get<string>('PAYTM_MERCHANT_ID') || '';
+                credentials.merchantKey = this.configService.get<string>('PAYTM_MERCHANT_KEY') || '';
+                credentials.website = this.configService.get<string>('PAYTM_WEBSITE') || 'DEFAULT';
+            }
+
+            if (!credentials.merchantId) {
+                this.logger.warn(`⚠️ [UPIPAY] Missing merchantId for ${provider}. Integration will not be initialized.`);
+                return;
+            }
+
+            this.upiPayClient = new UPIPay({
+                provider,
+                environment: env || 'sandbox',
+                credentials
+            });
+            this.logger.log(`✅ [UPIPAY] Initialized ${provider} client in ${env || 'sandbox'} mode.`);
+        } catch (err: any) {
+            this.logger.error(`❌ [UPIPAY] Initialization failed: ${err.message}`);
         }
     }
 
@@ -473,7 +517,57 @@ export class WalletService {
         if (!amount || amount <= 0) throw new BadRequestException('Invalid amount');
 
         const referenceId = `UPI_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
+        const userName = profile?.full_name || 'User';
 
+        // Check if UPIPay gateway client is initialized and active
+        if (this.upiPayClient) {
+            try {
+                const provider = this.configService.get<string>('UPIPAY_PROVIDER') || 'phonepe';
+                const callbackUrl = this.configService.get<string>('UPIPAY_CALLBACK_URL') || `https://api.pre-pe.com/api/wallet/webhook/upipay`;
+                const redirectUrl = this.configService.get<string>('UPIPAY_REDIRECT_URL') || `https://pre-pe.com/wallet`;
+
+                const amountInPaise = Math.round(amount * 100);
+
+                this.logger.log(`📱 [UPIPAY] Creating automated ${provider} payment for ${userName}, amount: ${amount}`);
+
+                const res = await this.upiPayClient.createPayment({
+                    amount: amountInPaise,
+                    orderId: referenceId,
+                    customerPhone: profile?.phone || '9999999999',
+                    customerName: userName,
+                    callbackUrl,
+                    redirectUrl
+                });
+
+                if (res.success && res.paymentUrl) {
+                    await this.prisma.upi_transactions.create({
+                        data: {
+                            user_id: userId,
+                            amount: new Decimal(amount),
+                            upi_ref_id: referenceId,
+                            gateway_status: 'PENDING',
+                            intent_url: res.paymentUrl,
+                            payment_method: 'UPIPAY_' + provider.toUpperCase(),
+                            created_at: new Date(),
+                            updated_at: new Date(),
+                        } as any,
+                    });
+
+                    return {
+                        success: true,
+                        intent_url: res.paymentUrl,
+                        reference_id: referenceId,
+                        status: 'PENDING',
+                        message: 'UPI payment gateway initiated. Complete your payment.'
+                    };
+                }
+            } catch (err: any) {
+                this.logger.error(`⚠️ [UPIPAY] Payment initiation failed: ${err.message}. Falling back to manual UPI.`, err.stack);
+            }
+        }
+
+        // FALLBACK TO MANUAL P2P UPI INTENT FLOW IF UPIPAY IS NOT ACTIVE
         let vpa = this.configService.get<string>('UPI_VPA');
         const upiIds = [
             'prepetechnologies@okaxis'
@@ -483,18 +577,15 @@ export class WalletService {
         }
         
         const merchantCode = '5732'; // Electronics/Telecommunication (standard for mobile shops)
-        const profile = await this.prisma.profiles.findUnique({ where: { user_id: userId } });
-        const userName = profile?.full_name || 'User';
         const businessName = 'PrePe Technologies';
         const note = `Wallet Topup - ${userName} (${userId.substring(0, 8)})`;
-        // Include mc=${merchantCode} and mode=02 to format as a proper P2M (Peer-to-Merchant) transaction.
         const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent(note)}&mode=02`;
 
         if (process.env.NODE_ENV === 'development') {
             this.logger.log(`📱 [INIT] Intent URL: ${intentUrl}`);
         }
 
-        this.logger.log(`📱 [INIT] Creating UPI Intent for user ${userId}, amount: ${amount} via VPA ${vpa}`);
+        this.logger.log(`📱 [INIT] Creating manual UPI Intent for user ${userId}, amount: ${amount} via VPA ${vpa}`);
 
         try {
             await this.prisma.upi_transactions.create({
@@ -590,6 +681,79 @@ export class WalletService {
         } catch (error: any) {
             this.logger.error(`🔥 [POLL ERROR] ${error.message}`, error.stack);
             return { status: 'ERROR', message: 'Internal server error' };
+        }
+    }
+
+    /* =========================================================
+       💰 UPIPAY WEBHOOK CALLBACK HANDLER
+    ========================================================= */
+    async handleUpiPayWebhook(rawBody: Buffer | string, body: any, signature: string) {
+        this.logger.log(`💰 [UPIPAY WEBHOOK] Received webhook callback request.`);
+        
+        if (!this.upiPayClient) {
+            this.logger.error('❌ [UPIPAY WEBHOOK] Client not initialized.');
+            return { success: false, message: 'Client not initialized' };
+        }
+
+        try {
+            // Verify signature using upipay SDK
+            const event = this.upiPayClient.verifyWebhook(rawBody, signature);
+            this.logger.log(`🔍 [UPIPAY WEBHOOK] Verification: ${event.verified}, Status: ${event.status}, OrderId: ${event.orderId}`);
+
+            if (!event.verified) {
+                this.logger.error(`❌ [UPIPAY WEBHOOK] Invalid signature received.`);
+                return { success: false, message: 'Invalid signature' };
+            }
+
+            const orderId = event.orderId;
+            const status = event.status; // 'SUCCESS' | 'FAILED' | 'PENDING'
+
+            return await this.prisma.$transaction(async (tx) => {
+                const txn = await tx.upi_transactions.findFirst({
+                    where: { upi_ref_id: orderId }
+                });
+
+                if (!txn) {
+                    this.logger.error(`❌ [UPIPAY WEBHOOK] Transaction not found for order ${orderId}`);
+                    return { status: 'error', message: 'Transaction not found' };
+                }
+
+                if (txn.gateway_status === 'SUCCESS') {
+                    this.logger.log(`ℹ️ [UPIPAY WEBHOOK] Order ${orderId} already marked as SUCCESS`);
+                    return { status: 'ok' };
+                }
+
+                if (status === 'SUCCESS') {
+                    // Update transaction
+                    await tx.upi_transactions.update({
+                        where: { id: txn.id },
+                        data: {
+                            gateway_status: 'SUCCESS',
+                            updated_at: new Date(),
+                        } as any,
+                    });
+
+                    // Credit user's wallet
+                    const dbAmountNum = Number(txn.amount);
+                    await this.credit(txn.user_id, dbAmountNum, `UPI Top-up (Auto): ${orderId}`, tx, orderId);
+                    
+                    this.logger.log(`✅ [UPIPAY WEBHOOK] Wallet credited for user ${txn.user_id}, order: ${orderId}`);
+                } else if (status === 'FAILED') {
+                    await tx.upi_transactions.update({
+                        where: { id: txn.id },
+                        data: {
+                            gateway_status: 'FAILED',
+                            updated_at: new Date(),
+                        } as any,
+                    });
+                    this.logger.log(`❌ [UPIPAY WEBHOOK] Order ${orderId} marked as FAILED`);
+                }
+
+                return { status: 'ok' };
+            });
+        } catch (error: any) {
+            this.logger.error(`🔥 [UPIPAY WEBHOOK ERROR] ${error.message}`, error.stack);
+            return { status: 'error', message: error.message };
         }
     }
 }
