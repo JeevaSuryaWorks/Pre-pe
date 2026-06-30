@@ -35,7 +35,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
   const [transactionId, setTransactionId] = useState('');
   const [isManualSuccess, setIsManualSuccess] = useState(false);
   const [selectedUpiVpa, setSelectedUpiVpa] = useState(() => {
-    const vpas = ['prepetechnologies@okaxis'];
+    const vpas = ['gpay-12205495155@okbizaxis'];
     return vpas[Math.floor(Math.random() * vpas.length)];
   });
   const { toast } = useToast();
@@ -155,8 +155,14 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         // Start polling in background to auto-confirm if they complete payment
         startPolling(result.reference_id);
         
-        // Automatically display UPI QR Code screen for both mobile and desktop
+        // Set the active intent URL
         setManualIntentUrl(result.intent_url);
+
+        // Auto-launch the intent link on mobile devices
+        if (isMobile) {
+          window.location.href = result.intent_url;
+        }
+        
         setState('manual');
         return;
       } else {
@@ -587,6 +593,16 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6 text-center"
             >
+              {isMobile && activeQrUrl && (
+                <Button
+                  onClick={() => window.open(activeQrUrl, '_self')}
+                  className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-5 h-5 animate-pulse text-yellow-400 fill-yellow-400" />
+                  Open UPI App to Pay
+                </Button>
+              )}
+
               <div className="bg-slate-50 p-4 sm:p-6 rounded-[32px] border-2 border-dashed border-slate-200">
                 <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm inline-block mb-3">
                   <div className="w-40 h-40 sm:w-48 sm:h-48 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden relative mx-auto">
