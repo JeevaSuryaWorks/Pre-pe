@@ -120,7 +120,7 @@ export class PayuService {
     if (this.isLiveMode()) {
       try {
         const txnid = `TXN_${Date.now()}`;
-        const productInfo = flow === 'borrow' ? 'PrePe DNPL Loan' : 'PrePe Wallet Topup';
+        const productInfo = flow === 'borrow' ? 'PrePe DNPL Loan' : 'PrePe Virtual Wallet Topup';
         
         // Calculate SHA512 hash: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT)
         const user = await this.prisma.profiles.findUnique({ where: { id: userId } });

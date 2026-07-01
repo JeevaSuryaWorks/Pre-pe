@@ -578,8 +578,13 @@ export class WalletService implements OnModuleInit {
         
         const merchantCode = '5732'; // Electronics/Telecommunication (standard for mobile shops)
         const businessName = 'PrePe Technologies';
-        const note = `Wallet Topup - ${userName} (${userId.substring(0, 8)})`;
-        const intentUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(businessName)}&am=${amount}&tr=${referenceId}&mc=${merchantCode}&cu=INR&tn=${encodeURIComponent(note)}&mode=02`;
+        const upiUrl =
+            'upi://pay' +
+            '?pa=gpay-12205495155@okbizaxis' +
+            '&pn=PrePe%20Technologies' +
+            '&am=1.00' +
+            '&cu=INR';
+        const intentUrl = upiUrl;
 
         if (process.env.NODE_ENV === 'development') {
             this.logger.log(`📱 [INIT] Intent URL: ${intentUrl}`);

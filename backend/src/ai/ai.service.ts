@@ -299,7 +299,7 @@ Proactively suggest:
 - Cashback offers.
 - Festival offers.
 - New operator packs.
-- Wallet top-up reminders when wallet balance is low.
+- Virtual Wallet top-up reminders when wallet balance is low.
 - Low balance reminders.
 
 ## Failed Transaction Handling

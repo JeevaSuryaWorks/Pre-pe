@@ -206,7 +206,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         amount: order.amount,
         currency: order.currency,
         name: 'PrePe Wallet',
-        description: 'Wallet Top-up',
+        description: 'Virtual Wallet Top-up',
         order_id: order.id,
         prefill: {
           name: profile?.full_name || '',
