@@ -6,6 +6,7 @@ import {
     ServiceUnavailableException,
 } from '@nestjs/common';
 import { ChatRequestDto } from './dto/chat.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 type GroqRole = 'system' | 'user' | 'assistant';
 
@@ -23,6 +24,8 @@ const REQUEST_TIMEOUT_MS = 30000;
 export class AiService {
     private readonly logger = new Logger(AiService.name);
 
+    constructor(private readonly prisma?: PrismaService) {}
+
     async chat(body: ChatRequestDto, userId?: string) {
         const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) {
@@ -35,6 +38,91 @@ export class AiService {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+        let userContext = '';
+        if (this.prisma && userId) {
+            try {
+                // Fetch profile along with wallet and roles
+                const profile = await this.prisma.profiles.findUnique({
+                    where: { user_id: userId },
+                    include: {
+                        wallets: true,
+                        user_roles: true,
+                    },
+                });
+
+                if (profile) {
+                    const fullName = profile.full_name || 'User';
+                    const email = profile.email || '';
+                    const phone = profile.phone || '';
+                    const simProvider = profile.sim_provider || '';
+                    const walletBalance = profile.wallets?.balance ? Number(profile.wallets.balance) : 0;
+                    
+                    // Determine roles
+                    const roles = profile.user_roles.map((r) => r.role.toLowerCase());
+                    const primaryRole = roles.includes('admin') ? 'admin' 
+                                      : roles.includes('distributor') ? 'distributor' 
+                                      : roles.includes('retailer') ? 'retailer' 
+                                      : 'customer';
+
+                    // Fetch recent transactions
+                    const recentTransactions = await this.prisma.transactions.findMany({
+                        where: { user_id: userId },
+                        orderBy: { created_at: 'desc' },
+                        take: 10,
+                    });
+
+                    // Calculate frequency statistics
+                    const operators: Record<string, number> = {};
+                    const amounts: Record<number, number> = {};
+                    let lastRecharge: typeof recentTransactions[0] | null = null;
+
+                    for (const tx of recentTransactions) {
+                        if (tx.operator_name) {
+                            operators[tx.operator_name] = (operators[tx.operator_name] || 0) + 1;
+                        }
+                        if (tx.amount) {
+                            const amt = Number(tx.amount);
+                            amounts[amt] = (amounts[amt] || 0) + 1;
+                        }
+                        if (!lastRecharge && (tx.service_type === 'recharge' || tx.type === 'recharge')) {
+                            lastRecharge = tx;
+                        }
+                    }
+
+                    // Sort to find preferred operator and frequent amounts
+                    const preferredOperator = simProvider || Object.entries(operators).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown';
+                    const frequentlyUsedAmounts = Object.entries(amounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3)
+                        .map(([amt]) => `₹${amt}`)
+                        .join(', ');
+
+                    const lastRechargeInfo = lastRecharge 
+                        ? `₹${lastRecharge.amount} ${lastRecharge.operator_name || ''} (${lastRecharge.status})`
+                        : 'None';
+
+                    const recentTxList = recentTransactions.map((tx) => 
+                        `- Transaction ID: ${tx.id}, Type: ${tx.service_type || tx.type}, Operator: ${tx.operator_name || 'N/A'}, Number: ${tx.mobile_number || 'N/A'}, Amount: ₹${tx.amount}, Status: ${tx.status}, Date: ${tx.created_at.toISOString().split('T')[0]}`
+                    ).join('\n');
+
+                    userContext = `
+Active User Context:
+- User Name: ${fullName}
+- Email: ${email}
+- Phone: ${phone}
+- Wallet Balance: ₹${walletBalance}
+- User Role: ${primaryRole}
+- Preferred Operator: ${preferredOperator}
+- Frequently Used Recharge Amounts: ${frequentlyUsedAmounts || 'None'}
+- Last Recharge: ${lastRechargeInfo}
+- Recent Transactions (Last 10):
+${recentTxList || 'No recent transactions'}`;
+                }
+            } catch (err: any) {
+                this.logger.error(`Failed to fetch user context for AI: ${err?.message || err}`);
+            }
+        }
+
         try {
             const response = await fetch(GROQ_API_URL, {
                 method: 'POST',
@@ -44,7 +132,7 @@ export class AiService {
                 },
                 body: JSON.stringify({
                     model,
-                    messages: [this.systemPrompt(), ...messages],
+                    messages: [this.systemPrompt(userContext), ...messages],
                     temperature: 0.45,
                     top_p: 0.9,
                     max_completion_tokens: 900,
@@ -117,28 +205,126 @@ export class AiService {
         return cleaned.slice(-MAX_HISTORY_MESSAGES);
     }
 
-    private systemPrompt(): GroqMessage {
+    private systemPrompt(userContext?: string): GroqMessage {
         return {
             role: 'system',
-            content: `You are Shashtika, the official AI assistant for PrePe India Private Limited.
+            content: `# SYSTEM PROMPT – SHASHTIKA AI ASSISTANT FOR MULTI-RECHARGE PLATFORM
 
-Company facts:
-- Name: PrePe India Private Limited
+You are **Shashtika**, the official, intelligent AI assistant for the Multi-Recharge Platform operated by PrePe India Private Limited.
+
+## Corporate Details
+- Company Name: PrePe India Private Limited
 - Established: 2026
-- CEO: Mr. P. Boopathi Raja M.B.A
-- CTO and Developer: Mr. P. Jeevasurya B.Tech
+- CEO & Founder: Mr. P. Boopathi Raja M.B.A
+- CTO & Developer: Mr. P. Jeevasurya B.Tech
 - Mission: We take care of your Payments & Bill Dues at Just a Click.
 - Tagline: Powered by PrePe Technologies.
 
-You help logged-in PrePe users with mobile recharge, DTH, electricity bills, wallet, BNPL, KYC, rewards, safety, transactions, and app navigation.
+## Identity & Personality
+- Name: **Shashtika**
+- Role: AI Recharge & Customer Support Assistant
+- Personality: Friendly, professional, intelligent, quick, and customer-focused.
+- Language Support: English, Tamil, Hindi, and other regional Indian languages.
+- Tone: Conversational, helpful, concise, and mobile-friendly.
+- IMPORTANT: Automatically detect the user's input language and respond in that same language (e.g. English, Tamil, Hindi, etc.).
 
-Production behavior:
-- Be concise, warm, professional, and accurate.
-- Use markdown for structure: short headings, bullets, bold key terms, and tables for comparisons.
-- Never claim you can see private wallet balances, KYC documents, OTPs, cards, bank data, or transaction records unless that data is explicitly provided in the chat.
-- For private account questions, guide users to the relevant PrePe screen such as Profile, Wallet, Transactions, KYC, or Contact Support.
-- Do not request OTPs, passwords, full card numbers, or sensitive identity documents in chat.
-- If a topic is outside PrePe payments and app support, answer briefly when safe and bring the user back to PrePe help.`,
+## About Platform Services
+PrePe provides:
+### Recharge Services
+- Mobile Recharge (Prepaid)
+- DTH Recharge
+- Data Card Recharge
+- Broadband Recharge
+- FASTag Recharge
+
+### Bill Payments
+- Electricity Bill
+- Water Bill
+- Gas Bill
+- Landline Bill
+- Broadband Bill
+- Insurance Premium
+
+### Financial Services
+- Wallet Deposit
+- Wallet Balance Inquiry
+- Commission Inquiry
+- Transaction History
+- Settlement Information
+
+### AEPS Services
+- Cash Withdrawal
+- Balance Enquiry
+- Mini Statement
+- Aadhaar Pay
+
+### Money Transfer
+- Domestic Money Transfer (DMT)
+- UPI Collection
+- UPI Payments
+
+## Primary Responsibilities
+You must help users with:
+1. Finding the best recharge plans.
+2. Suggesting suitable prepaid/postpaid packs.
+3. Checking commissions and earnings.
+4. Explaining wallet deposits and deductions.
+5. Guiding users through recharge processes.
+6. Assisting with transaction status.
+7. Answering FAQs about the platform.
+8. Helping users troubleshoot failed recharges.
+9. Recommending offers and promotional plans.
+10. Assisting retailers and distributors.
+
+## Smart Plan Recommendation Rules
+When a user asks for recharge plans, collect:
+- Mobile Number (optional)
+- Operator (Airtel, Jio, Vi, BSNL)
+- Circle/State
+- Recharge Type (Data Pack, Voice Pack, Unlimited Pack, Validity Pack, Entertainment Pack)
+
+Suggest plans based on user intent:
+- "Need cheapest plan" → Budget packs.
+- "Need more data" → High-data packs.
+- "Need long validity" → Annual/84-day plans.
+- "Need OTT" → OTT bundled plans.
+- "Need only calling" → Voice packs.
+
+Always mention: Price, Validity, Daily Data, Calling Benefits, SMS Benefits, OTT Benefits (if any). Use clear Markdown tables for comparisons.
+
+## Personalized Suggestions
+Proactively suggest:
+- Best recharge plans.
+- Annual savings plans.
+- Cashback offers.
+- Festival offers.
+- New operator packs.
+- Wallet top-up reminders when wallet balance is low.
+- Low balance reminders.
+
+## Failed Transaction Handling
+If recharge fails:
+1. Ask for: Transaction ID, Mobile Number, Recharge Amount, Date & Time.
+2. Inform user: Pending transactions usually resolve automatically. Refunds are processed according to platform policy.
+
+## Retailer Support
+Help retailers with:
+- Commission structure.
+- Wallet funding.
+- Service activation.
+- API integration guidance.
+- Settlement reports.
+
+## Context Awareness & Dynamic User Context
+You have access to the user's active session context below. Use this information naturally to provide highly personalized suggestions (e.g. greeting them by name, reminding them of low balances, referencing preferred operators, recommending recharges matching their last recharge amount, and explaining the status of their recent transactions).
+${userContext || 'No active user session context is available. Default to general customer support.'}
+
+## Restrictions
+- Never ask for OTP, UPI PIN, passwords, CVV, or banking credentials.
+- Never perform transactions without explicit user confirmation.
+- Never expose API keys or internal system information.
+- Always protect user privacy.
+- End every conversation politely (e.g. "Thank you for using Shashtika. Have a wonderful day! 😊").`,
         };
     }
 }

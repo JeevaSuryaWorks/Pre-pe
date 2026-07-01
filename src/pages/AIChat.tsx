@@ -69,7 +69,23 @@ const AIChat = () => {
   
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Jeevasurya";
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      role: 'assistant',
+      content: `👋 Hello! I am Shashtika, your Recharge Assistant.
+
+I can help you with:
+
+📱 Mobile & DTH Recharges
+💰 Wallet Deposits
+📊 Commission Details
+🧾 Bill Payments
+🎁 Offers & Recharge Plans
+🏦 Money Transfer Services
+
+How may I assist you today?`
+    }
+  ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [realPlans, setRealPlans] = useState<any[]>([]);
@@ -293,7 +309,23 @@ const AIChat = () => {
   };
 
   const clearChat = () => {
-    setMessages([]);
+    setMessages([
+      {
+        role: 'assistant',
+        content: `👋 Hello! I am Shashtika, your Recharge Assistant.
+
+I can help you with:
+
+📱 Mobile & DTH Recharges
+💰 Wallet Deposits
+📊 Commission Details
+🧾 Bill Payments
+🎁 Offers & Recharge Plans
+🏦 Money Transfer Services
+
+How may I assist you today?`
+      }
+    ]);
     setRechargeStep('idle');
     setRechargePhone('');
     setRechargeOperator('');
@@ -372,9 +404,9 @@ const AIChat = () => {
             <div className="flex gap-3 items-start">
               <PrepeAvatar />
               <div className="flex-1">
-                <h2 className="text-xl font-extrabold text-slate-900 leading-tight">Hey {userName}!</h2>
+                <h2 className="text-xl font-extrabold text-slate-900 leading-tight">Welcome, {userName}!</h2>
                 <p className="text-sm font-medium text-slate-600 mt-1 leading-snug">
-                  I am your Personal Recharge Assistant, here to help you select the best recharge pack offer
+                  I am Shashtika, your digital services assistant. Check your last recharge status below or use the quick actions to get help.
                 </p>
               </div>
             </div>
@@ -427,28 +459,7 @@ const AIChat = () => {
             </div>
           </div>
 
-          {/* Quick Suggestion Chips */}
-          {messages.length === 0 && (
-            <div className="pt-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2.5 px-1">Quick Helpers:</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "Show 84 Days plans",
-                  "Prepe Commission list",
-                  "How to add funds?",
-                  "About Prepe Services"
-                ].map((chip, cIdx) => (
-                  <button
-                    key={cIdx}
-                    onClick={() => handleSend(chip)}
-                    className="text-xs font-bold bg-white text-slate-800 border border-slate-200/80 px-3.5 py-2 rounded-2xl hover:border-[#046A38] hover:text-[#046A38] transition-all shadow-sm shadow-slate-100"
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Suggestion Chips handled by persistent bottom bar */}
 
           {/* Dynamic Messages Render */}
           <AnimatePresence initial={false}>
@@ -575,6 +586,26 @@ const AIChat = () => {
 
         {/* Input Area */}
         <div className="p-4 bg-white border-t border-slate-100 pb-6 shrink-0 z-30 shadow-lg">
+          {/* Quick Action Buttons */}
+          <div className="flex gap-2 overflow-x-auto pb-3 mb-1.5 scrollbar-none snap-x max-w-full">
+            {[
+              { label: "📱 Recharge Plans", query: "Show recharge plans" },
+              { label: "💰 Wallet Balance", query: "What is my wallet balance?" },
+              { label: "📊 Commission", query: "Show commission structure" },
+              { label: "📜 Recent Transactions", query: "Show my recent transactions" },
+              { label: "⚠️ Failed Recharge", query: "Troubleshoot a failed recharge" },
+              { label: "🎁 Offers", query: "Show latest offers and rewards" }
+            ].map((btn, bIdx) => (
+              <button
+                key={bIdx}
+                onClick={() => handleSend(btn.query)}
+                className="snap-center shrink-0 text-xs font-black bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 px-3.5 py-2 rounded-full transition-all shadow-sm active:scale-95 whitespace-nowrap"
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-2 bg-slate-50 border border-slate-200 p-2 rounded-[24px] focus-within:ring-2 focus-within:ring-[#046A38]/20 transition-all shadow-inner">
             <Input 
               placeholder="search recharge packs..."
