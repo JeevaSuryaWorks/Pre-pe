@@ -594,13 +594,28 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               className="space-y-6 text-center"
             >
               {isMobile && activeQrUrl && (
-                <Button
-                  onClick={() => window.open(activeQrUrl, '_self')}
-                  className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Zap className="w-5 h-5 animate-pulse text-yellow-400 fill-yellow-400" />
-                  Open UPI App to Pay
-                </Button>
+                <div className="space-y-3 bg-indigo-50/50 p-4 rounded-3xl border border-indigo-100/50 text-left">
+                  <Button
+                    onClick={() => window.open(activeQrUrl, '_self')}
+                    className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-5 h-5 animate-pulse text-yellow-400 fill-yellow-400" />
+                    Auto-Fill UPI Pay (₹{amount})
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const cleanLink = `upi://pay?pa=${selectedUpiVpa}&pn=${encodeURIComponent('PrePe Technologies')}`;
+                      window.open(cleanLink, '_self');
+                    }}
+                    variant="outline"
+                    className="w-full h-12 border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 bg-white font-black text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-all"
+                  >
+                    ⚡ Secure Direct Pay (If blocked)
+                  </Button>
+                  <p className="text-[10px] text-indigo-600 font-bold text-center leading-tight px-1 mt-1">
+                    ℹ️ If your UPI app shows a security warning or blocks the payment, tap the <strong>Secure Direct Pay</strong> button and type ₹{amount} manually.
+                  </p>
+                </div>
               )}
 
               <div className="bg-slate-50 p-4 sm:p-6 rounded-[32px] border-2 border-dashed border-slate-200">
