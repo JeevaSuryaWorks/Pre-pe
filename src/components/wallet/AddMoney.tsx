@@ -168,12 +168,11 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
         throw new Error('UPI Intent URL not generated');
       }
     } catch (error) {
-      console.warn('UPI Intent failed, falling back to Razorpay...', error);
-      toast({ 
-        title: 'UPI Failed', 
-        description: 'UPI intent failed. Opening secure Razorpay checkout instead...', 
-      });
-      await handleRazorpayPayment();
+      console.warn('UPI Gateway initiation failed, automatically switching to direct UPI QR...', error);
+      // Clear manualIntentUrl to force fallback to the direct VPA QR
+      setManualIntentUrl('');
+      // Show manual direct QR code screen
+      setState('manual');
     }
   };
 
