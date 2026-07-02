@@ -594,27 +594,60 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
               className="space-y-6 text-center"
             >
               {isMobile && activeQrUrl && (
-                <div className="space-y-3 bg-indigo-50/50 p-4 rounded-3xl border border-indigo-100/50 text-left">
-                  <Button
-                    onClick={() => window.open(activeQrUrl, '_self')}
-                    className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Zap className="w-5 h-5 animate-pulse text-yellow-400 fill-yellow-400" />
-                    Auto-Fill UPI Pay (₹{amount})
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const cleanLink = `upi://pay?pa=${selectedUpiVpa}&pn=${encodeURIComponent('PrePe Technologies')}`;
-                      window.open(cleanLink, '_self');
-                    }}
-                    variant="outline"
-                    className="w-full h-12 border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 bg-white font-black text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-all"
-                  >
-                    ⚡ Secure Direct Pay (If blocked)
-                  </Button>
-                  <p className="text-[10px] text-indigo-600 font-bold text-center leading-tight px-1 mt-1">
-                    ℹ️ If your UPI app shows a security warning or blocks the payment, tap the <strong>Secure Direct Pay</strong> button and type ₹{amount} manually.
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/30 p-5 rounded-3xl border border-indigo-100 text-left space-y-4 shadow-inner">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white text-[10px] font-black">!</span>
+                    <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider">UPI App Security Notice</h4>
+                  </div>
+                  
+                  <p className="text-[10px] text-indigo-700/80 font-medium leading-relaxed">
+                    Due to bank policies, UPI apps (GPay, PhonePe) block direct links to merchant accounts. Please use one of the two guaranteed methods below:
                   </p>
+
+                  <div className="space-y-3 pt-1">
+                    {/* Method 1: Screenshot */}
+                    <div className="bg-white p-3 rounded-2xl border border-indigo-100/50 shadow-sm flex items-start gap-3">
+                      <div className="h-6 w-6 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 text-indigo-600 font-bold text-xs">1</div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-800 leading-none">Screenshot & Scan (Easiest)</p>
+                        <p className="text-[9px] text-slate-500 font-medium leading-tight">
+                          Take a screenshot of the QR code below. Open your UPI app, tap <strong>Scan</strong>, select the <strong>Gallery Icon</strong>, and choose the screenshot to pay.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Method 2: Copy VPA */}
+                    <div className="bg-white p-3 rounded-2xl border border-indigo-100/50 shadow-sm flex items-start gap-3">
+                      <div className="h-6 w-6 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0 text-indigo-600 font-bold text-xs">2</div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-800 leading-none">Copy UPI VPA & Pay</p>
+                        <p className="text-[9px] text-slate-500 font-medium leading-tight">
+                          Copy the UPI ID: <strong className="text-indigo-600">{selectedUpiVpa}</strong>, open your UPI app, and search or pay to this VPA.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedUpiVpa);
+                        toast({ title: 'UPI ID Copied', description: `${selectedUpiVpa} copied to clipboard` });
+                      }}
+                      className="flex-1 h-12 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                    >
+                      Copy VPA
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        window.open('upi://pay', '_self');
+                      }}
+                      className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-indigo-100 transition-all"
+                    >
+                      <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                      Open UPI App
+                    </Button>
+                  </div>
                 </div>
               )}
 
