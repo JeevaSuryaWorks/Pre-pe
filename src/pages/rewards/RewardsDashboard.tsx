@@ -610,111 +610,133 @@ export default function RewardsDashboard() {
                          </div>
                        </div>
 
-                        {/* Weekly Calendar Grid */}
-                        <div className="grid grid-cols-7 gap-2">
-                          {(() => {
-                            const today = new Date();
-                            const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
-                            const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                            const monday = new Date(today);
-                            monday.setDate(today.getDate() - distanceToMonday);
-                            monday.setHours(0, 0, 0, 0);
+                         {/* Weekly Calendar Grid */}
+                         <motion.div 
+                           variants={containerVariants}
+                           initial="hidden"
+                           animate="visible"
+                           className="grid grid-cols-7 gap-2"
+                         >
+                           {(() => {
+                             const today = new Date();
+                             const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
+                             const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                             const monday = new Date(today);
+                             monday.setDate(today.getDate() - distanceToMonday);
+                             monday.setHours(0, 0, 0, 0);
 
-                            const WEEKDAYS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
+                             const WEEKDAYS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];
 
-                            return Array.from({ length: 7 }).map((_, i) => {
-                              const day = new Date(monday);
-                              day.setDate(monday.getDate() + i);
-                              
-                              // Local date string YYYY-MM-DD
-                              const year = day.getFullYear();
-                              const month = String(day.getMonth() + 1).padStart(2, '0');
-                              const dateNum = String(day.getDate()).padStart(2, '0');
-                              const dateStr = `${year}-${month}-${dateNum}`;
+                             return Array.from({ length: 7 }).map((_, i) => {
+                               const day = new Date(monday);
+                               day.setDate(monday.getDate() + i);
+                               
+                               // Local date string YYYY-MM-DD
+                               const year = day.getFullYear();
+                               const month = String(day.getMonth() + 1).padStart(2, '0');
+                               const dateNum = String(day.getDate()).padStart(2, '0');
+                               const dateStr = `${year}-${month}-${dateNum}`;
 
-                              const hasCheckedIn = checkedInDates.has(dateStr);
-                              const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                              
-                              const isToday = dateStr === todayStr;
-                              const isFuture = day.getTime() > new Date().setHours(23, 59, 59, 999);
-                              const isPast = day.getTime() < new Date().setHours(0, 0, 0, 0);
+                               const hasCheckedIn = checkedInDates.has(dateStr);
+                               const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                               
+                               const isToday = dateStr === todayStr;
+                               const isFuture = day.getTime() > new Date().setHours(23, 59, 59, 999);
+                               const isPast = day.getTime() < new Date().setHours(0, 0, 0, 0);
 
-                              let status: 'CLAIMED' | 'MISSED' | 'PENDING' | 'LOCKED' = 'LOCKED';
-                              if (hasCheckedIn) {
-                                status = 'CLAIMED';
-                              } else if (isFuture) {
-                                status = 'LOCKED';
-                              } else if (isToday) {
-                                status = 'PENDING';
-                              } else if (isPast) {
-                                status = 'MISSED';
-                              }
+                               let status: 'CLAIMED' | 'MISSED' | 'PENDING' | 'LOCKED' = 'LOCKED';
+                               if (hasCheckedIn) {
+                                 status = 'CLAIMED';
+                               } else if (isFuture) {
+                                 status = 'LOCKED';
+                               } else if (isToday) {
+                                 status = 'PENDING';
+                               } else if (isPast) {
+                                 status = 'MISSED';
+                               }
 
-                              return (
-                                <motion.button
-                                  key={i}
-                                  whileHover={status === 'PENDING' ? { scale: 1.05 } : {}}
-                                  whileTap={status === 'PENDING' ? { scale: 0.95 } : {}}
-                                  disabled={status !== 'PENDING' || checkInLoading}
-                                  onClick={handleDailyCheckIn}
-                                  className={cn(
-                                    "rounded-2xl flex flex-col items-center justify-between border transition-all p-1.5 relative overflow-hidden h-[4.5rem] w-full select-none",
-                                    status === 'CLAIMED'
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
-                                      : status === 'MISSED'
-                                        ? "bg-rose-50 border-rose-200 text-rose-600 shadow-sm"
-                                        : status === 'PENDING'
-                                          ? "bg-indigo-50 border-indigo-300 text-indigo-600 shadow-md shadow-indigo-100 ring-2 ring-indigo-500/20"
-                                          : "bg-slate-50/50 border-slate-100/60 text-slate-400"
-                                  )}
-                                >
-                                  <span className="text-[8px] font-black uppercase text-slate-400">
-                                    {WEEKDAYS_SHORT[i]}
-                                  </span>
-                                  <span className="text-xs font-black text-slate-800">
-                                    {day.getDate()}
-                                  </span>
-                                  {status === 'CLAIMED' ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3.5]" />
-                                  ) : status === 'MISSED' ? (
-                                    <X className="w-3.5 h-3.5 text-rose-600 stroke-[3.5]" />
-                                  ) : status === 'PENDING' ? (
-                                    <Zap className="w-3.5 h-3.5 text-indigo-600 fill-indigo-600/20 animate-pulse" />
-                                  ) : (
-                                    <span className="text-[7.5px] font-bold text-slate-400">+10</span>
-                                  )}
-                                </motion.button>
-                              );
-                            });
-                          })()}
-                        </div>
+                               return (
+                                 <motion.button
+                                   key={i}
+                                   variants={itemVariants}
+                                   whileHover={status === 'PENDING' ? { scale: 1.08, rotate: [0, -2, 2, 0], transition: { duration: 0.3 } } : { scale: 1.02 }}
+                                   whileTap={{ scale: 0.95 }}
+                                   disabled={status !== 'PENDING' || checkInLoading}
+                                   onClick={handleDailyCheckIn}
+                                   className={cn(
+                                     "rounded-[22px] flex flex-col items-center justify-between border transition-all p-2 relative overflow-hidden h-[5.2rem] w-full select-none",
+                                     status === 'CLAIMED'
+                                       ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
+                                       : status === 'MISSED'
+                                         ? "bg-rose-50/50 border-rose-100 text-rose-500 shadow-sm opacity-80"
+                                         : status === 'PENDING'
+                                           ? "bg-gradient-to-br from-indigo-500 to-indigo-600 border-indigo-400 text-white shadow-[0_4px_20px_rgba(99,102,241,0.3)] ring-4 ring-indigo-400/20"
+                                           : "bg-slate-50/40 border-slate-100 text-slate-400"
+                                   )}
+                                 >
+                                   <span className={cn(
+                                     "text-[8px] font-black uppercase tracking-wider",
+                                     status === 'PENDING' ? "text-indigo-100" : "text-slate-400"
+                                   )}>
+                                     {WEEKDAYS_SHORT[i]}
+                                   </span>
+                                   <span className={cn(
+                                     "text-sm font-black",
+                                     status === 'PENDING' ? "text-white text-base" : "text-slate-800"
+                                   )}>
+                                     {day.getDate()}
+                                   </span>
+                                   {status === 'CLAIMED' ? (
+                                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+                                       <Check className="w-4 h-4 text-emerald-500 stroke-[3.5]" />
+                                     </motion.div>
+                                   ) : status === 'MISSED' ? (
+                                     <X className="w-3.5 h-3.5 text-rose-400 stroke-[3]" />
+                                   ) : status === 'PENDING' ? (
+                                     <div className="relative">
+                                       <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-bounce" />
+                                       <span className="absolute -inset-1 rounded-full bg-yellow-400/30 blur animate-pulse" />
+                                     </div>
+                                   ) : (
+                                     <span className="text-[7.5px] font-black text-slate-400/85">+10</span>
+                                   )}
+                                 </motion.button>
+                               );
+                             });
+                           })()}
+                         </motion.div>
 
-                       {/* Easy Click Action Check-in Button */}
-                       <Button
-                         onClick={handleDailyCheckIn}
-                         disabled={hasCheckedInToday || checkInLoading}
-                         className={cn(
-                           "w-full h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg",
-                           hasCheckedInToday
-                             ? "bg-slate-100 text-slate-400 border-none shadow-none cursor-not-allowed"
-                             : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-98"
-                         )}
-                       >
-                         {checkInLoading ? (
-                           <Loader2 className="w-4 h-4 animate-spin mx-auto text-white" />
-                         ) : hasCheckedInToday ? (
-                           <div className="flex items-center justify-center gap-1.5">
-                             <CheckCircle2 className="w-4 h-4 text-slate-400" />
-                             Checked In Today
-                           </div>
-                         ) : (
-                           "Claim Daily Check-in (+10 PTS)"
-                         )}
-                       </Button>
-                     </Card>
+                        {/* Easy Click Action Check-in Button */}
+                        <motion.button
+                          whileHover={!hasCheckedInToday && !checkInLoading ? { scale: 1.02, y: -1 } : {}}
+                          whileTap={!hasCheckedInToday && !checkInLoading ? { scale: 0.98 } : {}}
+                          disabled={hasCheckedInToday || checkInLoading}
+                          onClick={handleDailyCheckIn}
+                          className={cn(
+                            "w-full h-14 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2",
+                            hasCheckedInToday
+                              ? "bg-slate-100 text-slate-400 border-none cursor-not-allowed"
+                              : "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 active:scale-[0.98]"
+                          )}
+                        >
+                          {checkInLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          ) : hasCheckedInToday ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                              Checked In Today
+                            </div>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4.5 h-4.5 text-yellow-300 fill-yellow-300 animate-pulse" />
+                              Claim Daily Check-in (+10 PTS)
+                            </>
+                          )}
+                         </motion.button>
+                      </Card>
 
-                     {/* Task Earning List */}
-                     <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-8 space-y-6 border border-white">
+                      {/* Task Earning List */}
+                      <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] p-8 space-y-6 border border-white">
                          <div className="flex items-center justify-between mb-4">
                              <h4 className="text-xl font-black tracking-tight text-slate-900">Task Earning</h4>
                              <Sparkles className="w-4 h-4 text-amber-500" />
