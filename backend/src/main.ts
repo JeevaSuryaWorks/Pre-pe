@@ -29,13 +29,10 @@ async function bootstrap() {
 
         // 2. Handle Actual Requests
         if (origin && (allowedOrigins.includes(origin) || origin.includes('pre-pe.com') || origin.startsWith('http://localhost'))) {
-            // For production (pre-pe.com), we only add headers if Nginx hasn't added them yet.
-            if (!origin.includes('pre-pe.com')) {
-                res.setHeader('Access-Control-Allow-Origin', origin);
-                res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-                res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-                res.setHeader('Access-Control-Allow-Credentials', 'true');
-            }
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
         }
 
         next();
@@ -88,12 +85,10 @@ async function bootstrap() {
 
             const origin = request.headers.origin;
             if (origin && (origin.includes('pre-pe.com') || origin.includes('localhost') || origin.startsWith('http://localhost'))) {
-                if (!origin.includes('pre-pe.com')) {
-                    response.header('Access-Control-Allow-Origin', origin);
-                    response.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-                    response.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-                    response.header('Access-Control-Allow-Credentials', 'true');
-                }
+                response.header('Access-Control-Allow-Origin', origin);
+                response.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+                response.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+                response.header('Access-Control-Allow-Credentials', 'true');
             }
 
             response.status(status).json({
