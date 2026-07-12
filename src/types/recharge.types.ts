@@ -118,6 +118,7 @@ export interface RechargeRequest {
   amount: number;
   plan_id?: string;
   offer_code?: string;
+  upi_tx_id?: string;
 }
 
 // Bill Fetch Types

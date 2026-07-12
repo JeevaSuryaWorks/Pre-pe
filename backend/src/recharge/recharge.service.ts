@@ -33,8 +33,9 @@ export class RechargeService {
     circleId?: string,
     planId?: string,
     dthId?: string,
+    upiTxId?: string,
   ) {
-    this.logger.log(`[RECHARGE:INIT] User: ${userId}, Amount: ${amount}, Mobile/Subscriber: ${mobileNumber}, DTH: ${dthId}`);
+    this.logger.log(`[RECHARGE:INIT] User: ${userId}, Amount: ${amount}, Mobile/Subscriber: ${mobileNumber}, DTH: ${dthId}, UTR: ${upiTxId}`);
 
     if (!this.isValidUuid(userId)) {
       this.logger.error(`[RECHARGE:VALIDATION_FAILED] Invalid User UUID: ${userId}`);
@@ -57,33 +58,64 @@ export class RechargeService {
       serviceType = 'MOBILE_POSTPAID';
     }
 
+    const bbpsKeywords = ['electricity', 'water', 'gas', 'broadband', 'insurance', 'loan', 'tax', 'municipal', 'postpaid', 'emi'];
+    const isBbps = isPostpaid || bbpsKeywords.some(keyword => 
+      operator.toLowerCase().includes(keyword) || 
+      (mobileNumber && mobileNumber.toLowerCase().includes(keyword)) ||
+      (dthId && dthId.toLowerCase().includes(keyword))
+    );
+
+    const finalReferenceId = isBbps && upiTxId ? upiTxId : referenceId;
+
     try {
-      // ✅ WALLET CHECK
-      this.logger.log(`[RECHARGE:DB_CHECK] Fetching wallet for ${userId}`);
-      const wallet = await this.prisma.wallets.findUnique({
-        where: { user_id: userId },
-      });
+      if (isBbps) {
+        this.logger.log(`[RECHARGE:BBPS] Bypassing wallet check & debit for BBPS service (User: ${userId}, UTR: ${upiTxId})`);
+        
+        if (upiTxId) {
+          try {
+            await this.prisma.upi_transactions.create({
+              data: {
+                user_id: userId,
+                amount: new Decimal(amount),
+                upi_ref_id: upiTxId,
+                gateway_status: 'SUCCESS',
+                payment_method: 'DIRECT_UPI_BBPS',
+                created_at: new Date(),
+                updated_at: new Date(),
+              } as any
+            });
+          } catch (upiErr: any) {
+            this.logger.warn(`Could not create direct UPI record for BBPS: ${upiErr.message}`);
+          }
+        }
+      } else {
+        // ✅ WALLET CHECK
+        this.logger.log(`[RECHARGE:DB_CHECK] Fetching wallet for ${userId}`);
+        const wallet = await this.prisma.wallets.findUnique({
+          where: { user_id: userId },
+        });
 
-      if (!wallet) {
-        this.logger.error(`[RECHARGE:ERROR] Wallet not found for user: ${userId}`);
-        throw new BadRequestException('Wallet not found');
-      }
+        if (!wallet) {
+          this.logger.error(`[RECHARGE:ERROR] Wallet not found for user: ${userId}`);
+          throw new BadRequestException('Wallet not found');
+        }
 
-      if (Number(wallet.balance) < Number(amount)) {
-        this.logger.warn(`[RECHARGE:INSUFFICIENT] User: ${userId}, Balance: ${wallet.balance}, Required: ${amount}`);
-        throw new BadRequestException('Insufficient balance');
-      }
+        if (Number(wallet.balance) < Number(amount)) {
+          this.logger.warn(`[RECHARGE:INSUFFICIENT] User: ${userId}, Balance: ${wallet.balance}, Required: ${amount}`);
+          throw new BadRequestException('Insufficient balance');
+        }
 
-      // ✅ DEBIT
-      let debitDescription = `${isPostpaid ? 'Postpaid Bill' : 'Prepaid Recharge'}: ${mobileNumber} (${referenceId})`;
-      if (serviceType === 'DTH') {
-        debitDescription = `DTH Recharge: ${dthId || mobileNumber} (${referenceId})`;
+        // ✅ DEBIT
+        let debitDescription = `${isPostpaid ? 'Postpaid Bill' : 'Prepaid Recharge'}: ${mobileNumber} (${finalReferenceId})`;
+        if (serviceType === 'DTH') {
+          debitDescription = `DTH Recharge: ${dthId || mobileNumber} (${finalReferenceId})`;
+        }
+        this.logger.log(`[RECHARGE:DEBIT] Debiting ₹${amount} from ${userId} - ${debitDescription}`);
+        await this.walletService.debit(userId, amount, debitDescription);
       }
-      this.logger.log(`[RECHARGE:DEBIT] Debiting ₹${amount} from ${userId} - ${debitDescription}`);
-      await this.walletService.debit(userId, amount, debitDescription);
 
       // ✅ TRANSACTION RECORD
-      this.logger.log(`[RECHARGE:TX_CREATE] Reference: ${referenceId}`);
+      this.logger.log(`[RECHARGE:TX_CREATE] Reference: ${finalReferenceId}`);
       const transaction = await this.prisma.transactions.create({
         data: {
           user_id: userId,
@@ -96,7 +128,7 @@ export class RechargeService {
           circle_id: circleId || '0',
           plan_id: planId || '',
           status: 'PENDING',
-          reference_id: referenceId,
+          reference_id: finalReferenceId,
           created_at: new Date(),
           updated_at: new Date(),
         },

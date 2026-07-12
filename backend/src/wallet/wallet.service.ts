@@ -570,9 +570,9 @@ export class WalletService implements OnModuleInit {
         // FALLBACK TO MANUAL P2P UPI INTENT FLOW IF UPIPAY IS NOT ACTIVE
         let vpa = this.configService.get<string>('UPI_VPA');
         const upiIds = [
-            'gpay-12205495155@okbizaxis'
+            's5698564172094253@slc'
         ];
-        if (!vpa || vpa === 'bmsmobiles@barodampay' || vpa === 'prepetechnologies@okaxis') {
+        if (!vpa || vpa === 'bmsmobiles@barodampay' || vpa === 'prepetechnologies@okaxis' || vpa === 'gpay-12205495155@okbizaxis') {
             vpa = upiIds[Math.floor(Math.random() * upiIds.length)];
         }
         
@@ -580,9 +580,9 @@ export class WalletService implements OnModuleInit {
         const businessName = 'PrePe Technologies';
         const upiUrl =
             'upi://pay' +
-            '?pa=gpay-12205495155@okbizaxis' +
+            `?pa=${vpa}` +
             '&pn=PrePe%20Technologies' +
-            '&am=1.00' +
+            `&am=${Number(amount).toFixed(2)}` +
             '&cu=INR';
         const intentUrl = upiUrl;
 

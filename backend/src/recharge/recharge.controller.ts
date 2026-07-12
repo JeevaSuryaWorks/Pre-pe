@@ -70,6 +70,7 @@ export class RechargeController {
                 body.circle_id,
                 body.plan_id,
                 body.dth_id,
+                body.upi_tx_id,
             );
         } catch (error: any) {
             this.logger.error(`Recharge controller error: ${error.message}`);

@@ -14,12 +14,16 @@ import {
   CreditCard,
   PlusCircle,
   Check,
+  Copy,
+  QrCode,
+  ArrowLeft,
 } from 'lucide-react';
 import { PrePeSpinner } from '@/components/ui/BrandLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { triggerAutonomousRechargeRewards } from '@/services/rewards.service';
+import { QRCodeSVG } from 'qrcode.react';
 
 import {
   fetchBillDetails,
@@ -56,6 +60,11 @@ export function PostpaidBillForm() {
   const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [fetchingBill, setFetchingBill] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  const [showUpiCheckout, setShowUpiCheckout] = useState(false);
+  const [utrNumber, setUtrNumber] = useState('');
+  const [copiedVpa, setCopiedVpa] = useState(false);
+  const [copiedAmount, setCopiedAmount] = useState(false);
 
   useEffect(() => {
     if (location.state?.mobileNumber && location.state?.operatorId && user) {
@@ -228,6 +237,99 @@ export function PostpaidBillForm() {
     }
   };
 
+  const copyToClipboard = (text: string, type: 'vpa' | 'amount') => {
+    navigator.clipboard.writeText(text);
+    if (type === 'vpa') {
+      setCopiedVpa(true);
+      setTimeout(() => setCopiedVpa(false), 2000);
+    } else {
+      setCopiedAmount(true);
+      setTimeout(() => setCopiedAmount(false), 2000);
+    }
+    toast({
+      title: 'Copied!',
+      description: `${text} copied to clipboard`,
+    });
+  };
+
+  const handlePayBillDirectUpi = async () => {
+    if (!user) {
+      toast({
+        title: 'Login required',
+        description: 'Please log in to pay bill',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!isApproved) {
+      setShowKYCNudge(true);
+      return;
+    }
+
+    if (!billDetails) {
+      toast({
+        title: 'No bill found',
+        description: 'Fetch bill details first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!utrNumber || utrNumber.length !== 12) {
+      toast({
+        title: 'Invalid UTR Number',
+        description: 'UTR must be a 12-digit numeric reference ID.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setProcessing(true);
+
+    const result = await processPostpaidBill(user.id, billDetails, utrNumber);
+
+    setProcessing(false);
+
+    if (result.status === 'SUCCESS' || result.status === 'PENDING') {
+      try {
+        const isFromFav = location.state?.fromFavorite || false;
+        await triggerAutonomousRechargeRewards(user.id, billDetails.amount, isFromFav);
+      } catch (rewErr) {
+        console.error("Failed to credit autonomous postpaid rewards:", rewErr);
+      }
+      toast({
+        title: '🎉 Bill Submitted Successfully',
+        description: `Your bill payment of ₹${billDetails.amount} is being processed. UTR: ${utrNumber}`,
+      });
+
+      refetch();
+      
+      // Navigate to premium receipt view
+      navigate('/recharge/receipt', {
+        state: {
+          amount: billDetails.amount,
+          operator: POSTPAID_OPERATORS.find(op => op.id === selectedOperator)?.name || 'Postpaid',
+          number: mobileNumber,
+          refId: utrNumber || result.transaction_id || ('TXN-' + Math.random().toString(36).substring(7).toUpperCase()),
+          type: 'Postpaid Mobile Bill'
+        }
+      });
+
+      setBillDetails(null);
+      setMobileNumber('');
+      setSelectedOperator('');
+      setUtrNumber('');
+      setShowUpiCheckout(false);
+    } else {
+      toast({
+        title: '❌ Verification Failed',
+        description: result.message || 'The provided UPI UTR is invalid or already used.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const activeOpDetails = POSTPAID_OPERATORS.find(op => op.id === selectedOperator);
   const isBalanceSufficient = billDetails ? availableBalance >= billDetails.amount : true;
 
@@ -382,101 +484,168 @@ export function PostpaidBillForm() {
               </div>
 
               <CardContent className="p-6 sm:p-8 space-y-6">
-                {/* Statement details grid */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-5 text-sm pb-6 border-b border-slate-100">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Claimant Customer</p>
-                    <p className="font-black text-slate-800 leading-tight truncate">{billDetails.customer_name}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Account Mobile</p>
-                    <p className="font-black text-slate-800 leading-tight truncate">+91 {billDetails.mobile_number}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Invoice Serial</p>
-                    <p className="font-black text-slate-800 leading-tight truncate">{billDetails.bill_number}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Due Calendar</p>
-                    <p className="font-black text-red-500 leading-tight truncate">{billDetails.due_date}</p>
-                  </div>
-                </div>
-
-                {/* Payable Summary */}
-                <div className="bg-slate-50/70 border border-slate-150 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="text-center sm:text-left select-none">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">PAYABLE AMOUNT</span>
-                    <span className="text-xs font-bold text-slate-400 block">Includes dynamic BBPS cess & taxes</span>
-                  </div>
-                  <span className="font-black text-3xl text-slate-900 leading-none">
-                    ₹{Number(billDetails.amount).toLocaleString('en-IN')}
-                  </span>
-                </div>
-
-                {/* Balance validation alert / action */}
-                {!isBalanceSufficient ? (
-                  <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center justify-between gap-4 animate-in fade-in duration-200">
-                    <div className="flex gap-2.5 items-start">
-                      <ShieldAlert className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-wider text-rose-800">Insufficient Wallet Balance</p>
-                        <p className="text-[11px] text-rose-600 font-semibold mt-0.5">Please add funds to pay this postpaid bill statement.</p>
-                      </div>
+                {showUpiCheckout ? (
+                  /* BBPS UPI CHECKOUT GATEWAY */
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 pb-4 border-b border-slate-100 select-none">
+                      <button 
+                        onClick={() => setShowUpiCheckout(false)}
+                        className="p-1 hover:bg-slate-100 rounded-full transition-colors shrink-0"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-slate-600" />
+                      </button>
+                      <h4 className="font-black text-slate-800 text-xs uppercase tracking-wider">Direct UPI Settle</h4>
                     </div>
-                    
-                    <Button
-                      size="sm"
-                      onClick={() => navigate('/wallet/add')}
-                      className="bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl h-10 px-3 flex items-center gap-1.5 select-none shrink-0 shadow-sm"
-                    >
-                      <PlusCircle className="w-4 h-4" /> ADD
-                    </Button>
+
+                    <div className="space-y-4">
+                      {/* Tri-color stripe badge */}
+                      <div className="relative rounded-2xl bg-slate-50 border border-slate-150 p-4 space-y-2 select-none text-left">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF671F] via-white to-[#046A38]" />
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-black text-slate-400 uppercase tracking-wider">Payee Account</span>
+                          <span className="font-black text-slate-800">PrePe Technologies</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-black text-slate-400 uppercase tracking-wider">Payee UPI ID</span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono font-black text-indigo-600">s5698564172094253@slc</span>
+                            <button 
+                              onClick={() => copyToClipboard('s5698564172094253@slc', 'vpa')}
+                              className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-black text-slate-400 uppercase tracking-wider">Exact Amount</span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-black text-slate-800">₹{billDetails.amount}</span>
+                            <button 
+                              onClick={() => copyToClipboard(String(billDetails.amount), 'amount')}
+                              className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* QR code and direct pay link */}
+                      <div className="bg-slate-50 border border-slate-150 rounded-2xl p-6 text-center space-y-4">
+                        <QRCodeSVG 
+                          value={`upi://pay?pa=s5698564172094253@slc&pn=PrePe%20Technologies&am=${billDetails.amount}&cu=INR`} 
+                          size={160} 
+                          className="mx-auto rounded-xl p-2 border border-white bg-white shadow-xs" 
+                        />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-normal">
+                          Scan using any UPI App to Pay
+                        </p>
+
+                        {isMobile && (
+                          <a 
+                            href={`upi://pay?pa=s5698564172094253@slc&pn=PrePe%20Technologies&am=${billDetails.amount}&cu=INR`}
+                            className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 active:scale-[0.98] transition-all select-none"
+                          >
+                            <Smartphone className="w-4 h-4" />
+                            Pay via UPI App
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Step 2: UTR Reference confirmation */}
+                      <div className="space-y-2 text-left">
+                        <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Step 2: Enter 12-Digit UPI Ref No / UTR</Label>
+                        <Input
+                          type="text"
+                          maxLength={12}
+                          placeholder="Enter 12-digit UTR number"
+                          value={utrNumber}
+                          onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, '').substring(0, 12))}
+                          className="h-12 text-center text-lg font-black tracking-widest bg-slate-50 border-2 border-slate-200/80 rounded-xl focus:ring-2 focus:ring-[#FF671F]/10 focus:border-[#FF671F] focus:bg-white transition-all shadow-3xs"
+                        />
+                        <p className="text-[9px] font-semibold text-slate-400 leading-normal">
+                          Submit the 12-digit transaction ID (UTR) after completing your payment to authorize the bill settlement.
+                        </p>
+                      </div>
+
+                      {/* Authorize buttons */}
+                      <Button
+                        className="w-full h-14 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-green-600/10 active:scale-98 transition-all flex items-center justify-center gap-2 select-none"
+                        disabled={processing || utrNumber.length !== 12}
+                        onClick={handlePayBillDirectUpi}
+                      >
+                        {processing ? (
+                          <>
+                            <PrePeSpinner className="h-4.5 w-4.5" />
+                            Verifying Payment...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4.5 w-4.5 shrink-0" />
+                            VERIFY & SETTLE BILL
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="bg-emerald-50 border border-emerald-150 p-4 rounded-2xl flex gap-2.5 items-start select-none">
-                    <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-wider text-emerald-800">Wallet balance sufficient</p>
-                      <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">Your transaction is fully secured and covered by Pre-pe wallet.</p>
+                  /* BILL STATEMENT DUES DISPLAY */
+                  <>
+                    {/* Statement details grid */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-5 text-sm pb-6 border-b border-slate-100">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Claimant Customer</p>
+                        <p className="font-black text-slate-800 leading-tight truncate">{billDetails.customer_name}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Account Mobile</p>
+                        <p className="font-black text-slate-800 leading-tight truncate">+91 {billDetails.mobile_number}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Invoice Serial</p>
+                        <p className="font-black text-slate-800 leading-tight truncate">{billDetails.bill_number}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 select-none">Due Calendar</p>
+                        <p className="font-black text-red-500 leading-tight truncate">{billDetails.due_date}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                {/* Primary Action Button */}
-                <Button
-                  className={cn(
-                    "w-full h-14 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 select-none",
-                    isBalanceSufficient 
-                      ? "bg-green-600 hover:bg-green-700 text-white shadow-green-600/10" 
-                      : "bg-slate-200 hover:bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                  )}
-                  disabled={processing || !isBalanceSufficient}
-                  onClick={handlePayBill}
-                >
-                  {processing ? (
-                    <>
-                      <PrePeSpinner className="h-4.5 w-4.5" />
-                      Processing Payout...
-                    </>
-                  ) : (
-                    <>
+                    {/* Payable Summary */}
+                    <div className="bg-slate-50/70 border border-slate-150 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                      <div className="text-center sm:text-left select-none">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">PAYABLE AMOUNT</span>
+                        <span className="text-xs font-bold text-slate-400 block">Includes dynamic BBPS cess & taxes</span>
+                      </div>
+                      <span className="font-black text-3xl text-slate-900 leading-none">
+                        ₹{Number(billDetails.amount).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    {/* BBPS Direct Payment Restriction Alert Banner */}
+                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex gap-3 items-start select-none text-left">
+                      <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-amber-800">BBPS Payment Rule Alert</p>
+                        <p className="text-[11px] text-amber-700/90 font-medium mt-0.5 leading-relaxed">
+                          Bharat BillPay (BBPS) guidelines mandate direct transaction-wise payment. Wallet balance cannot be used for this bill.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Primary Action Button */}
+                    <Button
+                      className="w-full h-14 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 select-none bg-[#FF671F] hover:bg-[#FF671F]/90 text-white shadow-[#FF671F]/10"
+                      onClick={() => setShowUpiCheckout(true)}
+                    >
                       <CreditCard className="h-4.5 w-4.5 shrink-0" />
-                      PAY NOW ₹{Number(billDetails.amount).toLocaleString('en-IN')}
-                    </>
-                  )}
-                </Button>
-
-                {/* User wallet indicator */}
-                {user && (
-                  <p className="text-center text-xs font-black text-slate-400 uppercase tracking-widest mt-2 select-none leading-none">
-                    Pre-pe balance:
-                    <span className="font-black ml-1 text-slate-800 tracking-tight">
-                      ₹{availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </p>
+                      PROCEED TO PAY ₹{Number(billDetails.amount).toLocaleString('en-IN')}
+                    </Button>
+                  </>
                 )}
               </CardContent>
             </Card>

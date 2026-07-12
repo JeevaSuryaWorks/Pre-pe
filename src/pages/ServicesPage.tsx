@@ -9,6 +9,7 @@ import {
   SmartphoneCharging, 
   HandCoins, 
   ShieldCheck, 
+  ShieldAlert,
   Wifi,
   ChevronLeft,
   Search,
@@ -127,6 +128,17 @@ export default function ServicesPage() {
           <div className="mb-8 mt-4 px-2">
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">All Services</h1>
             <p className="text-slate-500 mt-1">Pay all your bills and recharges securely</p>
+          </div>
+
+          {/* BBPS Global Notice Banner */}
+          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-3xl flex items-start gap-3 shadow-xs select-none">
+            <ShieldAlert className="w-5.5 h-5.5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1 text-left">
+              <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider">BBPS Wallet Payment Restriction</h4>
+              <p className="text-[10px] text-amber-700/90 font-semibold leading-relaxed">
+                Bharat BillPay (BBPS) utility bills (Electricity, Postpaid, Water, Gas, Broadband, etc.) can no longer be paid using your wallet balance. All BBPS bills must be paid via direct transaction-wise UPI payments.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-10">

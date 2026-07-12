@@ -47,6 +47,48 @@ export async function processRecharge(
     : (isPostpaid ? `Postpaid Bill Paid - Mob: ${targetNumber}` : `Prepaid Recharge - Mob: ${targetNumber}`);
 
   try {
+    if (request.upi_tx_id) {
+      // 1. Insert direct upi transaction record
+      try {
+        await (supabase as any)
+          .from('upi_transactions')
+          .insert({
+            user_id: userId,
+            amount: Number(request.amount),
+            upi_ref_id: request.upi_tx_id,
+            gateway_status: 'SUCCESS',
+            payment_method: 'DIRECT_UPI_BBPS',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+      } catch (upiErr) {
+        console.warn('Direct UPI record insertion failed or already exists:', upiErr);
+      }
+
+      // 2. Insert main transaction row
+      await (supabase as any)
+        .from('transactions')
+        .insert({
+          user_id: userId,
+          type: 'DEBIT',
+          service_type: serviceType,
+          description: `BBPS Payment via UPI UTR: ${request.upi_tx_id} - ${displayDesc}`,
+          amount: Number(request.amount),
+          status: 'SUCCESS',
+          reference_id: request.upi_tx_id,
+          dth_id: request.dth_id || null,
+          mobile_number: request.mobile_number || null,
+          metadata: { operator_id: request.operator_id, direct_upi: true },
+          created_at: new Date().toISOString()
+        });
+        
+      return {
+        status: 'SUCCESS',
+        transaction_id: request.upi_tx_id,
+        message: 'Recharge processed via direct UPI payment successfully.',
+      };
+    }
+
     const { data: wallet } = await (supabase as any)
       .from('wallets')
       .select('id, balance')
@@ -197,12 +239,14 @@ export async function fetchBillDetails(
  */
 export async function processPostpaidBill(
   userId: string,
-  billDetails: any
+  billDetails: any,
+  upiTxId?: string
 ): Promise<ApiResponse<Transaction | null>> {
   return processRecharge(userId, {
     amount: billDetails.amount,
     mobile_number: billDetails.mobile_number,
     operator_id: billDetails.operator_id,
+    upi_tx_id: upiTxId,
   });
 }
 

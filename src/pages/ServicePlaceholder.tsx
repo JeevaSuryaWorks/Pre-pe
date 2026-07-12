@@ -250,9 +250,20 @@ const ServicePlaceholder = () => {
                                     {details.title}
                                 </h2>
                                 
-                                <p className="text-xs font-semibold text-slate-500 mb-6 leading-relaxed max-w-[280px]">
+                                <p className="text-xs font-semibold text-slate-500 mb-4 leading-relaxed max-w-[280px]">
                                     We are presently integrating this Bharat Connect service. Get ready for 1-click bills and instant rewards!
                                 </p>
+
+                                {/* BBPS Alert Banner */}
+                                <div className="mb-6 p-4.5 bg-amber-50 border border-amber-200 rounded-[24px] flex items-start gap-2.5 text-left select-none">
+                                    <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-wider text-amber-800">BBPS Payment Rule Notice</p>
+                                        <p className="text-[9px] text-amber-700 font-semibold mt-0.5 leading-normal">
+                                            As per new BBPS guidelines, this service will support direct transaction-wise UPI payments only. Deductions from wallet balance are not supported.
+                                        </p>
+                                    </div>
+                                </div>
 
                                 {/* Features List */}
                                 <div className="w-full space-y-3.5 text-left bg-slate-50 p-4.5 rounded-[24px] border border-slate-100 mb-6">
