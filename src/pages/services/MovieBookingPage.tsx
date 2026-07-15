@@ -11,8 +11,13 @@ import { useNavigate } from "react-router-dom";
 import { 
   Film, Sparkles, MapPin, ChevronLeft, Calendar, 
   Clock, Check, Ticket, AlertTriangle, Armchair, 
-  Smartphone, CreditCard, ChevronRight, Zap
+  Smartphone, CreditCard, ChevronRight, Zap, Info
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Movie {
@@ -26,6 +31,44 @@ interface Movie {
   banner: string;
   price: number;
 }
+
+const BackendLogicInfo = ({ title, userDesc, dbDesc }: { title: string; userDesc: string; dbDesc: string }) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button 
+          type="button" 
+          className="inline-flex items-center justify-center ml-1 text-slate-400 hover:text-blue-600 transition-colors focus:outline-none shrink-0" 
+          aria-label={`View billing logic for ${title}`}
+        >
+          <Info size={11} className="stroke-[2.5]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3.5 bg-white/95 backdrop-blur-md border border-slate-100 rounded-xl shadow-lg z-50 text-left">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] bg-blue-50 text-blue-600 font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
+              Billing Logic
+            </span>
+            <span className="text-[9px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              Active Waiver
+            </span>
+          </div>
+          <h4 className="text-[11px] font-black text-slate-800 tracking-tight">{title}</h4>
+          <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+            {userDesc}
+          </p>
+          <div className="border-t border-slate-100 pt-2 mt-1">
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Backend Integrity</p>
+            <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic bg-slate-50/50 p-1.5 rounded-md border border-slate-100/50">
+              {dbDesc}
+            </p>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const MOVIES: Movie[] = [
   {
@@ -486,17 +529,36 @@ export default function MovieBookingPage() {
 
                 {/* Transaction Summary Card */}
                 <div className="bg-white rounded-[2rem] border border-slate-100 p-5 shadow-3xs text-left space-y-3.5">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Order Summary</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Order Summary</h3>
+                    <span className="text-[9px] font-black text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 select-none">
+                      <Zap size={9} className="fill-current text-blue-500 animate-pulse" /> Pre-Pe Billing Engine
+                    </span>
+                  </div>
                   
                   <div className="space-y-2.5 text-xs font-bold text-slate-500 border-b border-slate-50 pb-3.5">
-                    <div className="flex justify-between">
-                      <span>Ticket Amount ({selectedSeats.length} seats)</span>
+                    <div className="flex justify-between items-center">
+                      <span className="flex items-center">
+                        <span>Ticket Amount ({selectedSeats.length} seats)</span>
+                        <BackendLogicInfo 
+                          title="Base Ticket Value" 
+                          userDesc="This is the cost of the seats selected at the theater's standard ticket rate. Pre-Pe does not add markup to movie tickets."
+                          dbDesc="Logged to tickets table and sent to cinema booking partner API during booking confirmation."
+                        />
+                      </span>
                       <span className="text-slate-800 font-black">₹{totalAmount.toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
-                        <span>Wallet Balance Used</span>
+                        <span className="flex items-center">
+                          <span>Wallet Balance Used</span>
+                          <BackendLogicInfo 
+                            title="Wallet Balance Deduction" 
+                            userDesc="Pre-Pe automatically applies your available wallet balance up to the total ticket price to make the booking instant."
+                            dbDesc="Queries wallets table matching user_id. Debited via backend transaction in walletService.debit & logged to wallet_ledger."
+                          />
+                        </span>
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Available: ₹{availableBalance.toFixed(2)}</span>
                       </div>
                       <span className="text-red-600 font-black">-₹{totalAmount.toFixed(2)}</span>
@@ -504,7 +566,14 @@ export default function MovieBookingPage() {
 
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
-                        <span>Convenience Fee</span>
+                        <span className="flex items-center">
+                          <span>Convenience Fee</span>
+                          <BackendLogicInfo 
+                            title="Convenience Fee Waiver" 
+                            userDesc="A standard 1% booking convenience fee is waived for all tickets purchased directly via Pre-Pe Wallet."
+                            dbDesc="Pre-Pe skips routing gateway fee ledger entries for transactions paid via Pre-Pe Wallet."
+                          />
+                        </span>
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">1% Waived</span>
                       </div>
                       <span className="flex items-center gap-1.5 mt-0.5">
@@ -515,7 +584,14 @@ export default function MovieBookingPage() {
 
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
-                        <span>Additional Charges</span>
+                        <span className="flex items-center">
+                          <span>Additional Charges</span>
+                          <BackendLogicInfo 
+                            title="PG & Card Fee Waiver" 
+                            userDesc="Credit card and online gateway processing surcharges (2%) are fully waived when paying with your wallet balance."
+                            dbDesc="Avoids credit card surcharge records by utilizing direct wallet debit updates."
+                          />
+                        </span>
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">PG / Credit Card Fee Waived</span>
                       </div>
                       <span className="flex items-center gap-1.5 mt-0.5">
@@ -527,7 +603,14 @@ export default function MovieBookingPage() {
 
                   <div className="flex justify-between items-center pt-1.5">
                     <div>
-                      <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Payable Amount</p>
+                      <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
+                        <span>Payable Amount</span>
+                        <BackendLogicInfo 
+                          title="Net Payable Amount" 
+                          userDesc="The net out-of-pocket amount. Since wallet balance covers this booking, your payable amount is zero."
+                          dbDesc="Calculated as ticket amount minus wallet deduction. Bypasses payment gateway as total is zero."
+                        />
+                      </p>
                       <p className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest leading-none">Wallet balance deducted</p>
                     </div>
                     <span className="text-2xl font-black text-slate-900 tracking-tighter">₹0.00</span>

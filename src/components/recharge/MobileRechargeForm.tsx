@@ -25,6 +25,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Contact,
   FlaskConical,
   ArrowLeft,
@@ -645,6 +650,44 @@ const matchesCategory = (plan: RechargePlan, tabId: string) => {
     default:
       return cat === tabId || desc.includes(tabId);
   }
+};
+
+const BackendLogicInfo = ({ title, userDesc, dbDesc }: { title: string; userDesc: string; dbDesc: string }) => {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button 
+          type="button" 
+          className="inline-flex items-center justify-center ml-1 text-slate-400 hover:text-blue-600 transition-colors focus:outline-none shrink-0" 
+          aria-label={`View billing logic for ${title}`}
+        >
+          <Info size={11} className="stroke-[2.5]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3.5 bg-white/95 backdrop-blur-md border border-slate-100 rounded-xl shadow-lg z-50 text-left">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] bg-blue-50 text-blue-600 font-black uppercase px-2 py-0.5 rounded-full tracking-wider">
+              Billing Logic
+            </span>
+            <span className="text-[9px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              Active Waiver
+            </span>
+          </div>
+          <h4 className="text-[11px] font-black text-slate-800 tracking-tight">{title}</h4>
+          <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+            {userDesc}
+          </p>
+          <div className="border-t border-slate-100 pt-2 mt-1">
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Backend Integrity</p>
+            <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic bg-slate-50/50 p-1.5 rounded-md border border-slate-100/50">
+              {dbDesc}
+            </p>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 type FlowStep = 'number' | 'details' | 'confirm' | 'result';
@@ -1330,17 +1373,36 @@ export function MobileRechargeForm({
 
           {/* 3. Order Summary Box */}
           <div className="bg-white rounded-[24px] border border-slate-100 p-5 shadow-3xs text-left space-y-3.5 w-full">
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">Order Summary</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Order Summary</h3>
+              <span className="text-[9px] font-black text-blue-600 bg-blue-50/70 px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 select-none">
+                <Zap size={9} className="fill-current text-blue-500 animate-pulse" /> Pre-Pe Billing Engine
+              </span>
+            </div>
             
             <div className="space-y-2.5 text-xs font-bold text-slate-500 border-b border-slate-50 pb-3.5">
-              <div className="flex justify-between">
-                <span>Recharge Amount</span>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center">
+                  <span>Recharge Amount</span>
+                  <BackendLogicInfo 
+                    title="Base Recharge Value" 
+                    userDesc="This is the actual plan amount chosen for mobile recharge. Pre-Pe does not add any extra charges or service markups to the base cost."
+                    dbDesc="Transmitted to backend API /recharge and processed via KwikAPI or direct carrier APIs."
+                  />
+                </span>
                 <span className="text-slate-800 font-black">₹{numAmount.toFixed(2)}</span>
               </div>
               
               <div className="flex justify-between items-start">
                 <div className="flex flex-col">
-                  <span>Wallet Balance Used</span>
+                  <span className="flex items-center">
+                    <span>Wallet Balance Used</span>
+                    <BackendLogicInfo 
+                      title="Wallet Balance Deduction" 
+                      userDesc="Pre-Pe automatically applies your available wallet balance up to the total recharge amount to make checkout fast and easy."
+                      dbDesc="Queries wallets table matching user_id. Debited via backend transaction in walletService.debit & logged to wallet_ledger."
+                    />
+                  </span>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Available: ₹{availableBalance.toFixed(2)}</span>
                 </div>
                 <span className="text-red-600 font-black">-₹{walletBalanceUsed.toFixed(2)}</span>
@@ -1348,7 +1410,14 @@ export function MobileRechargeForm({
 
               <div className="flex justify-between items-start">
                 <div className="flex flex-col">
-                  <span>Convenience Fee</span>
+                  <span className="flex items-center">
+                    <span>Convenience Fee</span>
+                    <BackendLogicInfo 
+                      title="Convenience Fee Waiver" 
+                      userDesc="A standard 1% convenience charge covers the costs of platform and server routing. Pre-Pe offers 100% waiver to encourage digital transactions."
+                      dbDesc="Pre-Pe skips routing gateway fee ledger entries for transactions paid via Pre-Pe Wallet or direct UPI."
+                    />
+                  </span>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">1% Waived</span>
                 </div>
                 <span className="flex items-center gap-1.5 mt-0.5">
@@ -1359,7 +1428,14 @@ export function MobileRechargeForm({
 
               <div className="flex justify-between items-start">
                 <div className="flex flex-col">
-                  <span>Additional Charges</span>
+                  <span className="flex items-center">
+                    <span>Additional Charges</span>
+                    <BackendLogicInfo 
+                      title="PG & Card Fee Waiver" 
+                      userDesc="Payment Gateway (PG) and Credit Card charges (2%) are completely waived for all wallet and direct UPI transaction flows."
+                      dbDesc="Avoids credit card surcharge records by utilizing direct UPI bank links or wallet balance updates."
+                    />
+                  </span>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">PG / Credit Card Fee Waived</span>
                 </div>
                 <span className="flex items-center gap-1.5 mt-0.5">
@@ -1371,7 +1447,14 @@ export function MobileRechargeForm({
 
             <div className="flex justify-between items-center pt-1.5">
               <div>
-                <p className="text-xs font-black text-slate-800 uppercase tracking-wider">Payable Amount</p>
+                <p className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center">
+                  <span>Payable Amount</span>
+                  <BackendLogicInfo 
+                    title="Net Payable Amount" 
+                    userDesc="This is the final amount you need to pay. If wallet balance covers the recharge, this is ₹0.00. Otherwise, you pay the shortfall."
+                    dbDesc="Calculated as Max(0, Recharge Amount - Wallet Balance Used). If > 0, initiates direct UPI payment flow."
+                  />
+                </p>
                 <p className="text-[8px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest leading-none">Wallet balance deducted</p>
               </div>
               <span className="text-2xl font-black text-slate-900 tracking-tighter">₹{payableAmount.toFixed(2)}</span>
