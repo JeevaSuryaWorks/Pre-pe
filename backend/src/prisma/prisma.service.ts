@@ -1,7 +1,11 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient, RechargeStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-export { RechargeStatus };
+export enum RechargeStatus {
+    PENDING = 'PENDING',
+    SUCCESS = 'SUCCESS',
+    FAILED = 'FAILED'
+}
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
