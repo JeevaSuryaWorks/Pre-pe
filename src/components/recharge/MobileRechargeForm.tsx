@@ -1387,7 +1387,7 @@ export function MobileRechargeForm({
                   <BackendLogicInfo 
                     title="Base Recharge Value" 
                     userDesc="This is the actual plan amount chosen for mobile recharge. Pre-Pe does not add any extra charges or service markups to the base cost."
-                    dbDesc="Transmitted to backend API /recharge and processed via KwikAPI or direct carrier APIs."
+                    dbDesc="Transmitted to backend API /recharge and processed via secure carrier APIs."
                   />
                 </span>
                 <span className="text-slate-800 font-black">₹{numAmount.toFixed(2)}</span>

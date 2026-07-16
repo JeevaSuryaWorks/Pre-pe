@@ -38,6 +38,10 @@ export const DTHEnterDetails = () => {
     const [amount, setAmount] = useState("");
     const [registeredMobile, setRegisteredMobile] = useState("");
 
+    // Step state
+    const [step, setStep] = useState<'entry' | 'details'>('entry');
+    const [verifiedId, setVerifiedId] = useState("");
+
     const [loading, setLoading] = useState(true);
     const [fetchingInfo, setFetchingInfo] = useState(false);
     const [customerInfo, setCustomerInfo] = useState<DTHCustomerInfoResponse['response']['info'][0] | null>(null);
@@ -56,7 +60,6 @@ export const DTHEnterDetails = () => {
     const [showKYCNudge, setShowKYCNudge] = useState(false);
 
     // DTH Plans State
-    const [showPlans, setShowPlans] = useState(false);
     const [plansLoading, setPlansLoading] = useState(false);
     const [plansData, setPlansData] = useState<Record<string, any> | null>(null);
     const [activeCategory, setActiveCategory] = useState<string>("");
@@ -80,64 +83,104 @@ export const DTHEnterDetails = () => {
             if (result.status === 'SUCCESS' && result.response?.info?.length) {
                 const info = result.response.info[0];
                 setCustomerInfo(info);
+                setVerifiedId(idToQuery);
                 
                 const lastAmt = info.lastrechargeamount ? info.lastrechargeamount.replace(/[^0-9.]/g, '') : '';
                 const monthlyAmt = info.monthlyRecharge ? info.monthlyRecharge.replace(/[^0-9.]/g, '') : '';
-                const targetAmt = lastAmt || monthlyAmt;
+                const targetAmt = monthlyAmt || lastAmt;
                 
                 if (targetAmt && parseFloat(targetAmt) > 0) {
                     setAmount(targetAmt);
                 }
+
+                // Prefetch plans inline
+                try {
+                    setPlansLoading(true);
+                    const plansRes = await fetchDTHPlans(operator.id);
+                    if (plansRes && plansRes.success && plansRes.plans && Object.keys(plansRes.plans).length > 0) {
+                        setPlansData(plansRes.plans);
+                        const categories = Object.keys(plansRes.plans);
+                        if (categories.length > 0) setActiveCategory(categories[0]);
+                    } else {
+                        const mockPlans = getMockDTHPlans(operator.name);
+                        setPlansData(mockPlans);
+                        const categories = Object.keys(mockPlans);
+                        if (categories.length > 0) setActiveCategory(categories[0]);
+                    }
+                } catch (pe) {
+                    const mockPlans = getMockDTHPlans(operator.name);
+                    setPlansData(mockPlans);
+                    const categories = Object.keys(mockPlans);
+                    if (categories.length > 0) setActiveCategory(categories[0]);
+                } finally {
+                    setPlansLoading(false);
+                }
+
+                setStep('details');
             } else {
                 setCustomerInfo(null);
                 toast({
                     title: "Verification Unavailable",
-                    description: "We couldn't verify DTH account info, but you can still enter your plan amount manually to recharge.",
+                    description: "Details could not be auto-verified, but you can enter details manually.",
                     variant: "default"
                 });
+                
+                // Prefetch mock/fallback plans
+                const mockPlans = getMockDTHPlans(operator.name);
+                setPlansData(mockPlans);
+                const categories = Object.keys(mockPlans);
+                if (categories.length > 0) setActiveCategory(categories[0]);
+                setStep('details');
             }
         } catch (error) {
             console.error("Error fetching DTH customer details:", error);
             setCustomerInfo(null);
             toast({
                 title: "Verification Offline",
-                description: "Account verification is offline. Please enter your recharge amount manually to proceed.",
+                description: "Account verification is offline. Please enter details manually.",
                 variant: "default"
             });
-        }
-        setFetchingInfo(false);
-    };
-
-    const handleOpenPlans = async () => {
-        if (!operator) return;
-        setShowPlans(true);
-        setPlansLoading(true);
-        try {
-            const result = await fetchDTHPlans(operator.id);
-            if (result && result.success && result.plans && Object.keys(result.plans).length > 0) {
-                setPlansData(result.plans);
-                const categories = Object.keys(result.plans);
-                if (categories.length > 0) setActiveCategory(categories[0]);
-            } else {
-                const mockPlans = getMockDTHPlans(operator.name);
-                setPlansData(mockPlans);
-                const categories = Object.keys(mockPlans);
-                if (categories.length > 0) setActiveCategory(categories[0]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch DTH plans:", error);
+            
+            // Prefetch mock/fallback plans
             const mockPlans = getMockDTHPlans(operator.name);
             setPlansData(mockPlans);
             const categories = Object.keys(mockPlans);
             if (categories.length > 0) setActiveCategory(categories[0]);
+            setStep('details');
         }
-        setPlansLoading(false);
+        setFetchingInfo(false);
     };
 
     const handleSelectPlan = (rs: number) => {
         setAmount(rs.toString());
-        setShowPlans(false);
     };
+
+    const getExpectedLength = () => {
+        if (!operator) return 0;
+        const code = operator.code.toUpperCase();
+        if (code.includes('AIRTEL')) return 10;
+        if (code.includes('TATA')) return 10;
+        if (code.includes('SUN')) return 11;
+        if (code.includes('D2H') || code.includes('VIDEOCON')) return 10;
+        if (code.includes('DISH')) return 10; // 10 or 11
+        return 10;
+    };
+
+    // Auto verification when target length format is matched
+    useEffect(() => {
+        if (!operator || !dthId || fetchingInfo) return;
+        const expected = getExpectedLength();
+        const code = operator.code.toUpperCase();
+        
+        let isMatching = dthId.length === expected;
+        if (code.includes('DISH')) {
+            isMatching = dthId.length === 10 || dthId.length === 11;
+        }
+
+        if (isMatching && dthId !== verifiedId) {
+            fetchInfo(dthId);
+        }
+    }, [dthId, operator]);
 
     useEffect(() => {
         if (operator && location.state?.dthId) {
@@ -146,6 +189,17 @@ export const DTHEnterDetails = () => {
             fetchInfo(prefilledId);
         }
     }, [operator, location.state]);
+
+    const handleBack = () => {
+        if (step === 'details') {
+            setStep('entry');
+            setVerifiedId('');
+            setCustomerInfo(null);
+            setAmount('');
+        } else {
+            navigate(-1);
+        }
+    };
 
     const handleConfirm = () => {
         if (!dthId) {
@@ -167,7 +221,7 @@ export const DTHEnterDetails = () => {
 
         // Split Payment Logic Check
         if (rechargeAmount > availableBalance) {
-            initiateSplitPayment(rechargeAmount);
+            initiateSplitPayment(rechargeAmount - availableBalance);
             return;
         }
 
@@ -289,206 +343,308 @@ export const DTHEnterDetails = () => {
                     } 
                 });
             } else {
-                toast({ title: 'Recharge Failed', description: result.message, variant: 'destructive' });
+                toast({ title: 'Failed', description: result.message, variant: 'destructive' });
             }
         }, 1500);
     };
 
-    if (loading) return <div className="p-8 flex justify-center items-center h-64"><Loader2 className="animate-spin text-indigo-600 h-8 w-8" /></div>;
+    if (loading) {
+        return (
+            <Layout title="Enter Details" showBack>
+                <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+                    <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
+                    <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest animate-pulse">Syncing Gateway...</span>
+                </div>
+            </Layout>
+        );
+    }
 
-    const needsSplitPayment = parseFloat(amount || "0") > availableBalance;
-    const payFromWallet = needsSplitPayment ? availableBalance : parseFloat(amount || "0");
-    const payFromUpi = needsSplitPayment ? (parseFloat(amount || "0") - availableBalance) : 0;
+    const rechargeAmountVal = parseFloat(amount || '0');
+    const needsSplitPayment = rechargeAmountVal > availableBalance;
+    const payFromWallet = needsSplitPayment ? availableBalance : rechargeAmountVal;
+    const payFromUpi = needsSplitPayment ? rechargeAmountVal - availableBalance : 0;
 
     return (
-        <Layout title="Enter Details" showBack>
+        <Layout title={step === 'details' ? "Confirm & Pay" : "Enter Details"} showBack onBack={handleBack}>
             <div className="relative bg-[#f8fbfe] min-h-screen pb-24 overflow-hidden text-slate-850 font-sans select-none">
                 {/* Decorative Premium Glow Background Blobs */}
-                <div className="absolute top-[-10%] left-[-20%] w-[300px] h-[300px] bg-gradient-to-br from-indigo-200/30 via-purple-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-[20%] right-[-10%] w-[250px] h-[250px] bg-gradient-to-br from-emerald-100/20 via-teal-50/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-[-10%] left-[-20%] w-[350px] h-[350px] bg-gradient-to-br from-indigo-200/30 via-purple-100/20 to-transparent rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-[20%] right-[-10%] w-[300px] h-[300px] bg-gradient-to-br from-emerald-100/20 via-teal-50/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-                {/* Bharat Connect Logo */}
-                <div className="absolute top-4 right-4 opacity-90 transition-all duration-300 hover:opacity-100 z-50">
-                    <img 
+                {/* Bharat Connect Header */}
+                <div className="absolute top-4 right-4 z-50 transition-all duration-300 hover:opacity-100 opacity-90">
+                    <img
                         src="/bharat-connect.svg" 
                         alt="Bharat Connect"
-                        className="h-7 w-auto object-contain drop-shadow-sm" 
+                        className="h-7 w-auto object-contain drop-shadow-sm"
                     />
                 </div>
 
                 <div className="p-4 space-y-6 max-w-md mx-auto relative z-10 pt-6">
                     {/* Visual Intro Badge */}
-                    <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100/80 px-3.5 py-1.5 rounded-full text-xs font-black w-fit animate-pulse shadow-sm">
+                    <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-100/85 px-3.5 py-1.5 rounded-full text-xs font-black w-fit animate-pulse shadow-sm">
                         <Sparkles className="h-3.5 w-3.5 text-indigo-500 animate-spin" style={{ animationDuration: '3s' }} />
-                        <span>BBPS SECURE DIRECT TRANSACTION ENTRY</span>
+                        <span>BBPS SECURE DIRECT DTH RECHARGE</span>
                     </div>
 
-                    {/* Operator Header Card */}
-                    {operator && (
-                        <div className="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-slate-100 flex items-center justify-between transition-all hover:border-indigo-200 hover:bg-white shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
-                                    <Avatar className="h-full w-full rounded-none">
-                                        <AvatarImage src={operator.logo || ''} className="object-contain" />
-                                        <AvatarFallback className="bg-indigo-50 text-indigo-600 text-xs font-black rounded-lg">{operator.name[0]}</AvatarFallback>
-                                    </Avatar>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-extrabold text-slate-800 leading-tight">{operator.name}</span>
-                                    <span className="text-[10px] text-slate-500 font-bold tracking-wider uppercase mt-1">DTH Operator</span>
-                                </div>
-                            </div>
-                            <Button 
-                                variant="ghost" 
-                                className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 h-8 px-3 rounded-xl text-xs font-black transition-all active:scale-95 border border-indigo-100/50" 
-                                onClick={() => navigate(-1)}
-                            >
-                                Change
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Subscriber ID input */}
-                    <div className="space-y-2">
-                        <div className="relative group transition-all duration-300">
-                            <Input
-                                placeholder="Customer ID / Subscriber ID"
-                                className="h-14 text-base bg-white/90 border-slate-200 rounded-2xl shadow-sm text-slate-900 group-focus-within:border-indigo-500 group-focus-within:ring-4 group-focus-within:ring-indigo-500/10 transition-all placeholder:text-slate-400 font-semibold pl-4"
-                                value={dthId}
-                                onChange={(e) => setDthId(e.target.value)}
-                            />
-                            {fetchingInfo && (
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex justify-between items-center px-1">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                                <Info className="h-3.5 w-3.5 text-slate-400" /> Min 6 digits subscriber ID
-                            </span>
-                            {dthId.length >= 6 && (
-                                <button 
-                                    onClick={() => fetchInfo()} 
-                                    disabled={fetchingInfo}
-                                    className="text-[10px] text-indigo-600 hover:text-indigo-700 disabled:opacity-50 font-black uppercase transition-colors cursor-pointer flex items-center gap-1"
-                                >
-                                    {fetchingInfo ? (
-                                        <>
-                                            <Loader2 className="h-3 w-3 animate-spin text-indigo-500" /> Verifying...
-                                        </>
-                                    ) : (
-                                        'Verify Account'
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Customer Info Card if fetched */}
-                    {customerInfo && (
-                        <div className="bg-gradient-to-br from-white/95 via-indigo-50/40 to-white/95 border border-indigo-100 shadow-xl rounded-3xl p-5 relative overflow-hidden animate-fade-in shadow-indigo-500/5 group text-slate-800">
-                            {/* Ticket Cut-Out Circles on left and right borders */}
-                            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-r border-indigo-100 z-10" />
-                            <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-l border-indigo-100 z-10" />
-                            <div className="absolute top-[-20%] right-[-10%] w-[120px] h-[120px] bg-indigo-100/20 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-100/40 transition-all duration-500" />
-                            
-                            <div className="flex justify-between items-center border-b border-indigo-100 border-dashed pb-3 mb-3">
-                                <div className="flex items-center gap-2">
-                                    <ShieldCheck className="h-4 w-4 text-emerald-500 animate-pulse" />
-                                    <span className="text-xs font-extrabold tracking-widest uppercase text-indigo-700">VERIFIED CUSTOMER TICKET</span>
-                                </div>
-                                <span className="text-[9px] bg-emerald-50 text-emerald-700 font-black px-2 py-0.5 rounded-full border border-emerald-200 tracking-widest">LIVE</span>
-                            </div>
-                            
-                            <div className="space-y-3 text-xs font-semibold">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 uppercase tracking-wider text-[10px]">Subscriber Name</span>
-                                    <span className="font-extrabold text-slate-800 text-sm">{customerInfo.customerName || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 uppercase tracking-wider text-[10px]">Available Balance</span>
-                                    <span className="font-extrabold text-emerald-600 text-sm">₹{customerInfo.balance || '0.00'}</span>
-                                </div>
-                                {customerInfo.planname && (
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-500 uppercase tracking-wider text-[10px]">Active Package</span>
-                                        <span className="font-extrabold text-indigo-600 truncate max-w-[60%] text-right">{customerInfo.planname}</span>
+                    {/* Step 1: Entry View */}
+                    {step === 'entry' && (
+                        <div className="space-y-6 animate-fade-in">
+                            {/* Operator Card */}
+                            {operator && (
+                                <div className="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-slate-100 flex items-center justify-between transition-all hover:border-indigo-200 hover:bg-white shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-12 w-12 p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                                            <Avatar className="h-full w-full rounded-none">
+                                                <AvatarImage src={operator.logo || ''} className="object-contain" />
+                                                <AvatarFallback className="bg-indigo-50 text-indigo-600 text-xs font-black rounded-lg">{operator.name[0]}</AvatarFallback>
+                                            </Avatar>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-extrabold text-slate-800 leading-tight">{operator.name}</span>
+                                            <span className="text-[10px] text-slate-500 font-bold tracking-wider uppercase mt-1">DTH Operator</span>
+                                        </div>
                                     </div>
-                                )}
+                                    <Button 
+                                        variant="ghost" 
+                                        className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 h-8 px-3 rounded-xl text-xs font-black transition-all active:scale-95 border border-indigo-100/50" 
+                                        onClick={() => navigate('/dth-recharge')}
+                                    >
+                                        Change
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Subscriber ID input */}
+                            <div className="bg-white/90 backdrop-blur-md p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                                <Label className="text-xs text-slate-550 font-extrabold uppercase tracking-widest block mb-1">Enter Customer ID / Subscriber ID</Label>
+                                <div className="relative group transition-all duration-300">
+                                    <Tv className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-500 transition-transform group-focus-within:scale-110" />
+                                    <Input
+                                        placeholder="Customer ID / Subscriber ID"
+                                        className="pl-12 pr-4 h-14 bg-white border-slate-200 rounded-2xl shadow-sm text-slate-900 focus-visible:border-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-500/10 transition-all text-base placeholder:text-slate-400 font-semibold"
+                                        value={dthId}
+                                        onChange={(e) => setDthId(e.target.value.replace(/\D/g, ''))}
+                                    />
+                                </div>
+
+                                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 px-1">
+                                    <span>MIN 6 DIGITS SUBSCRIBER ID</span>
+                                    {fetchingInfo && (
+                                        <span className="text-indigo-600 animate-pulse flex items-center gap-1">
+                                            <Loader2 className="h-3 w-3 animate-spin" /> Auto-Verifying...
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Amount Input */}
-                    <div className="bg-white/85 backdrop-blur-md p-5 rounded-3xl border border-slate-100 group focus-within:border-indigo-200 transition-all shadow-sm">
-                        <div className="flex justify-between items-center mb-2 px-1">
-                            <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Recharge Amount</span>
-                            <div className="flex items-center gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={handleOpenPlans}
-                                    className="text-[10px] text-indigo-600 hover:text-indigo-700 font-black uppercase tracking-wider transition-colors mr-1 cursor-pointer"
-                                >
-                                    View Plans
-                                </button>
-                                <span className="text-slate-300 text-[10px]">|</span>
-                                <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5 shrink-0">
-                                    <Wallet className="h-3 w-3" /> BAL: ₹{availableBalance.toFixed(2)}
-                                </span>
+                    {/* Step 2: Details & Plans View */}
+                    {step === 'details' && (
+                        <div className="space-y-6 animate-fade-in">
+                            {/* Unified Customer Ticket Details Card */}
+                            <div className="bg-gradient-to-br from-white/95 via-indigo-50/40 to-white/95 border border-indigo-100 shadow-xl rounded-3xl p-5 relative overflow-hidden text-slate-800">
+                                {/* Ticket Cut-Out Circles on left and right borders */}
+                                <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-r border-indigo-100 z-10" />
+                                <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-l border-indigo-100 z-10" />
+
+                                <div className="flex justify-between items-center border-b border-indigo-100 border-dashed pb-3 mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck className="h-4 w-4 text-emerald-500 animate-pulse" />
+                                        <span className="text-xs font-extrabold tracking-widest uppercase text-indigo-700">VERIFIED CUSTOMER TICKET</span>
+                                    </div>
+                                    <span className="text-[9px] bg-emerald-50 text-emerald-700 font-black px-2.5 py-0.5 rounded-full border border-emerald-200 tracking-widest uppercase flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                        {customerInfo?.status || "ACTIVE"}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-xs font-semibold text-slate-500">
+                                    <div className="col-span-2 border-b border-indigo-50 pb-2">
+                                        <span className="text-[10px] uppercase tracking-wider block text-slate-400 mb-0.5">Subscriber Name</span>
+                                        <span className="text-sm font-black text-slate-800 block truncate">{customerInfo?.customerName || "Manual DTH Recharge User"}</span>
+                                    </div>
+
+                                    <div>
+                                        <span className="text-[10px] uppercase tracking-wider block text-slate-400 mb-0.5">Subscriber ID</span>
+                                        <span className="font-bold text-slate-800">{dthId}</span>
+                                    </div>
+
+                                    <div>
+                                        <span className="text-[10px] uppercase tracking-wider block text-slate-400 mb-0.5">Registered Mobile</span>
+                                        <span className="font-bold text-slate-800 truncate block">{user?.phone || "N/A"}</span>
+                                    </div>
+
+                                    {customerInfo?.balance && (
+                                        <div>
+                                            <span className="text-[10px] uppercase tracking-wider block text-slate-400 mb-0.5">Current DTH Balance</span>
+                                            <span className="font-extrabold text-indigo-600">₹{customerInfo.balance}</span>
+                                        </div>
+                                    )}
+
+                                    {customerInfo?.monthlyRecharge && (
+                                        <div>
+                                            <span className="text-[10px] uppercase tracking-wider block text-slate-400 mb-0.5">Monthly Recharge</span>
+                                            <span className="font-extrabold text-emerald-600">₹{customerInfo.monthlyRecharge}</span>
+                                        </div>
+                                    )}
+
+                                    {customerInfo?.lastrechargeamount && (
+                                        <div className="col-span-2 border-t border-indigo-50 pt-2 flex justify-between items-center text-[11px]">
+                                            <span className="text-slate-400">Last Recharge</span>
+                                            <span className="font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-md px-2 py-0.5">
+                                                ₹{customerInfo.lastrechargeamount} {customerInfo.lastrechargedate ? `on ${customerInfo.lastrechargedate}` : ''}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Operator Card showing Change option */}
+                            {operator && (
+                                <div className="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-slate-100 flex items-center justify-between transition-all hover:border-indigo-200 hover:bg-white shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 p-1.5 bg-slate-50 border border-slate-150 rounded-xl flex items-center justify-center overflow-hidden">
+                                            <img src={operator.logo || ''} alt={operator.name} className="h-full w-full object-contain" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-slate-800 text-xs leading-tight">{operator.name}</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Subscriber ID: {dthId}</span>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        variant="ghost" 
+                                        className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 h-8 px-2.5 rounded-lg text-xs font-black transition-all active:scale-95" 
+                                        onClick={handleBack}
+                                    >
+                                        Edit ID
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Amount Input Card */}
+                            <div className="bg-white/85 backdrop-blur-md p-5 rounded-3xl border border-slate-100 group focus-within:border-indigo-200 transition-all shadow-sm">
+                                <div className="flex justify-between items-center mb-2 px-1">
+                                    <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Recharge Amount</span>
+                                    <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5 shrink-0">
+                                        <Wallet className="h-3 w-3" /> BAL: ₹{availableBalance.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="relative flex items-center">
+                                    <span className="absolute left-1 text-3xl font-black text-slate-900">₹</span>
+                                    <Input
+                                        type="number"
+                                        placeholder="0"
+                                        className="pl-7 pr-4 h-16 bg-transparent border-none text-3xl font-black text-slate-900 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-300"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Suggestion pills */}
+                                <div className="flex gap-2.5 mt-4 overflow-x-auto no-scrollbar py-1">
+                                    {['150', '250', '500', '1000'].map(pill => (
+                                        <Button
+                                            key={pill}
+                                            variant="outline"
+                                            className={`rounded-xl px-4 py-1.5 h-auto text-xs font-bold border-slate-100 hover:bg-indigo-50/50 hover:text-indigo-600 hover:border-indigo-200 active:scale-95 transition-all ${amount === pill ? 'bg-indigo-50 border-indigo-300 text-indigo-600 font-extrabold' : 'bg-white text-slate-600'}`}
+                                            onClick={() => setAmount(pill)}
+                                        >
+                                            ₹{pill}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Inline DTH Plans List */}
+                            {plansLoading ? (
+                                <div className="flex flex-col items-center justify-center py-8 space-y-3 bg-white/70 rounded-3xl p-5 border border-slate-100 shadow-sm">
+                                    <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
+                                    <span className="text-xs text-slate-500 font-bold tracking-widest uppercase animate-pulse">Fetching Operator Plans...</span>
+                                </div>
+                            ) : plansData && Object.keys(plansData).length > 0 ? (
+                                <div className="bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                                    <div className="flex items-center gap-2 px-1">
+                                        <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse" />
+                                        <h3 className="font-extrabold text-xs tracking-tight text-slate-900 uppercase">Available Plans & Combo Packs</h3>
+                                    </div>
+                                    
+                                    <Tabs value={activeCategory} onValueChange={setActiveCategory} className="space-y-4">
+                                        <TabsList className="bg-slate-50 p-1 rounded-2xl border border-slate-100 overflow-x-auto justify-start no-scrollbar flex flex-row w-full">
+                                            {Object.keys(plansData).map((category) => (
+                                                <TabsTrigger 
+                                                    key={category} 
+                                                    value={category}
+                                                    className="rounded-xl px-4 py-2 text-xs font-black tracking-wider transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-slate-100 shrink-0"
+                                                >
+                                                    {category}
+                                                </TabsTrigger>
+                                            ))}
+                                        </TabsList>
+
+                                        <div className="max-h-[350px] overflow-y-auto pr-1 no-scrollbar space-y-3">
+                                            {Object.keys(plansData).map((category) => (
+                                                <TabsContent key={category} value={category} className="space-y-3 mt-0 focus-visible:outline-none">
+                                                    {plansData[category].map((plan: any, idx: number) => (
+                                                        <div 
+                                                            key={`${category}-plan-${idx}`}
+                                                            onClick={() => handleSelectPlan(plan.rs)}
+                                                            className="bg-slate-50/50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-200 rounded-3xl p-4 transition-all active:scale-[0.99] cursor-pointer group flex justify-between items-start gap-4"
+                                                        >
+                                                            <div className="space-y-1.5 flex-1 min-w-0 text-left">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[9px] bg-indigo-50/80 text-indigo-700 font-black px-2.5 py-0.5 rounded-full border border-indigo-100 uppercase tracking-widest">
+                                                                        {plan.Type || 'Plan'}
+                                                                    </span>
+                                                                    {plan.validity && (
+                                                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                                            {plan.validity}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs font-semibold text-slate-650 leading-relaxed group-hover:text-slate-800 transition-colors">
+                                                                    {plan.desc}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right shrink-0">
+                                                                <div className="text-lg font-black text-indigo-600">₹{plan.rs}</div>
+                                                                <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider mt-1 block">
+                                                                    SELECT
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </TabsContent>
+                                            ))}
+                                        </div>
+                                    </Tabs>
+                                </div>
+                            ) : null}
+
+                            {/* Proceed Button */}
+                            <Button 
+                                className={`w-full h-14 text-base font-extrabold shadow-md rounded-2xl transition-all duration-300 active:scale-[0.98] ${
+                                    amount && dthId 
+                                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white shadow-indigo-500/20' 
+                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
+                                }`}
+                                onClick={handleConfirm} 
+                                disabled={!amount || !dthId}
+                            >
+                                Confirm & Proceed
+                            </Button>
+
+                            {/* Security BBPS Info */}
+                            <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 border border-slate-100 flex gap-3 text-xs leading-relaxed text-slate-500">
+                                <AlertCircle className="h-5 w-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <span className="font-extrabold text-slate-800 block mb-0.5">BBPS Secure Pay Protection</span>
+                                    Please verify the Customer ID and plan amount before proceeding. Recharges cannot be rolled back after completion under operator guidelines.
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-center">
-                            <span className="text-3xl font-black text-indigo-500 mr-2 select-none">₹</span>
-                            <Input
-                                className="border-0 shadow-none text-3xl font-black p-0 h-auto focus-visible:ring-0 placeholder:text-slate-300 bg-transparent text-slate-800 w-full"
-                                placeholder="0"
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                            />
-                        </div>
-                        
-                        {/* Amount Suggestion Pills */}
-                        <div className="flex gap-2 mt-4 pt-1 overflow-x-auto no-scrollbar">
-                            {['150', '250', '500', '1000'].map((val) => (
-                                <button
-                                    key={`suggest-${val}`}
-                                    type="button"
-                                    onClick={() => setAmount(val)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider border transition-all active:scale-95 flex-shrink-0 ${
-                                        amount === val 
-                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                                            : 'bg-slate-50 border-slate-100 text-slate-500 hover:text-slate-700 hover:border-slate-200 hover:bg-slate-100'
-                                    }`}
-                                >
-                                    ₹{val}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Proceed Button */}
-                    <Button 
-                        className={`w-full h-14 text-base font-extrabold shadow-md rounded-2xl transition-all duration-300 active:scale-[0.98] ${
-                            amount && dthId 
-                                ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white shadow-indigo-500/20' 
-                                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
-                        }`}
-                        onClick={handleConfirm} 
-                        disabled={!amount || !dthId}
-                    >
-                        Confirm & Proceed
-                    </Button>
-
-                    {/* Security BBPS Info */}
-                    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 border border-slate-100 flex gap-3 text-xs leading-relaxed text-slate-500">
-                        <AlertCircle className="h-5 w-5 text-indigo-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                            <span className="font-extrabold text-slate-800 block mb-0.5">BBPS Secure Pay Protection</span>
-                            Please verify the Customer ID and plan amount before proceeding. Recharges cannot be rolled back after completion under KwikApi guidelines.
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
@@ -602,22 +758,22 @@ export const DTHEnterDetails = () => {
                                     )}
                                 </div>
                             )}
-                        </div>
 
-                        {/* Fixed Footer Button */}
-                        <div className="p-4 bg-slate-50 border-t border-slate-150">
-                            <Button
-                                className={`w-full h-13 text-sm font-extrabold text-white rounded-2xl shadow-lg transition-all active:scale-[0.98] ${
-                                    processing || !!upiState
-                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
-                                        : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 shadow-indigo-500/10'
-                                }`}
-                                onClick={handleProceedToPay}
-                                disabled={processing || !!upiState}
-                            >
-                                {processing ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
-                                {upiState ? 'Awaiting payment confirmation...' : 'Confirm & Proceed to Pay'}
-                            </Button>
+                            {/* Action Button */}
+                            <div className="pt-2">
+                                <Button
+                                    className={`w-full h-13 text-sm font-extrabold text-white rounded-2xl shadow-lg transition-all active:scale-[0.98] ${
+                                        processing || !!upiState
+                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
+                                            : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 shadow-indigo-500/10'
+                                    }`}
+                                    onClick={handleProceedToPay}
+                                    disabled={processing || !!upiState}
+                                >
+                                    {processing ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                                    {upiState ? 'Awaiting payment confirmation...' : 'Confirm & Proceed to Pay'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </DialogContent>
@@ -628,88 +784,6 @@ export const DTHEnterDetails = () => {
                 onClose={() => setShowKYCNudge(false)}
                 featureName="DTH Recharge"
             />
-
-            {/* DTH Recharge Plans Dialog */}
-            <Dialog open={showPlans} onOpenChange={setShowPlans}>
-                <DialogContent className="max-w-md rounded-3xl p-6 overflow-hidden bg-white border border-slate-150 shadow-2xl text-slate-800 flex flex-col max-h-[85vh]">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse" />
-                            <h3 className="font-extrabold text-lg tracking-tight text-slate-900">DTH Recharge Plans</h3>
-                        </div>
-                        <button 
-                            onClick={() => setShowPlans(false)} 
-                            className="text-xs text-slate-400 hover:text-slate-600 font-bold uppercase cursor-pointer"
-                        >
-                            Close
-                        </button>
-                    </div>
-
-                    {plansLoading ? (
-                        <div className="flex flex-col items-center justify-center py-20 space-y-3">
-                            <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
-                            <span className="text-xs text-slate-500 font-bold tracking-widest uppercase animate-pulse">Fetching Plans...</span>
-                        </div>
-                    ) : plansData && Object.keys(plansData).length > 0 ? (
-                        <div className="flex-1 flex flex-col min-h-0">
-                            <Tabs value={activeCategory} onValueChange={setActiveCategory} className="flex-1 flex flex-col min-h-0">
-                                <TabsList className="bg-slate-50 p-1 rounded-2xl border border-slate-100 overflow-x-auto justify-start no-scrollbar flex flex-row w-full shrink-0">
-                                    {Object.keys(plansData).map((category) => (
-                                        <TabsTrigger 
-                                            key={category} 
-                                            value={category}
-                                            className="rounded-xl px-4 py-2 text-xs font-black tracking-wider transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-slate-100 shrink-0"
-                                        >
-                                            {category}
-                                        </TabsTrigger>
-                                    ))}
-                                </TabsList>
-
-                                <div className="flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar space-y-3 min-h-0 pb-4">
-                                    {Object.keys(plansData).map((category) => (
-                                        <TabsContent key={category} value={category} className="space-y-3 focus-visible:outline-none">
-                                            {plansData[category].map((plan: any, idx: number) => (
-                                                <div 
-                                                    key={`${category}-plan-${idx}`}
-                                                    onClick={() => handleSelectPlan(plan.rs)}
-                                                    className="bg-slate-50/50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-205 rounded-3xl p-4 transition-all active:scale-[0.99] cursor-pointer group flex justify-between items-start gap-4"
-                                                >
-                                                    <div className="space-y-1.5 flex-1 min-w-0 text-left">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-black px-2.5 py-0.5 rounded-full border border-indigo-100 uppercase tracking-widest">
-                                                                {plan.Type || 'Plan'}
-                                                            </span>
-                                                            {plan.validity && (
-                                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                                    Validity: {plan.validity}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-xs font-semibold text-slate-650 leading-relaxed group-hover:text-slate-800">
-                                                            {plan.desc}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right shrink-0">
-                                                        <div className="text-lg font-black text-indigo-600">₹{plan.rs}</div>
-                                                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md uppercase tracking-wider mt-1 block">
-                                                            SELECT
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </TabsContent>
-                                    ))}
-                                </div>
-                            </Tabs>
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-                            <div className="text-3xl mb-2">📡</div>
-                            <p className="text-sm text-slate-500 font-bold">No active plans found for this operator</p>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
         </Layout>
     );
 };
@@ -814,4 +888,3 @@ const getMockDTHPlans = (operatorName: string): Record<string, { rs: number; val
         ]
     };
 };
-
