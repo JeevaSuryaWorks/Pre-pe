@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
@@ -7,7 +8,7 @@ import { getOperators } from '@/services/operator.service';
 import type { Operator } from '@/types/recharge.types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchDTHCustomerDetails, fetchDTHPlans, DTHCustomerInfoResponse } from '@/services/kwikApiService';
-import { Loader2, ArrowRight, ShieldCheck, Wallet, AlertCircle, Info, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Wallet, AlertCircle, Info, Sparkles, CheckCircle2, XCircle, Tv } from "lucide-react";
 import { processRecharge } from '@/services/recharge.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
