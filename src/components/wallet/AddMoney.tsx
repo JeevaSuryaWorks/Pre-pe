@@ -420,7 +420,7 @@ export function AddMoney({ initialAmount = '', onSuccess }: AddMoneyProps) {
     }
   };
 
-  const fallbackIntentUrl = `upi://pay?pa=${selectedUpiVpa}&pn=${encodeURIComponent('PrePe Technologies')}&am=${amount || '0'}&cu=INR&mode=02`;
+  const fallbackIntentUrl = `upi://pay?pa=${selectedUpiVpa}&pn=${encodeURIComponent('Jeevasurya Palanisamy')}&am=${amount || '0'}&cu=INR`;
   const activeQrUrl = manualIntentUrl || fallbackIntentUrl;
 
   return (

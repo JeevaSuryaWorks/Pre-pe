@@ -577,11 +577,11 @@ export class WalletService implements OnModuleInit {
         }
         
         const merchantCode = '5732'; // Electronics/Telecommunication (standard for mobile shops)
-        const businessName = 'PrePe Technologies';
+        const businessName = 'Jeevasurya Palanisamy';
         const upiUrl =
             'upi://pay' +
             `?pa=${vpa}` +
-            '&pn=PrePe%20Technologies' +
+            '&pn=Jeevasurya%20Palanisamy' +
             `&am=${Number(amount).toFixed(2)}` +
             '&cu=INR';
         const intentUrl = upiUrl;

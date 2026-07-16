@@ -503,7 +503,7 @@ export function PostpaidBillForm() {
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF671F] via-white to-[#046A38]" />
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-black text-slate-400 uppercase tracking-wider">Payee Account</span>
-                          <span className="font-black text-slate-800">PrePe Technologies</span>
+                          <span className="font-black text-slate-800">Jeevasurya Palanisamy</span>
                         </div>
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-black text-slate-400 uppercase tracking-wider">Payee UPI ID</span>
@@ -534,7 +534,7 @@ export function PostpaidBillForm() {
                       {/* QR code and direct pay link */}
                       <div className="bg-slate-50 border border-slate-150 rounded-2xl p-6 text-center space-y-4">
                         <QRCodeSVG 
-                          value={`upi://pay?pa=s5698564172094253@slc&pn=PrePe%20Technologies&am=${billDetails.amount}&cu=INR`} 
+                          value={`upi://pay?pa=s5698564172094253@slc&pn=Jeevasurya%20Palanisamy&am=${billDetails.amount}&cu=INR`} 
                           size={160} 
                           className="mx-auto rounded-xl p-2 border border-white bg-white shadow-xs" 
                         />
@@ -544,7 +544,7 @@ export function PostpaidBillForm() {
 
                         {isMobile && (
                           <a 
-                            href={`upi://pay?pa=s5698564172094253@slc&pn=PrePe%20Technologies&am=${billDetails.amount}&cu=INR`}
+                            href={`upi://pay?pa=s5698564172094253@slc&pn=Jeevasurya%20Palanisamy&am=${billDetails.amount}&cu=INR`}
                             className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 active:scale-[0.98] transition-all select-none"
                           >
                             <Smartphone className="w-4 h-4" />
