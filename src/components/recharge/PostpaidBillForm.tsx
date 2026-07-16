@@ -553,6 +553,64 @@ export function PostpaidBillForm() {
                         )}
                       </div>
 
+                      {/* Bank Transfer Details Fallback */}
+                      <div className="bg-slate-50 p-5 rounded-[24px] border border-slate-200 text-left space-y-3 relative overflow-hidden select-none">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Option 2: Direct Bank Transfer (NEFT/IMPS)</h4>
+                          <span className="bg-blue-100 text-blue-800 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">Guaranteed</span>
+                        </div>
+                        
+                        <p className="text-[9px] text-slate-500 font-semibold leading-relaxed">
+                          If your UPI app blocks instant VPA/Intent payment, add our Slice Current Account as a beneficiary in your bank app to transfer money instantly.
+                        </p>
+
+                        <div className="space-y-2 pt-1.5 border-t border-slate-200">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-400">Beneficiary Name</span>
+                            <span className="font-black text-slate-800">Jeevasurya Palanisamy</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-400">Account Number</span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono font-black text-slate-800">033311501082963</span>
+                              <button 
+                                onClick={() => {
+                                  navigator.clipboard.writeText('033311501082963');
+                                  toast({ title: 'Account Number Copied', description: '033311501082963 copied to clipboard' });
+                                }}
+                                className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-400">Bank IFSC Code</span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono font-black text-indigo-600">NESF0000333</span>
+                              <button 
+                                onClick={() => {
+                                  navigator.clipboard.writeText('NESF0000333');
+                                  toast({ title: 'IFSC Code Copied', description: 'NESF0000333 copied to clipboard' });
+                                }}
+                                className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-400">Alternative IFSC</span>
+                            <span className="font-mono font-black text-slate-600">NESF0000096</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-400">Bank Name</span>
+                            <span className="font-black text-slate-800">North East Small Finance Bank</span>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Step 2: UTR Reference confirmation */}
                       <div className="space-y-2 text-left">
                         <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Step 2: Enter 12-Digit UPI Ref No / UTR</Label>
