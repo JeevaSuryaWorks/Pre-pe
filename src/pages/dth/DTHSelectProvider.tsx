@@ -69,7 +69,7 @@ export const DTHSelectProvider = () => {
 
                     {/* Search Bar Container */}
                     <div className="relative group transition-all duration-300">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-550 transition-transform group-focus-within:scale-110" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-500 transition-transform group-focus-within:scale-110" />
                         <Input
                             placeholder="Search DTH operator name..."
                             className="pl-12 pr-4 h-14 bg-white/90 border-slate-200 rounded-2xl shadow-sm text-slate-900 group-focus-within:border-indigo-500 group-focus-within:ring-4 group-focus-within:ring-indigo-500/10 transition-all text-base placeholder:text-slate-400 font-semibold"
@@ -81,7 +81,7 @@ export const DTHSelectProvider = () => {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 space-y-3">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                            <span className="text-xs text-slate-505 font-bold tracking-widest uppercase animate-pulse">Syncing Operators...</span>
+                            <span className="text-xs text-slate-500 font-bold tracking-widest uppercase animate-pulse">Syncing Operators...</span>
                         </div>
                     ) : (
                         <>
@@ -89,14 +89,14 @@ export const DTHSelectProvider = () => {
                             {!searchQuery && recentProviders.length > 0 && (
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center px-1">
-                                        <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-450">Recently Used</h3>
+                                        <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Recently Used</h3>
                                         <span className="text-[9px] bg-indigo-50 text-indigo-600 font-black px-2 py-0.5 rounded-full border border-indigo-100">QUICK</span>
                                     </div>
                                     <div className="grid grid-cols-3 gap-3">
                                         {recentProviders.map(provider => (
                                             <div
                                                 key={`recent-${provider.id}`}
-                                                className="flex flex-col items-center justify-center bg-white/90 backdrop-blur-md p-4 rounded-2.5xl border border-slate-100 hover:border-indigo-300 hover:bg-white hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-300 cursor-pointer text-center group shadow-sm"
+                                                className="flex flex-col items-center justify-center bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-slate-100 hover:border-indigo-300 hover:bg-white hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all duration-300 cursor-pointer text-center group shadow-sm"
                                                 onClick={() => handleProviderClick(provider)}
                                             >
                                                 <div className="h-14 w-14 p-2 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-indigo-300 overflow-hidden shadow-inner">
@@ -115,13 +115,13 @@ export const DTHSelectProvider = () => {
 
                             {/* All Providers */}
                             <div className="space-y-3">
-                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-450 px-1">All DTH Providers</h3>
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-400 px-1">All DTH Providers</h3>
                                 <div className="space-y-3">
                                     {filteredOperators.length > 0 ? (
                                         filteredOperators.map(provider => (
                                             <div
                                                 key={provider.id}
-                                                className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2.5xl border border-slate-100 hover:border-indigo-300 hover:bg-white active:scale-[0.99] transition-all duration-300 cursor-pointer group shadow-sm"
+                                                className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-slate-100 hover:border-indigo-300 hover:bg-white active:scale-[0.99] transition-all duration-300 cursor-pointer group shadow-sm"
                                                 onClick={() => handleProviderClick(provider)}
                                             >
                                                 <div className="flex items-center gap-4">
@@ -147,7 +147,7 @@ export const DTHSelectProvider = () => {
                                     ) : (
                                         <div className="text-center py-12 bg-white/60 rounded-3xl border border-dashed border-slate-200 shadow-sm">
                                             <div className="text-4xl mb-2 animate-bounce">🔍</div>
-                                            <p className="text-sm text-slate-550 font-bold">No DTH operators found matching "{searchQuery}"</p>
+                                            <p className="text-sm text-slate-500 font-bold">No DTH operators found matching "{searchQuery}"</p>
                                         </div>
                                     )}
                                 </div>

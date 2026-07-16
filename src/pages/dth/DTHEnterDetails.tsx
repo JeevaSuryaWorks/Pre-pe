@@ -325,7 +325,7 @@ export const DTHEnterDetails = () => {
 
                     {/* Operator Header Card */}
                     {operator && (
-                        <div className="bg-white/90 backdrop-blur-md p-4 rounded-2.5xl border border-slate-100 flex items-center justify-between transition-all hover:border-indigo-200 hover:bg-white shadow-sm">
+                        <div className="bg-white/90 backdrop-blur-md p-4 rounded-3xl border border-slate-100 flex items-center justify-between transition-all hover:border-indigo-200 hover:bg-white shadow-sm">
                             <div className="flex items-center gap-3">
                                 <div className="h-12 w-12 p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
                                     <Avatar className="h-full w-full rounded-none">
@@ -371,7 +371,7 @@ export const DTHEnterDetails = () => {
                                 <button 
                                     onClick={() => fetchInfo()} 
                                     disabled={fetchingInfo}
-                                    className="text-[10px] text-indigo-650 hover:text-indigo-755 disabled:opacity-50 font-black uppercase transition-colors cursor-pointer flex items-center gap-1"
+                                    className="text-[10px] text-indigo-600 hover:text-indigo-700 disabled:opacity-50 font-black uppercase transition-colors cursor-pointer flex items-center gap-1"
                                 >
                                     {fetchingInfo ? (
                                         <>
@@ -387,7 +387,7 @@ export const DTHEnterDetails = () => {
 
                     {/* Customer Info Card if fetched */}
                     {customerInfo && (
-                        <div className="bg-gradient-to-br from-white/95 via-indigo-50/40 to-white/95 border border-indigo-100 shadow-xl rounded-2.5xl p-5 relative overflow-hidden animate-fade-in shadow-indigo-500/5 group text-slate-800">
+                        <div className="bg-gradient-to-br from-white/95 via-indigo-50/40 to-white/95 border border-indigo-100 shadow-xl rounded-3xl p-5 relative overflow-hidden animate-fade-in shadow-indigo-500/5 group text-slate-800">
                             {/* Ticket Cut-Out Circles on left and right borders */}
                             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-r border-indigo-100 z-10" />
                             <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#f8fbfe] rounded-full border-l border-indigo-100 z-10" />
@@ -396,7 +396,7 @@ export const DTHEnterDetails = () => {
                             <div className="flex justify-between items-center border-b border-indigo-100 border-dashed pb-3 mb-3">
                                 <div className="flex items-center gap-2">
                                     <ShieldCheck className="h-4 w-4 text-emerald-500 animate-pulse" />
-                                    <span className="text-xs font-extrabold tracking-widest uppercase text-indigo-705">VERIFIED CUSTOMER TICKET</span>
+                                    <span className="text-xs font-extrabold tracking-widest uppercase text-indigo-700">VERIFIED CUSTOMER TICKET</span>
                                 </div>
                                 <span className="text-[9px] bg-emerald-50 text-emerald-700 font-black px-2 py-0.5 rounded-full border border-emerald-200 tracking-widest">LIVE</span>
                             </div>
@@ -421,19 +421,19 @@ export const DTHEnterDetails = () => {
                     )}
 
                     {/* Amount Input */}
-                    <div className="bg-white/85 backdrop-blur-md p-5 rounded-2.5xl border border-slate-100 group focus-within:border-indigo-200 transition-all shadow-sm">
+                    <div className="bg-white/85 backdrop-blur-md p-5 rounded-3xl border border-slate-100 group focus-within:border-indigo-200 transition-all shadow-sm">
                         <div className="flex justify-between items-center mb-2 px-1">
                             <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Recharge Amount</span>
                             <div className="flex items-center gap-1.5">
                                 <button
                                     type="button"
                                     onClick={handleOpenPlans}
-                                    className="text-[10px] text-indigo-650 hover:text-indigo-750 font-black uppercase tracking-wider transition-colors mr-1 cursor-pointer"
+                                    className="text-[10px] text-indigo-600 hover:text-indigo-700 font-black uppercase tracking-wider transition-colors mr-1 cursor-pointer"
                                 >
                                     View Plans
                                 </button>
                                 <span className="text-slate-300 text-[10px]">|</span>
-                                <span className="text-[10px] bg-indigo-50 text-indigo-650 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5 shrink-0">
+                                <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 font-black px-2 py-0.5 rounded-full flex items-center gap-1.5 shrink-0">
                                     <Wallet className="h-3 w-3" /> BAL: ₹{availableBalance.toFixed(2)}
                                 </span>
                             </div>
@@ -482,7 +482,7 @@ export const DTHEnterDetails = () => {
                     </Button>
 
                     {/* Security BBPS Info */}
-                    <div className="bg-white/90 backdrop-blur-md rounded-2.5xl p-4 border border-slate-100 flex gap-3 text-xs leading-relaxed text-slate-500">
+                    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 border border-slate-100 flex gap-3 text-xs leading-relaxed text-slate-500">
                         <AlertCircle className="h-5 w-5 text-indigo-500 flex-shrink-0 mt-0.5" />
                         <div>
                             <span className="font-extrabold text-slate-800 block mb-0.5">BBPS Secure Pay Protection</span>
@@ -504,7 +504,7 @@ export const DTHEnterDetails = () => {
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="font-extrabold text-slate-850 leading-tight truncate max-w-[180px]">{dthId}</span>
-                                    <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">{operator?.name}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{operator?.name}</span>
                                 </div>
                             </div>
                             <Button 
@@ -520,7 +520,7 @@ export const DTHEnterDetails = () => {
                         {/* Content Area */}
                         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                             {/* Plan Details Card */}
-                            <div className="bg-slate-50 rounded-2.5xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
+                            <div className="bg-slate-50 rounded-3xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
                                 <div>
                                     <div className="text-3xl font-black text-slate-900">₹{amount}</div>
                                     <button 
@@ -545,7 +545,7 @@ export const DTHEnterDetails = () => {
                                         </div>
                                     )}
 
-                                    <div className="bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-indigo-50/30 rounded-xl p-3 text-[11px] text-slate-650 leading-normal flex items-start gap-2 border border-indigo-100/50">
+                                    <div className="bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-indigo-50/30 rounded-xl p-3 text-[11px] text-slate-600 leading-normal flex items-start gap-2 border border-indigo-100/50">
                                         <Sparkles className="h-4 w-4 text-indigo-600 flex-shrink-0 mt-0.5 animate-pulse" />
                                         <div>
                                             <span className="font-extrabold text-indigo-700 block mb-0.5">Payment Benefits</span>
@@ -559,35 +559,35 @@ export const DTHEnterDetails = () => {
 
                             {/* Payment Breakdown Card */}
                             {upiState ? (
-                                <div className="bg-slate-50 rounded-2.5xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
+                                <div className="bg-slate-50 rounded-3xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
                                     <div className="flex items-center justify-center gap-2 text-indigo-600">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         <h3 className="font-extrabold text-sm tracking-wide uppercase">Split Pay UPI Active</h3>
                                     </div>
-                                    <div className="bg-white p-3.5 rounded-2.5xl border border-slate-200 inline-block shadow-sm">
+                                    <div className="bg-white p-3.5 rounded-3xl border border-slate-200 inline-block shadow-sm">
                                         <QRCodeSVG value={upiState.qrData} size={150} />
                                     </div>
                                     <p className="text-xs text-slate-500 leading-normal max-w-xs mx-auto">
                                         Scan this secure dynamic QR using BHIM, GPay, PhonePe, or Paytm to complete balance shortfall of <span className="font-extrabold text-slate-800">₹{payFromUpi.toFixed(2)}</span>
                                     </p>
-                                    <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-11 text-xs font-black rounded-xl shadow-md shadow-indigo-650/15">
+                                    <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-11 text-xs font-black rounded-xl shadow-md shadow-indigo-600/15">
                                         <a href={upiState.intentUrl}>Launch UPI Payment App</a>
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="bg-slate-50 rounded-2.5xl p-5 shadow-inner border border-slate-100 space-y-3 text-xs font-semibold">
+                                <div className="bg-slate-50 rounded-3xl p-5 shadow-inner border border-slate-100 space-y-3 text-xs font-semibold">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-550">Total Recharge</span>
-                                        <span className="font-bold text-slate-805">₹{parseFloat(amount || '0').toFixed(2)}</span>
+                                        <span className="text-slate-500">Total Recharge</span>
+                                        <span className="font-bold text-slate-800">₹{parseFloat(amount || '0').toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-slate-550">PrePe Wallet balance</span>
-                                        <span className="font-bold text-slate-805">₹{availableBalance.toFixed(2)}</span>
+                                        <span className="text-slate-500">PrePe Wallet balance</span>
+                                        <span className="font-bold text-slate-800">₹{availableBalance.toFixed(2)}</span>
                                     </div>
                                     <div className="h-px bg-slate-200 my-1"></div>
                                     <div className="flex justify-between items-center text-sm font-bold">
                                         <span className="text-slate-600">UPI Shortfall payable</span>
-                                        <span className="text-indigo-650 text-base font-black">
+                                        <span className="text-indigo-600 text-base font-black">
                                             ₹{(needsSplitPayment ? payFromUpi : 0).toFixed(2)}
                                         </span>
                                     </div>
@@ -634,12 +634,12 @@ export const DTHEnterDetails = () => {
                 <DialogContent className="max-w-md rounded-3xl p-6 overflow-hidden bg-white border border-slate-150 shadow-2xl text-slate-800 flex flex-col max-h-[85vh]">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                         <div className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5 text-indigo-550 animate-pulse" />
+                            <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse" />
                             <h3 className="font-extrabold text-lg tracking-tight text-slate-900">DTH Recharge Plans</h3>
                         </div>
                         <button 
                             onClick={() => setShowPlans(false)} 
-                            className="text-xs text-slate-400 hover:text-slate-650 font-bold uppercase cursor-pointer"
+                            className="text-xs text-slate-400 hover:text-slate-600 font-bold uppercase cursor-pointer"
                         >
                             Close
                         </button>
@@ -658,7 +658,7 @@ export const DTHEnterDetails = () => {
                                         <TabsTrigger 
                                             key={category} 
                                             value={category}
-                                            className="rounded-xl px-4 py-2 text-xs font-black tracking-wider transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-650 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-slate-100 shrink-0"
+                                            className="rounded-xl px-4 py-2 text-xs font-black tracking-wider transition-all data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-slate-100 shrink-0"
                                         >
                                             {category}
                                         </TabsTrigger>
@@ -672,7 +672,7 @@ export const DTHEnterDetails = () => {
                                                 <div 
                                                     key={`${category}-plan-${idx}`}
                                                     onClick={() => handleSelectPlan(plan.rs)}
-                                                    className="bg-slate-50/50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-150 rounded-2.5xl p-4 transition-all active:scale-[0.99] cursor-pointer group flex justify-between items-start gap-4"
+                                                    className="bg-slate-50/50 hover:bg-indigo-50/20 border border-slate-100 hover:border-indigo-205 rounded-3xl p-4 transition-all active:scale-[0.99] cursor-pointer group flex justify-between items-start gap-4"
                                                 >
                                                     <div className="space-y-1.5 flex-1 min-w-0 text-left">
                                                         <div className="flex items-center gap-2">
@@ -685,7 +685,7 @@ export const DTHEnterDetails = () => {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="text-xs font-semibold text-slate-655 leading-relaxed group-hover:text-slate-800">
+                                                        <p className="text-xs font-semibold text-slate-650 leading-relaxed group-hover:text-slate-800">
                                                             {plan.desc}
                                                         </p>
                                                     </div>
