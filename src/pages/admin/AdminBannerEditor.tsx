@@ -297,6 +297,46 @@ const AdminBannerEditor = () => {
 
     const set = (key: keyof BannerForm, val: any) => setForm(prev => ({ ...prev, [key]: val }));
 
+    const [uploading, setUploading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `banners/${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+
+            set('image_url', publicUrl);
+            toast({
+                title: "Asset Uploaded 📸",
+                description: "Custom banner graphic has been successfully stored."
+            });
+        } catch (err: any) {
+            console.error("Banner upload failed:", err);
+            toast({
+                title: "Upload Failed",
+                description: err.message || "Failed to upload custom graphic.",
+                variant: "destructive"
+            });
+        } finally {
+            setUploading(false);
+        }
+    };
+
     // Load existing banner for edit
     useEffect(() => {
         if (!id) return;
@@ -471,6 +511,57 @@ const AdminBannerEditor = () => {
                                     />
                                 </Field>
                             </div>
+                        </div>
+
+                        {/* Custom Image URL and Upload Field */}
+                        <div className="border-t border-slate-100 pt-6 mt-4 space-y-4">
+                            <Field label="Custom Banner Graphic (Image URL or Upload)">
+                                <div className="flex flex-col md:flex-row gap-3 items-start">
+                                    <div className="flex-1 w-full relative">
+                                        <Input 
+                                            className="h-12 pr-10 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-medium" 
+                                            placeholder="Paste custom image URL (e.g. https://domain.com/banner.png)" 
+                                            value={form.image_url || ''} 
+                                            onChange={e => set('image_url', e.target.value)} 
+                                        />
+                                        {form.image_url && (
+                                            <button 
+                                                onClick={() => set('image_url', '')} 
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="shrink-0 w-full md:w-auto">
+                                        <label className={cn(
+                                            "h-12 px-6 rounded-xl border border-dashed border-slate-355 bg-slate-50 hover:bg-slate-100/80 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 font-bold text-slate-650",
+                                            uploading && "opacity-60 pointer-events-none"
+                                        )}>
+                                            {uploading ? (
+                                                <>
+                                                    <PrePeSpinner className="w-4 h-4 text-blue-600" />
+                                                    <span>Uploading...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Image className="w-4 h-4 text-slate-500" />
+                                                    <span>Upload File</span>
+                                                </>
+                                            )}
+                                            <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                onChange={handleImageUpload} 
+                                                className="hidden" 
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                                    Specifying a custom image overrides the standard icon and displays the visual graphic in the banner preview.
+                                </p>
+                            </Field>
                         </div>
                     </Section>
 
