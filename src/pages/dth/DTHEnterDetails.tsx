@@ -220,44 +220,8 @@ export const DTHEnterDetails = () => {
 
         const rechargeAmount = parseFloat(amount || "0");
 
-        // Split Payment Logic Check
-        if (rechargeAmount > availableBalance) {
-            initiateSplitPayment(rechargeAmount - availableBalance);
-            return;
-        }
-
-        // Direct Wallet Payment
-        setProcessing(true);
-        const result = await processRecharge(user.id, {
-            dth_id: dthId,
-            operator_id: operator.id,
-            amount: rechargeAmount,
-            mobile_number: registeredMobile
-        });
-
-        setProcessing(false);
-        setShowConfirm(false);
-
-        if (result.status === 'SUCCESS' || result.status === 'PENDING') {
-            try {
-                const isFromFav = location.state?.fromFavorite || false;
-                await triggerAutonomousRechargeRewards(user.id, rechargeAmount, isFromFav);
-            } catch (rewErr) {
-                console.error("Failed to credit autonomous recharge rewards:", rewErr);
-            }
-            toast({ title: 'Success', description: 'Recharge Successful!' });
-            navigate('/recharge/receipt', { 
-                state: { 
-                    amount, 
-                    operator: operator.name, 
-                    number: dthId, 
-                    refId: result.transaction_id || 'N/A',
-                    type: 'DTH Recharge'
-                } 
-            });
-        } else {
-            toast({ title: 'Failed', description: result.message, variant: 'destructive' });
-        }
+        // Enforce Direct payment (100% via UPI/Razorpay)
+        initiateSplitPayment(rechargeAmount);
     };
 
     const initiateSplitPayment = async (shortfallAmount: number) => {
@@ -361,9 +325,9 @@ export const DTHEnterDetails = () => {
     }
 
     const rechargeAmountVal = parseFloat(amount || '0');
-    const needsSplitPayment = rechargeAmountVal > availableBalance;
-    const payFromWallet = needsSplitPayment ? availableBalance : rechargeAmountVal;
-    const payFromUpi = needsSplitPayment ? rechargeAmountVal - availableBalance : 0;
+    const needsSplitPayment = true;
+    const payFromWallet = 0;
+    const payFromUpi = rechargeAmountVal;
 
     return (
         <Layout title={step === 'details' ? "Confirm & Pay" : "Enter Details"} showBack onBack={handleBack}>
@@ -719,13 +683,13 @@ export const DTHEnterDetails = () => {
                                 <div className="bg-slate-50 rounded-3xl p-5 shadow-inner border border-slate-100 text-center space-y-4">
                                     <div className="flex items-center justify-center gap-2 text-indigo-600">
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        <h3 className="font-extrabold text-sm tracking-wide uppercase">Split Pay UPI Active</h3>
+                                        <h3 className="font-extrabold text-sm tracking-wide uppercase">Direct UPI Payment Active</h3>
                                     </div>
                                     <div className="bg-white p-3.5 rounded-3xl border border-slate-200 inline-block shadow-sm">
                                         <QRCodeSVG value={upiState.qrData} size={150} />
                                     </div>
                                     <p className="text-xs text-slate-500 leading-normal max-w-xs mx-auto">
-                                        Scan this secure dynamic QR using BHIM, GPay, PhonePe, or Paytm to complete balance shortfall of <span className="font-extrabold text-slate-800">₹{payFromUpi.toFixed(2)}</span>
+                                        Scan this secure dynamic QR using BHIM, GPay, PhonePe, or Paytm to complete payment of <span className="font-extrabold text-slate-800">₹{payFromUpi.toFixed(2)}</span>
                                     </p>
                                     <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-500 text-white h-11 text-xs font-black rounded-xl shadow-md shadow-indigo-600/15">
                                         <a href={upiState.intentUrl}>Launch UPI Payment App</a>
@@ -737,26 +701,28 @@ export const DTHEnterDetails = () => {
                                         <span className="text-slate-500">Total Recharge</span>
                                         <span className="font-bold text-slate-800">₹{parseFloat(amount || '0').toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-center opacity-50">
                                         <span className="text-slate-500">PrePe Wallet balance</span>
                                         <span className="font-bold text-slate-800">₹{availableBalance.toFixed(2)}</span>
                                     </div>
                                     <div className="h-px bg-slate-200 my-1"></div>
                                     <div className="flex justify-between items-center text-sm font-bold">
-                                        <span className="text-slate-600">UPI Shortfall payable</span>
-                                        <span className="text-indigo-600 text-base font-black">
-                                            ₹{(needsSplitPayment ? payFromUpi : 0).toFixed(2)}
+                                        <span className="text-slate-600">UPI Amount payable</span>
+                                        <span className="text-indigo-650 text-base font-black">
+                                            ₹{rechargeAmountVal.toFixed(2)}
                                         </span>
                                     </div>
-                                    {!needsSplitPayment ? (
-                                        <div className="text-[10px] text-emerald-600 font-bold flex items-center justify-end gap-1.5 mt-1">
-                                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Fully covered by Wallet Balance
+
+                                    {/* BBPS Direct Payment Restriction Alert Banner */}
+                                    <div className="bg-amber-50 border border-amber-200/80 p-3 rounded-2xl flex gap-2.5 items-start text-left mt-2 select-none">
+                                        <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-wider text-amber-800 leading-none">BBPS Payment Rule Alert</p>
+                                            <p className="text-[10px] text-amber-700/90 font-semibold mt-1 leading-normal">
+                                                Bharat Connect (BBPS) guidelines mandate direct transaction-wise payment. Wallet balance cannot be used for this bill.
+                                            </p>
                                         </div>
-                                    ) : (
-                                        <div className="text-[10px] text-amber-600 font-bold flex items-center justify-end gap-1.5 mt-1">
-                                            <Wallet className="h-3.5 w-3.5 text-amber-500 animate-bounce" /> Wallet pays ₹{payFromWallet.toFixed(2)}
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
 
