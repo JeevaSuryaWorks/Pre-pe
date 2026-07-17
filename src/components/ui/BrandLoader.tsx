@@ -31,113 +31,95 @@ export const PrePeSpinner: React.FC<{ className?: string }> = ({ className }) =>
     )}
     aria-label="Loading…"
   >
+    <svg
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-full"
+    >
+      <defs>
+        <linearGradient id="orangeGrad" x1="30" y1="35" x2="80" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFA040" />
+          <stop offset="100%" stopColor="#FF671F" />
+        </linearGradient>
+        
+        <linearGradient id="greenGrad" x1="28" y1="75" x2="75" y2="42" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#00A000" />
+          <stop offset="100%" stopColor="#046A38" />
+        </linearGradient>
+
+        <linearGradient id="spinnerGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FF671F" />
+          <stop offset="50%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#046A38" />
+        </linearGradient>
+      </defs>
+
+      {/* Rotating outer BBPS orbit ring */}
+      <circle
+        cx="50"
+        cy="50"
+        r="45"
+        stroke="url(#spinnerGrad)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray="60 120"
+        className="animate-spin-loader"
+        style={{ transformOrigin: 'center' }}
+      />
+
+      {/* Ambient pulse background */}
+      <circle
+        cx="50"
+        cy="50"
+        r="38"
+        fill="rgba(99, 102, 241, 0.03)"
+        className="animate-pulse"
+      />
+
+      {/* Logo Group */}
+      <g className="animate-logo-pulse" style={{ transformOrigin: 'center' }}>
+        {/* P Left Stem (Green) */}
+        <path d="M28,34 L48,34 L40,75 L28,75 Z" fill="url(#greenGrad)" />
+        
+        {/* Lightning Bolt (White) */}
+        <path d="M48,37 L33,56 L41,56 L31,73 L46,49 L38,49 Z" fill="#FFFFFF" />
+        
+        {/* P Loop (Orange) */}
+        <path d="M30,35 C30,35 60,32 55,53 C51,70 30,55 30,55" fill="none" stroke="url(#orangeGrad)" strokeWidth="10" strokeLinecap="round" />
+        
+        {/* Rupee Symbol (Green) */}
+        <text x="35" y="68" fill="#046A38" fontSize="13" fontWeight="900" fontFamily="sans-serif">₹</text>
+
+        {/* Rising swoosh green */}
+        <path d="M48,75 Q70,75 75,42" fill="none" stroke="url(#greenGrad)" strokeWidth="5.5" strokeLinecap="round" />
+        
+        {/* Rising swoosh white */}
+        <path d="M49,71 Q68,71 72,45" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+
+        {/* Rising swoosh orange + arrow head */}
+        <path d="M57,63 Q74,63 78,35" fill="none" stroke="url(#orangeGrad)" strokeWidth="6" strokeLinecap="round" />
+        <path d="M72,30 L83,30 L80,41 Z" fill="#FF671F" />
+      </g>
+    </svg>
+
     <style>{`
-      @keyframes logo-breathe {
-        0%, 100% {
-          transform: scale(0.93);
-          filter: drop-shadow(0 0 6px rgba(62, 207, 178, 0.4)) drop-shadow(0 0 15px rgba(123, 94, 167, 0.2));
-        }
-        50% {
-          transform: scale(1.05);
-          filter: drop-shadow(0 0 12px rgba(62, 207, 178, 0.6)) drop-shadow(0 0 25px rgba(123, 94, 167, 0.4));
-        }
-      }
-      @keyframes rotate-cw {
+      @keyframes spin-loader {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
-      @keyframes rotate-ccw {
-        0% { transform: rotate(360deg); }
-        100% { transform: rotate(0deg); }
+      @keyframes logo-pulse {
+        0% { transform: scale(1); opacity: 0.95; }
+        50% { transform: scale(1.04); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.95; }
       }
-      @keyframes pulse-ring {
-        0% {
-          transform: scale(0.85);
-          opacity: 0.9;
-        }
-        100% {
-          transform: scale(1.25);
-          opacity: 0;
-        }
+      .animate-spin-loader {
+        animation: spin-loader 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
-      @keyframes loader-glow-pulse {
-        0%, 100% {
-          transform: scale(1);
-          opacity: 0.4;
-          filter: blur(16px);
-        }
-        50% {
-          transform: scale(1.15);
-          opacity: 0.7;
-          filter: blur(24px);
-        }
-      }
-      @keyframes shimmer-text {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 200% 50%; }
+      .animate-logo-pulse {
+        animation: logo-pulse 2s ease-in-out infinite;
       }
     `}</style>
-    
-    {/* Outer Expanding Ripples (Radar Waves) */}
-    <div className="absolute inset-0 rounded-full border border-teal-400/35 animate-[pulse-ring_2.2s_cubic-bezier(0.215,0.61,0.355,1)_infinite]" />
-    <div className="absolute inset-0 rounded-full border border-purple-400/25 animate-[pulse-ring_2.2s_cubic-bezier(0.215,0.61,0.355,1)_infinite] [animation-delay:0.8s]" />
-
-    {/* Concentric Double-Rotation Rings */}
-    {/* Outer Dashed Ring (Clockwise) */}
-    <svg
-      viewBox="0 0 36 36"
-      className="absolute inset-0 w-full h-full animate-[rotate-cw_6.5s_linear_infinite]"
-      fill="none"
-    >
-      <circle
-        cx="18"
-        cy="18"
-        r="16.5"
-        stroke="url(#outer-ring-grad)"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeDasharray="50 30 15 25"
-      />
-      <defs>
-        <linearGradient id="outer-ring-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#3ECFB2" />
-          <stop offset="1" stopColor="#7B5EA7" />
-        </linearGradient>
-      </defs>
-    </svg>
-
-    {/* Inner Glowing Segmented Ring (Counter-Clockwise) */}
-    <svg
-      viewBox="0 0 36 36"
-      className="absolute inset-[9%] w-[82%] h-[82%] animate-[rotate-ccw_3.2s_linear_infinite]"
-      fill="none"
-    >
-      <circle
-        cx="18"
-        cy="18"
-        r="15"
-        stroke="url(#inner-ring-grad)"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeDasharray="40 40"
-        opacity="0.85"
-      />
-      <defs>
-        <linearGradient id="inner-ring-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7B5EA7" />
-          <stop offset="1" stopColor="#3ECFB2" />
-        </linearGradient>
-      </defs>
-    </svg>
-
-    {/* Central Pulsing/Breathing Logo (New Rebranded Icon) */}
-    <div className="absolute w-[50%] h-[50%] z-10 flex items-center justify-center animate-[logo-breathe_2s_ease-in-out_infinite]">
-      <img 
-        src="/icon_new.png" 
-        alt="Pre-pe logo" 
-        className="w-full h-full object-contain rounded-lg shadow-md bg-white p-0.5" 
-      />
-    </div>
   </span>
 );
 
