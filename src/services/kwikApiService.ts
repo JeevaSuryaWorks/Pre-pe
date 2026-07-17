@@ -262,7 +262,7 @@ export interface DTHCustomerInfoResponse {
 
 export const fetchDTHCustomerDetails = async (operatorId: string, customerId: string): Promise<DTHCustomerInfoResponse> => {
     try {
-        return await callProxy('/dth_customer_info.php', { opid: operatorId, customer_id: customerId }, 'POST');
+        return await callProxy('/DTH_customer_info.php', { opid: operatorId, customer_id: customerId }, 'POST');
     } catch (error) {
         return { status: 'FAILED', message: 'Network Error' };
     }
