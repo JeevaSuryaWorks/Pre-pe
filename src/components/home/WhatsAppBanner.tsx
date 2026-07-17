@@ -45,7 +45,20 @@ const FALLBACK: Banner[] = [
 ];
 
 export const WhatsAppBanner = () => {
-    const [banners, setBanners] = useState<Banner[]>(FALLBACK);
+    const [banners, setBanners] = useState<Banner[]>(() => {
+        try {
+            const cached = localStorage.getItem('prepe_banners_cached');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse cached banners:", e);
+        }
+        return FALLBACK;
+    });
     const [active, setActive] = useState(0);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -55,13 +68,14 @@ export const WhatsAppBanner = () => {
             const data = await adminService.getBanners('banner', 'published');
             if (data && data.length > 0) {
                 setBanners(data);
+                localStorage.setItem('prepe_banners_cached', JSON.stringify(data));
                 setActive(0);
             } else {
                 setBanners(FALLBACK);
             }
         } catch (err) {
             console.error("Critical banner fetch failure:", err);
-            setBanners(FALLBACK);
+            // On fetch failure, keep cached banners if we have them instead of forcing FALLBACK
         }
     };
 
@@ -141,12 +155,14 @@ export const WhatsAppBanner = () => {
                                 <p className="text-[11px] font-medium text-white/90 mb-4 line-clamp-2 leading-relaxed drop-shadow-sm">
                                     {b.subtitle}
                                 </p>
-                                <Button
-                                    size="sm"
-                                    className="rounded-xl px-6 h-9 text-[11px] font-black border-none bg-white text-slate-900 shadow-xl hover:bg-slate-50 transition-all hover:scale-105 active:scale-95 uppercase tracking-widest"
-                                >
-                                    {b.cta_text}
-                                </Button>
+                                {b.cta_text && (
+                                    <Button
+                                        size="sm"
+                                        className="rounded-xl px-6 h-9 text-[11px] font-black border-none bg-white text-slate-900 shadow-xl hover:bg-slate-50 transition-all hover:scale-105 active:scale-95 uppercase tracking-widest mt-1"
+                                    >
+                                        {b.cta_text}
+                                    </Button>
+                                )}
                             </div>
 
                             <div className="shrink-0 w-20 h-20 flex items-center justify-center relative">
@@ -194,23 +210,28 @@ export const WhatsAppBanner = () => {
                             </div>
                         </div>
 
-                        {/* Dashed Line */}
-                        <div className="relative w-px border-r border-dashed my-3 opacity-25" style={{ borderColor: b.bg_image_url ? '#ffffff' : b.grad_from }}>
-                            <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: b.bg_image_url ? '#1e293b' : 'white' }} />
-                            <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: b.bg_image_url ? '#1e293b' : 'white' }} />
-                        </div>
+                        {/* Separator & Right Section (Only if CTA text is specified) */}
+                        {b.cta_text && (
+                            <>
+                                {/* Dashed Line */}
+                                <div className="relative w-px border-r border-dashed my-3 opacity-25" style={{ borderColor: b.bg_image_url ? '#ffffff' : b.grad_from }}>
+                                    <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: b.bg_image_url ? '#1e293b' : 'white' }} />
+                                    <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: b.bg_image_url ? '#1e293b' : 'white' }} />
+                                </div>
 
-                        {/* Right Section / Discount Box */}
-                        <div className={cn("w-28 p-3 flex items-center justify-center relative", b.bg_image_url && "bg-slate-950/50 backdrop-blur-[1.5px]")}>
-                            <div className="absolute -right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                                {[1, 2, 3, 4].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: b.bg_image_url ? '#ffffff' : b.grad_from }} />)}
-                            </div>
+                                {/* Right Section / Discount Box */}
+                                <div className={cn("w-28 p-3 flex items-center justify-center relative", b.bg_image_url && "bg-slate-950/50 backdrop-blur-[1.5px]")}>
+                                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                                        {[1, 2, 3, 4].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: b.bg_image_url ? '#ffffff' : b.grad_from }} />)}
+                                    </div>
 
-                            <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2 group-hover:scale-105 transition-transform" style={{ backgroundColor: b.bg_image_url ? 'rgba(255,255,255,0.15)' : `${b.grad_from}10`, border: `1px dashed ${b.bg_image_url ? 'rgba(255,255,255,0.3)' : `${b.grad_from}40`}` }}>
-                                <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: b.bg_image_url ? '#ffffff' : b.grad_from }}>REDEEM</span>
-                                <span className="text-sm font-black leading-none text-center px-1" style={{ color: b.bg_image_url ? '#ffffff' : b.grad_from }}>{b.cta_text}</span>
-                            </div>
-                        </div>
+                                    <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2 group-hover:scale-105 transition-transform" style={{ backgroundColor: b.bg_image_url ? 'rgba(255,255,255,0.15)' : `${b.grad_from}10`, border: `1px dashed ${b.bg_image_url ? 'rgba(255,255,255,0.3)' : `${b.grad_from}40`}` }}>
+                                        <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: b.bg_image_url ? '#ffffff' : b.grad_from }}>REDEEM</span>
+                                        <span className="text-sm font-black leading-none text-center px-1" style={{ color: b.bg_image_url ? '#ffffff' : b.grad_from }}>{b.cta_text}</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 

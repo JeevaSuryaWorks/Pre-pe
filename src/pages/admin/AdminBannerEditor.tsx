@@ -129,19 +129,22 @@ const LivePreview = ({ form }: { form: BannerForm }) => {
                         </span>
                     </div>
 
-                    {/* Separator */}
-                    <div className="relative w-px border-r border-dashed my-3 opacity-30" style={{ borderColor: form.bg_image_url ? '#ffffff' : form.grad_from }}>
-                        <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.bg_image_url ? '#1e293b' : 'white' }} />
-                        <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.bg_image_url ? '#1e293b' : 'white' }} />
-                    </div>
+                    {/* Separator & Right Section (Only if CTA text is specified) */}
+                    {form.cta_text && (
+                        <>
+                            <div className="relative w-px border-r border-dashed my-3 opacity-30" style={{ borderColor: form.bg_image_url ? '#ffffff' : form.grad_from }}>
+                                <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.bg_image_url ? '#1e293b' : 'white' }} />
+                                <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.bg_image_url ? '#1e293b' : 'white' }} />
+                            </div>
 
-                    {/* Right Section */}
-                    <div className={cn("w-28 p-3 flex items-center justify-center relative", form.bg_image_url && "bg-slate-950/50 backdrop-blur-[1.5px]")}>
-                        <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2" style={{ backgroundColor: form.bg_image_url ? 'rgba(255,255,255,0.15)' : `${form.grad_from}10`, border: `1px dashed ${form.bg_image_url ? 'rgba(255,255,255,0.3)' : `${form.grad_from}40`}` }}>
-                            <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }}>REDEEM</span>
-                            <span className="text-sm font-black leading-tight text-center px-1" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }}>{form.cta_text || 'OFF'}</span>
-                        </div>
-                    </div>
+                            <div className={cn("w-28 p-3 flex items-center justify-center relative", form.bg_image_url && "bg-slate-950/50 backdrop-blur-[1.5px]")}>
+                                <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2" style={{ backgroundColor: form.bg_image_url ? 'rgba(255,255,255,0.15)' : `${form.grad_from}10`, border: `1px dashed ${form.bg_image_url ? 'rgba(255,255,255,0.3)' : `${form.grad_from}40`}` }}>
+                                    <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }}>REDEEM</span>
+                                    <span className="text-sm font-black leading-tight text-center px-1" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }}>{form.cta_text}</span>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         );
@@ -172,9 +175,11 @@ const LivePreview = ({ form }: { form: BannerForm }) => {
                     <p className="text-[11px] font-medium text-white/90 mb-4 line-clamp-2 leading-relaxed drop-shadow-sm">
                         {form.subtitle || 'Subtitle goes here'}
                     </p>
-                    <div className="inline-block bg-white text-slate-900 rounded-xl px-5 py-2.5 text-[11px] font-black shadow-lg uppercase tracking-widest">
-                        {form.cta_text || 'Click Here'}
-                    </div>
+                    {form.cta_text && (
+                        <div className="inline-block bg-white text-slate-900 rounded-xl px-5 py-2.5 text-[11px] font-black shadow-lg uppercase tracking-widest">
+                            {form.cta_text}
+                        </div>
+                    )}
                 </div>
                 <div className="shrink-0 w-24 h-24 flex items-center justify-center">
                     {form.image_url ? (
