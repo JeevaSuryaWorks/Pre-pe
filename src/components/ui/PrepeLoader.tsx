@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface PrepeLoaderProps {
     size?: 'sm' | 'md' | 'lg' | number;
@@ -13,6 +13,7 @@ export const PrepeLoader: React.FC<PrepeLoaderProps> = ({
     showText = true,
     text = 'Processing Securely...'
 }) => {
+    const uniqueId = useId().replace(/:/g, "-");
     // Map preset sizes to pixel dimensions
     const dimensions = typeof size === 'number' 
         ? size 
@@ -28,17 +29,17 @@ export const PrepeLoader: React.FC<PrepeLoaderProps> = ({
                     className="w-full h-full"
                 >
                     <defs>
-                        <linearGradient id="orangeGrad" x1="30" y1="35" x2="80" y2="30" gradientUnits="userSpaceOnUse">
+                        <linearGradient id={`orangeGrad-${uniqueId}`} x1="30" y1="35" x2="80" y2="30" gradientUnits="userSpaceOnUse">
                             <stop offset="0%" stopColor="#FFA040" />
                             <stop offset="100%" stopColor="#FF671F" />
                         </linearGradient>
                         
-                        <linearGradient id="greenGrad" x1="28" y1="75" x2="75" y2="42" gradientUnits="userSpaceOnUse">
+                        <linearGradient id={`greenGrad-${uniqueId}`} x1="28" y1="75" x2="75" y2="42" gradientUnits="userSpaceOnUse">
                             <stop offset="0%" stopColor="#00A000" />
                             <stop offset="100%" stopColor="#046A38" />
                         </linearGradient>
 
-                        <linearGradient id="spinnerGrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                        <linearGradient id={`spinnerGrad-${uniqueId}`} x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
                             <stop offset="0%" stopColor="#FF671F" />
                             <stop offset="50%" stopColor="#FFFFFF" />
                             <stop offset="100%" stopColor="#046A38" />
@@ -50,7 +51,7 @@ export const PrepeLoader: React.FC<PrepeLoaderProps> = ({
                         cx="50"
                         cy="50"
                         r="45"
-                        stroke="url(#spinnerGrad)"
+                        stroke={`url(#spinnerGrad-${uniqueId})`}
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeDasharray="60 120"
@@ -70,25 +71,25 @@ export const PrepeLoader: React.FC<PrepeLoaderProps> = ({
                     {/* Logo Group */}
                     <g className="animate-logo-pulse" style={{ transformOrigin: 'center' }}>
                         {/* P Left Stem (Green) */}
-                        <path d="M28,34 L48,34 L40,75 L28,75 Z" fill="url(#greenGrad)" />
+                        <path d="M28,34 L48,34 L40,75 L28,75 Z" fill={`url(#greenGrad-${uniqueId})`} />
                         
                         {/* Lightning Bolt (White) */}
                         <path d="M48,37 L33,56 L41,56 L31,73 L46,49 L38,49 Z" fill="#FFFFFF" />
                         
                         {/* P Loop (Orange) */}
-                        <path d="M30,35 C30,35 60,32 55,53 C51,70 30,55 30,55" fill="none" stroke="url(#orangeGrad)" strokeWidth="10" strokeLinecap="round" />
+                        <path d="M30,35 C30,35 60,32 55,53 C51,70 30,55 30,55" fill="none" stroke={`url(#orangeGrad-${uniqueId})`} strokeWidth="10" strokeLinecap="round" />
                         
                         {/* Rupee Symbol (Green) */}
                         <text x="35" y="68" fill="#046A38" fontSize="13" fontWeight="900" fontFamily="sans-serif">₹</text>
 
                         {/* Rising swoosh green */}
-                        <path d="M48,75 Q70,75 75,42" fill="none" stroke="url(#greenGrad)" strokeWidth="5.5" strokeLinecap="round" />
+                        <path d="M48,75 Q70,75 75,42" fill="none" stroke={`url(#greenGrad-${uniqueId})`} strokeWidth="5.5" strokeLinecap="round" />
                         
                         {/* Rising swoosh white */}
                         <path d="M49,71 Q68,71 72,45" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
 
                         {/* Rising swoosh orange + arrow head */}
-                        <path d="M57,63 Q74,63 78,35" fill="none" stroke="url(#orangeGrad)" strokeWidth="6" strokeLinecap="round" />
+                        <path d="M57,63 Q74,63 78,35" fill="none" stroke={`url(#orangeGrad-${uniqueId})`} strokeWidth="6" strokeLinecap="round" />
                         <path d="M72,30 L83,30 L80,41 Z" fill="#FF671F" />
                     </g>
                 </svg>
