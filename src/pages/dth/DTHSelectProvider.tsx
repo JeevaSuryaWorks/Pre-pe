@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowRight, Sparkles, Tv, ShieldCheck, Loader2 } from "lucide-react";
+import { Search, ArrowRight, Sparkles, Tv, ShieldCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getOperators } from '@/services/operator.service';
 import type { Operator } from '@/types/recharge.types';
+import { PrepeLoader } from "@/components/ui/PrepeLoader";
 
 // Animated space-themed DTH satellite signal banner
 const DTHSignalAnimation = () => {
@@ -194,9 +195,8 @@ export const DTHSelectProvider = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 space-y-3">
-                            <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
-                            <span className="text-xs text-slate-500 font-bold tracking-widest uppercase animate-pulse">Syncing Operators...</span>
+                        <div className="py-12 bg-white/60 backdrop-blur-md rounded-[32px] border border-slate-100/50 shadow-sm">
+                            <PrepeLoader text="Syncing Operators..." size="md" />
                         </div>
                     ) : (
                         <>

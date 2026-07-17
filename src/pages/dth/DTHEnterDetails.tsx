@@ -12,6 +12,7 @@ import { Loader2, ArrowRight, ShieldCheck, Wallet, AlertCircle, Info, Sparkles, 
 import { processRecharge } from '@/services/recharge.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
+import { PrepeLoader } from "@/components/ui/PrepeLoader";
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -316,9 +317,8 @@ export const DTHEnterDetails = () => {
     if (loading) {
         return (
             <Layout title="Enter Details" showBack>
-                <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
-                    <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
-                    <span className="text-xs text-slate-500 font-extrabold uppercase tracking-widest animate-pulse">Syncing Gateway...</span>
+                <div className="flex flex-col items-center justify-center min-h-[65vh]">
+                    <PrepeLoader text="Syncing Gateway..." size="lg" />
                 </div>
             </Layout>
         );
@@ -524,9 +524,8 @@ export const DTHEnterDetails = () => {
 
                             {/* Inline DTH Plans List */}
                             {plansLoading ? (
-                                <div className="flex flex-col items-center justify-center py-8 space-y-3 bg-white/70 rounded-3xl p-5 border border-slate-100 shadow-sm">
-                                    <Loader2 className="animate-spin text-indigo-600 h-8 w-8" />
-                                    <span className="text-xs text-slate-500 font-bold tracking-widest uppercase animate-pulse">Fetching Operator Plans...</span>
+                                <div className="py-8 bg-white/70 rounded-3xl p-5 border border-slate-100 shadow-sm">
+                                    <PrepeLoader text="Fetching Operator Plans..." size="md" />
                                 </div>
                             ) : plansData && Object.keys(plansData).length > 0 ? (
                                 <div className="bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
