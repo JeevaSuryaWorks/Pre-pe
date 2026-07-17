@@ -82,6 +82,7 @@ interface BannerForm {
     type: 'banner' | 'announcement';
     style: 'card' | 'voucher';
     image_url?: string;
+    bg_image_url?: string;
     sort_order: number;
 }
 
@@ -90,7 +91,7 @@ const EMPTY: BannerForm = {
     cta_text: 'LEARN MORE', cta_link: '#',
     grad_from: '#065f46', grad_to: '#16a34a',
     icon_name: 'MessageCircle', status: 'draft', 
-    type: 'banner', style: 'card', sort_order: 99,
+    type: 'banner', style: 'card', bg_image_url: '', sort_order: 99,
 };
 
 // ── Live Preview ────────────────────────────────────────────────────────────────
@@ -101,36 +102,44 @@ const LivePreview = ({ form }: { form: BannerForm }) => {
     if (isVoucher) {
         return (
             <div className="relative group px-1 py-1">
-                <div className="flex bg-white rounded-2xl overflow-hidden shadow-xl border border-slate-100" style={{ borderLeft: `4px solid ${form.grad_from}` }}>
+                <div 
+                    className="flex bg-white rounded-2xl overflow-hidden shadow-xl border border-slate-100 min-h-[110px]" 
+                    style={{ 
+                        borderLeft: `4px solid ${form.grad_from}`,
+                        background: form.bg_image_url 
+                            ? `url(${form.bg_image_url}) center/cover no-repeat` 
+                            : 'white'
+                    }}
+                >
                     {/* Left Section */}
-                    <div className="flex-1 p-5 relative min-h-[110px] flex flex-col justify-center">
+                    <div className={cn("flex-1 p-5 relative flex flex-col justify-center", form.bg_image_url && "bg-slate-950/40 backdrop-blur-[1px] text-white")}>
                         <div className="absolute -left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
                             {[1, 2, 3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: form.grad_from }} />)}
                         </div>
                         <div className="flex items-center gap-2.5 mb-2">
                             {form.image_url ? (
-                                <img src={form.image_url} alt="logo" className="w-7 h-7 object-contain" />
+                                <img src={form.image_url} alt="logo" className="w-7 h-7 object-contain rounded-md" />
                             ) : (
-                                <Icon className="w-6 h-6" style={{ color: form.grad_from }} />
+                                <Icon className="w-6 h-6" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }} />
                             )}
-                            <span className="text-sm font-black text-slate-800 tracking-tight">{form.title || 'Brand Name'}</span>
+                            <span className={cn("text-sm font-black tracking-tight", form.bg_image_url ? "text-white" : "text-slate-800")}>{form.title || 'Brand Name'}</span>
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100 self-start">
+                        <span className={cn("text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border self-start", form.bg_image_url ? "bg-white/20 border-white/20 text-white" : "bg-slate-50 border-slate-100 text-slate-400")}>
                             {form.tag || 'Voucher'}
                         </span>
                     </div>
 
                     {/* Separator */}
-                    <div className="relative w-px border-r border-dashed my-3 opacity-30" style={{ borderColor: form.grad_from }}>
-                        <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.grad_from }} />
-                        <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.grad_from }} />
+                    <div className="relative w-px border-r border-dashed my-3 opacity-30" style={{ borderColor: form.bg_image_url ? '#ffffff' : form.grad_from }}>
+                        <div className="absolute -top-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.bg_image_url ? '#1e293b' : 'white' }} />
+                        <div className="absolute -bottom-4 -left-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: form.bg_image_url ? '#1e293b' : 'white' }} />
                     </div>
 
                     {/* Right Section */}
-                    <div className="w-28 p-3 flex items-center justify-center relative">
-                        <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2" style={{ backgroundColor: `${form.grad_from}10`, border: `1px dashed ${form.grad_from}40` }}>
-                            <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: form.grad_from }}>REDEEM</span>
-                            <span className="text-sm font-black leading-tight text-center px-1" style={{ color: form.grad_from }}>{form.cta_text || 'OFF'}</span>
+                    <div className={cn("w-28 p-3 flex items-center justify-center relative", form.bg_image_url && "bg-slate-950/50 backdrop-blur-[1.5px]")}>
+                        <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2" style={{ backgroundColor: form.bg_image_url ? 'rgba(255,255,255,0.15)' : `${form.grad_from}10`, border: `1px dashed ${form.bg_image_url ? 'rgba(255,255,255,0.3)' : `${form.grad_from}40`}` }}>
+                            <span className="text-[9px] font-black uppercase mb-0.5" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }}>REDEEM</span>
+                            <span className="text-sm font-black leading-tight text-center px-1" style={{ color: form.bg_image_url ? '#ffffff' : form.grad_from }}>{form.cta_text || 'OFF'}</span>
                         </div>
                     </div>
                 </div>
@@ -140,23 +149,30 @@ const LivePreview = ({ form }: { form: BannerForm }) => {
 
     return (
         <div
-            className="relative overflow-hidden rounded-2xl text-white shadow-xl h-44"
-            style={{ background: `linear-gradient(135deg, ${form.grad_from}, ${form.grad_to})` }}
+            className="relative overflow-hidden rounded-2xl text-white shadow-xl h-44 animate-in fade-in duration-300"
+            style={{ 
+                background: form.bg_image_url 
+                    ? `url(${form.bg_image_url}) center/cover no-repeat` 
+                    : `linear-gradient(135deg, ${form.grad_from}, ${form.grad_to})` 
+            }}
         >
-            <div className="absolute -top-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+            {/* Ambient mask on custom background image */}
+            {form.bg_image_url && <div className="absolute inset-0 bg-slate-950/30 backdrop-blur-[0.5px] z-0" />}
+            
+            <div className="absolute -top-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl z-0" />
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl z-0" />
             <div className="relative z-10 p-6 flex items-center gap-5 h-full">
                 <div className="flex-1 min-w-0">
                     <span className="inline-block text-[9px] font-black uppercase tracking-[0.2em] bg-white/30 backdrop-blur-md border border-white/20 text-white rounded-full px-3 py-1 mb-3">
                         {form.tag || 'Tag'}
                     </span>
-                    <h3 className="text-xl font-black text-white leading-tight mb-2 whitespace-pre-line tracking-tight">
+                    <h3 className="text-xl font-black text-white leading-tight mb-2 whitespace-pre-line tracking-tight drop-shadow-sm">
                         {form.title || 'Your Banner Title'}
                     </h3>
-                    <p className="text-[11px] font-medium text-emerald-50/70 mb-4 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] font-medium text-white/90 mb-4 line-clamp-2 leading-relaxed drop-shadow-sm">
                         {form.subtitle || 'Subtitle goes here'}
                     </p>
-                    <div className="inline-block bg-white text-emerald-900 rounded-xl px-5 py-2.5 text-[11px] font-black shadow-lg uppercase tracking-widest">
+                    <div className="inline-block bg-white text-slate-900 rounded-xl px-5 py-2.5 text-[11px] font-black shadow-lg uppercase tracking-widest">
                         {form.cta_text || 'Click Here'}
                     </div>
                 </div>
@@ -164,7 +180,7 @@ const LivePreview = ({ form }: { form: BannerForm }) => {
                     {form.image_url ? (
                         <img src={form.image_url} alt="preview" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
                     ) : (
-                        <Icon className="w-16 h-16 opacity-80" />
+                        <Icon className="w-16 h-16 opacity-85" />
                     )}
                 </div>
             </div>
@@ -298,6 +314,7 @@ const AdminBannerEditor = () => {
     const set = (key: keyof BannerForm, val: any) => setForm(prev => ({ ...prev, [key]: val }));
 
     const [uploading, setUploading] = useState(false);
+    const [uploadingBg, setUploadingBg] = useState(false);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -334,6 +351,44 @@ const AdminBannerEditor = () => {
             });
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingBg(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `banners/bg_${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+
+            set('bg_image_url', publicUrl);
+            toast({
+                title: "Background Uploaded 🌅",
+                description: "Custom banner background graphic has been successfully stored."
+            });
+        } catch (err: any) {
+            console.error("Banner background upload failed:", err);
+            toast({
+                title: "Upload Failed",
+                description: err.message || "Failed to upload custom background.",
+                variant: "destructive"
+            });
+        } finally {
+            setUploadingBg(false);
         }
     };
 
@@ -527,7 +582,7 @@ const AdminBannerEditor = () => {
                                         {form.image_url && (
                                             <button 
                                                 onClick={() => set('image_url', '')} 
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650"
                                             >
                                                 <X className="w-4 h-4" />
                                             </button>
@@ -560,6 +615,57 @@ const AdminBannerEditor = () => {
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                                     Specifying a custom image overrides the standard icon and displays the visual graphic in the banner preview.
+                                </p>
+                            </Field>
+                        </div>
+
+                        {/* Custom Background Image URL and Upload Field */}
+                        <div className="border-t border-slate-100 pt-6 space-y-4">
+                            <Field label="Custom Background Image (Image URL or Upload)">
+                                <div className="flex flex-col md:flex-row gap-3 items-start">
+                                    <div className="flex-1 w-full relative">
+                                        <Input 
+                                            className="h-12 pr-10 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-medium" 
+                                            placeholder="Paste background image URL (e.g. https://domain.com/bg.png)" 
+                                            value={form.bg_image_url || ''} 
+                                            onChange={e => set('bg_image_url', e.target.value)} 
+                                        />
+                                        {form.bg_image_url && (
+                                            <button 
+                                                onClick={() => set('bg_image_url', '')} 
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="shrink-0 w-full md:w-auto">
+                                        <label className={cn(
+                                            "h-12 px-6 rounded-xl border border-dashed border-slate-355 bg-slate-50 hover:bg-slate-100/80 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 font-bold text-slate-650",
+                                            uploadingBg && "opacity-60 pointer-events-none"
+                                        )}>
+                                            {uploadingBg ? (
+                                                <>
+                                                    <PrePeSpinner className="w-4 h-4 text-blue-600" />
+                                                    <span>Uploading...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Image className="w-4 h-4 text-slate-500" />
+                                                    <span>Upload File</span>
+                                                </>
+                                            )}
+                                            <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                onChange={handleBgImageUpload} 
+                                                className="hidden" 
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                                    Specifying a background image replaces the color gradient with a full-bleed graphic background.
                                 </p>
                             </Field>
                         </div>
