@@ -34,11 +34,11 @@ export const fetchKwikOperators = async (): Promise<KwikOperator[]> => {
         { operator_name: "BSNL Postpaid", operator_id: "29", service_type: "MOBILE_POSTPAID", status: "1", biller_status: "1", bill_fetch: "1", supportValidation: "1", bbps_enabled: "1", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
         { operator_name: "Jio Postpaid", operator_id: "172", service_type: "MOBILE_POSTPAID", status: "1", biller_status: "1", bill_fetch: "1", supportValidation: "1", bbps_enabled: "1", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
         { operator_name: "Vi Postpaid", operator_id: "22", service_type: "MOBILE_POSTPAID", status: "1", biller_status: "1", bill_fetch: "1", supportValidation: "1", bbps_enabled: "1", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
-        { operator_name: "Tata Play", operator_id: "13", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
-        { operator_name: "Airtel DTH", operator_id: "11", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
-        { operator_name: "Dish TV", operator_id: "12", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
+        { operator_name: "Tata Play", operator_id: "27", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
+        { operator_name: "Airtel DTH", operator_id: "23", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
+        { operator_name: "Dish TV", operator_id: "25", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
         { operator_name: "Videocon D2H", operator_id: "28", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" },
-        { operator_name: "Sun Direct", operator_id: "16", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" }
+        { operator_name: "Sun Direct", operator_id: "26", service_type: "DTH", status: "1", biller_status: "1", bill_fetch: "0", supportValidation: "0", bbps_enabled: "0", message: "", description: "", amount_minimum: "10", amount_maximum: "10000" }
     ];
 };
 
@@ -70,7 +70,8 @@ const callProxy = async (endpoint: string, params?: Record<string, any>, method:
                 });
                 return await response.json();
             } catch (fallbackError) {
-                console.error('[Proxy Fallback] Production proxy also unreachable:', fallbackError);
+                console.error('[Proxy Fallback] Production fallback failed:', fallbackError);
+                throw error;
             }
         }
 
@@ -235,7 +236,15 @@ export const fetchRechargePlans = async (stateCode: string, operatorId: string):
 
 export const fetchDTHPlans = async (operatorId: string): Promise<KwikPlansResponse> => {
     try {
-        return await callProxy('/DTH_plans.php', { opid: operatorId }, 'POST');
+        const opidMap: Record<string, string> = {
+            '11': '23',
+            '12': '25',
+            '13': '27',
+            '16': '26',
+            '28': '28',
+        };
+        const kwikOpid = opidMap[operatorId] || operatorId;
+        return await callProxy('/DTH_plans.php', { opid: kwikOpid }, 'POST');
     } catch (error) {
         return { success: false, message: 'Network Error' };
     }
@@ -262,7 +271,38 @@ export interface DTHCustomerInfoResponse {
 
 export const fetchDTHCustomerDetails = async (operatorId: string, customerId: string): Promise<DTHCustomerInfoResponse> => {
     try {
-        return await callProxy('/DTH_customer_info.php', { opid: operatorId, customer_id: customerId }, 'POST');
+        const opidMap: Record<string, string> = {
+            '11': '23',
+            '12': '25',
+            '13': '27',
+            '16': '26',
+            '28': '28',
+        };
+        const kwikOpid = opidMap[operatorId] || operatorId;
+        const res = await callProxy('/dthinfo.php', { opid: kwikOpid, number: customerId }, 'POST');
+        
+        if (res && res.status === 'SUCCESS' && res.response) {
+            const rawInfo = res.response;
+            return {
+                status: 'SUCCESS',
+                message: res.message || 'Details fetched successfully',
+                response: {
+                    operator_id: kwikOpid,
+                    customer_id: customerId,
+                    info: [{
+                        balance: rawInfo.balance || '0',
+                        customerName: rawInfo.customerName || 'N/A',
+                        status: rawInfo.status || 'Active',
+                        NextRechargeDate: rawInfo.NextRechargeDate || 'N/A',
+                        lastrechargeamount: rawInfo.monthlyRecharge || '0',
+                        lastrechargedate: 'N/A',
+                        planname: rawInfo.planname || 'N/A',
+                        monthlyRecharge: rawInfo.monthlyRecharge || '0'
+                    }]
+                }
+            };
+        }
+        return { status: 'FAILED', message: res?.message || 'Verification failed' };
     } catch (error) {
         return { status: 'FAILED', message: 'Network Error' };
     }

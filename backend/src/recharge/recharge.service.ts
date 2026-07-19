@@ -50,7 +50,7 @@ export class RechargeService {
     // Dynamic service type matching (Postpaid vs Prepaid vs DTH)
     let serviceType = 'MOBILE_PREPAID';
     const isPostpaid = ['14', '172', '22', '29', 'postpaid'].includes(operator.toLowerCase()) || operator.toLowerCase().includes('post');
-    const isDth = dthId || ['11', '12', '13', '28', '16'].includes(operator) || operator.toLowerCase().includes('dth');
+    const isDth = dthId || ['11', '12', '13', '28', '16', '23', '25', '26', '27'].includes(operator) || operator.toLowerCase().includes('dth');
     
     if (isDth) {
       serviceType = 'DTH';
@@ -378,8 +378,17 @@ export class RechargeService {
       '2': '2',   // BSNL
       '3': '12',  // Jio
       '4': '3',   // VI
-      '5': '10',  // Dish TV
-      '6': '11',  // Tata Sky
+      '5': '25',  // Dish TV (KwikAPI DTH opid 25)
+      '6': '27',  // Tata Sky (KwikAPI DTH opid 27)
+      '11': '23', // Airtel DTH (KwikAPI DTH opid 23)
+      '12': '25', // Dish DTH (KwikAPI DTH opid 25)
+      '13': '27', // Tata Sky DTH (KwikAPI DTH opid 27)
+      '16': '26', // Sun DTH (KwikAPI DTH opid 26)
+      '28': '28', // Videocon DTH (KwikAPI DTH opid 28)
+      '23': '23',
+      '25': '25',
+      '26': '26',
+      '27': '27',
     };
 
     const kwikOpId = operatorMap[operator] || operator;
