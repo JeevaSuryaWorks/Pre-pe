@@ -127,11 +127,29 @@ export const DTHEnterDetails = () => {
                     variant: "default"
                 });
                 
-                // Prefetch mock/fallback plans
-                const mockPlans = getMockDTHPlans(operator.name);
-                setPlansData(mockPlans);
-                const categories = Object.keys(mockPlans);
-                if (categories.length > 0) setActiveCategory(categories[0]);
+                // Prefetch plans inline
+                try {
+                    setPlansLoading(true);
+                    const plansRes = await fetchDTHPlans(operator.id);
+                    if (plansRes && plansRes.success && plansRes.plans && Object.keys(plansRes.plans).length > 0) {
+                        setPlansData(plansRes.plans);
+                        const categories = Object.keys(plansRes.plans);
+                        if (categories.length > 0) setActiveCategory(categories[0]);
+                    } else {
+                        const mockPlans = getMockDTHPlans(operator.name);
+                        setPlansData(mockPlans);
+                        const categories = Object.keys(mockPlans);
+                        if (categories.length > 0) setActiveCategory(categories[0]);
+                    }
+                } catch (pe) {
+                    const mockPlans = getMockDTHPlans(operator.name);
+                    setPlansData(mockPlans);
+                    const categories = Object.keys(mockPlans);
+                    if (categories.length > 0) setActiveCategory(categories[0]);
+                } finally {
+                    setPlansLoading(false);
+                }
+                
                 setStep('details');
             }
         } catch (error) {
@@ -143,11 +161,29 @@ export const DTHEnterDetails = () => {
                 variant: "default"
             });
             
-            // Prefetch mock/fallback plans
-            const mockPlans = getMockDTHPlans(operator.name);
-            setPlansData(mockPlans);
-            const categories = Object.keys(mockPlans);
-            if (categories.length > 0) setActiveCategory(categories[0]);
+            // Prefetch plans inline
+            try {
+                setPlansLoading(true);
+                const plansRes = await fetchDTHPlans(operator.id);
+                if (plansRes && plansRes.success && plansRes.plans && Object.keys(plansRes.plans).length > 0) {
+                    setPlansData(plansRes.plans);
+                    const categories = Object.keys(plansRes.plans);
+                    if (categories.length > 0) setActiveCategory(categories[0]);
+                } else {
+                    const mockPlans = getMockDTHPlans(operator.name);
+                    setPlansData(mockPlans);
+                    const categories = Object.keys(mockPlans);
+                    if (categories.length > 0) setActiveCategory(categories[0]);
+                }
+            } catch (pe) {
+                const mockPlans = getMockDTHPlans(operator.name);
+                setPlansData(mockPlans);
+                const categories = Object.keys(mockPlans);
+                if (categories.length > 0) setActiveCategory(categories[0]);
+            } finally {
+                setPlansLoading(false);
+            }
+            
             setStep('details');
         }
         setFetchingInfo(false);

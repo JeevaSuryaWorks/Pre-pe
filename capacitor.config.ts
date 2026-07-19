@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Pre-Pe',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    url: 'https://pre-pe.com',
+    cleartext: true
   },
   plugins: {
     SplashScreen: {
