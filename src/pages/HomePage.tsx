@@ -5,7 +5,7 @@ import {
     Bell, Search, Plus, Send, Zap, 
     Smartphone, Tv, Lightbulb, Play, 
     ChevronRight, CreditCard, Wallet, 
-    Trophy, ShieldCheck, BadgeCheck,
+    Trophy, ShieldCheck,
     ScanLine, ArrowUpRight, ArrowRight, Globe, ShieldAlert,
     Sparkles, TrendingUp, Flame, Gift
 } from "lucide-react";
@@ -332,49 +332,80 @@ const HomePage = () => {
                         </div>
                     </motion.section>
 
-                    {/* --- Bottom Accent --- */}
-                    <div className="mt-12 mb-4 bg-slate-900 rounded-[32px] p-8 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500 rounded-full -mr-16 -mt-16 blur-3xl opacity-20" />
-                        <div className="relative z-10 flex flex-col items-center text-center">
-                            <BadgeCheck className="w-8 h-8 text-emerald-400 mb-3" />
-                            <h4 className="text-xl font-black mb-2 tracking-tight">Zero-Trust Payments</h4>
-                            <p className="text-xs text-slate-400 font-medium leading-relaxed">Your security is our executive priority. Every transaction is encrypted end-to-end.</p>
-                            <Link to="/safety" className="w-full">
-                                <Button className="mt-6 bg-white text-slate-900 hover:bg-emerald-50 font-black rounded-2xl w-full h-12 shadow-lg shadow-white/10 transition-transform active:scale-95">
+                    {/* --- Security Assurance Card --- */}
+                    <div className="mt-12 mb-4 relative overflow-hidden rounded-[32px]">
+                        {/* Gradient background */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950" />
+                        {/* Decorative blurs */}
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500 rounded-full -mr-12 -mt-12 blur-[80px] opacity-30" />
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500 rounded-full -ml-10 -mb-10 blur-[60px] opacity-20" />
+                        {/* Subtle grid pattern */}
+                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+                        
+                        <div className="relative z-10 p-8 flex flex-col items-center text-center">
+                            {/* Animated shield icon */}
+                            <div className="relative mb-5">
+                                <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-30 animate-pulse" />
+                                <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/25 rotate-3">
+                                    <ShieldCheck className="w-7 h-7 text-white drop-shadow-sm" />
+                                </div>
+                            </div>
+                            
+                            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/80 mb-2">Bank-Grade Security</p>
+                            <p className="text-sm text-slate-300 font-medium leading-relaxed max-w-[260px]">
+                                Every transaction is protected with 256-bit encryption & real-time fraud monitoring.
+                            </p>
+                            
+                            {/* Security feature pills */}
+                            <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+                                {[
+                                    { icon: '🔐', label: 'End-to-End Encrypted' },
+                                    { icon: '🛡️', label: 'RBI Compliant' },
+                                    { icon: '⚡', label: 'Instant Alerts' },
+                                ].map((item) => (
+                                    <span key={item.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-full text-[10px] font-semibold text-slate-300 tracking-wide">
+                                        <span className="text-xs">{item.icon}</span> {item.label}
+                                    </span>
+                                ))}
+                            </div>
+
+                            <Link to="/safety" className="w-full mt-6">
+                                <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold rounded-2xl w-full h-12 shadow-lg shadow-emerald-500/20 transition-all duration-300 active:scale-[0.97] border-0 text-sm tracking-wide">
                                     Learn About Safety
+                                    <ArrowRight className="w-4 h-4 ml-2" />
                                 </Button>
                             </Link>
                         </div>
                     </div>
 
-                    {/* --- Security Badges --- */}
-                    <div className="pt-8 pb-4 flex items-center justify-around opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700 select-none px-4">
-                        <div className="flex flex-col items-center gap-2">
-                            <Zap className="w-6 h-6 text-slate-400" />
-                            <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">PCI-DSS</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-2">
-                            <Globe className="w-6 h-6 text-slate-400" />
-                            <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">ISO 27001</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-2">
-                            <ShieldAlert className="w-6 h-6 text-slate-400" />
-                            <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">SECURE</span>
+                    {/* --- Compliance Badges --- */}
+                    <div className="pt-6 pb-4 px-4">
+                        <div className="flex items-center justify-center gap-6">
+                            {[
+                                { icon: <Zap className="w-4 h-4" />, label: 'PCI-DSS', color: 'text-amber-500' },
+                                { icon: <Globe className="w-4 h-4" />, label: 'ISO 27001', color: 'text-blue-500' },
+                                { icon: <ShieldAlert className="w-4 h-4" />, label: 'SECURE', color: 'text-emerald-500' },
+                            ].map((badge) => (
+                                <div key={badge.label} className="flex items-center gap-1.5 opacity-50 hover:opacity-100 transition-opacity duration-500 cursor-default">
+                                    <span className={badge.color}>{badge.icon}</span>
+                                    <span className="text-[9px] font-black tracking-[0.15em] text-slate-500 uppercase">{badge.label}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* --- Made in India --- */}
-                    <div className="py-12 flex flex-col items-center gap-4 select-none">
-                        <div className="flex items-center gap-1">
-                            <div className="w-12 h-1 bg-[#FF671F] rounded-full shadow-sm" />
-                            <div className="w-12 h-1 bg-white border border-slate-100 rounded-full shadow-sm" />
-                            <div className="w-12 h-1 bg-[#046A38] rounded-full shadow-sm" />
+                    <div className="py-10 flex flex-col items-center gap-4 select-none">
+                        <div className="flex items-center gap-0.5">
+                            <div className="w-10 h-[3px] bg-gradient-to-r from-[#FF671F] to-[#FF8C42] rounded-full" />
+                            <div className="w-10 h-[3px] bg-gradient-to-r from-slate-200 to-slate-300 rounded-full" />
+                            <div className="w-10 h-[3px] bg-gradient-to-r from-[#046A38] to-[#0B8A4B] rounded-full" />
                         </div>
-                        <div className="flex flex-col items-center gap-1">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center leading-relaxed flex items-center gap-2">
+                        <div className="flex flex-col items-center gap-1.5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
                                 Made in India with <span className="text-red-500 text-xs animate-pulse">❤️</span> Love
                             </p>
-                            <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                            <p className="text-[9px] font-semibold text-slate-300 uppercase tracking-[0.2em]">
                                 Prepe &bull; Your Trusted Payment Partner
                             </p>
                         </div>
