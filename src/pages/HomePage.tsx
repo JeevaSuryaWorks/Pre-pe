@@ -5,7 +5,7 @@ import {
     Bell, Search, Plus, Send, Zap, 
     Smartphone, Tv, Lightbulb, Play, 
     ChevronRight, CreditCard, Wallet, 
-    Trophy, ShieldCheck,
+    Trophy,
     ScanLine, ArrowUpRight, ArrowRight, Globe, ShieldAlert,
     Sparkles, TrendingUp, Flame, Gift
 } from "lucide-react";
@@ -331,52 +331,6 @@ const HomePage = () => {
                              <ServiceGrid />
                         </div>
                     </motion.section>
-
-                    {/* --- Security Assurance Card --- */}
-                    <div className="mt-12 mb-4 relative overflow-hidden rounded-[32px]">
-                        {/* Gradient background */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950" />
-                        {/* Decorative blurs */}
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500 rounded-full -mr-12 -mt-12 blur-[80px] opacity-30" />
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500 rounded-full -ml-10 -mb-10 blur-[60px] opacity-20" />
-                        {/* Subtle grid pattern */}
-                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-                        
-                        <div className="relative z-10 p-8 flex flex-col items-center text-center">
-                            {/* Animated shield icon */}
-                            <div className="relative mb-5">
-                                <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-30 animate-pulse" />
-                                <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/25 rotate-3">
-                                    <ShieldCheck className="w-7 h-7 text-white drop-shadow-sm" />
-                                </div>
-                            </div>
-                            
-                            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-400/80 mb-2">Bank-Grade Security</p>
-                            <p className="text-sm text-slate-300 font-medium leading-relaxed max-w-[260px]">
-                                Every transaction is protected with 256-bit encryption & real-time fraud monitoring.
-                            </p>
-                            
-                            {/* Security feature pills */}
-                            <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
-                                {[
-                                    { icon: '🔐', label: 'End-to-End Encrypted' },
-                                    { icon: '🛡️', label: 'RBI Compliant' },
-                                    { icon: '⚡', label: 'Instant Alerts' },
-                                ].map((item) => (
-                                    <span key={item.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.06] backdrop-blur-sm border border-white/[0.08] rounded-full text-[10px] font-semibold text-slate-300 tracking-wide">
-                                        <span className="text-xs">{item.icon}</span> {item.label}
-                                    </span>
-                                ))}
-                            </div>
-
-                            <Link to="/safety" className="w-full mt-6">
-                                <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold rounded-2xl w-full h-12 shadow-lg shadow-emerald-500/20 transition-all duration-300 active:scale-[0.97] border-0 text-sm tracking-wide">
-                                    Learn About Safety
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
 
                     {/* --- Compliance Badges --- */}
                     <div className="pt-6 pb-4 px-4">
