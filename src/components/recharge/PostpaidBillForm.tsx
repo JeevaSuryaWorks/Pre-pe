@@ -508,9 +508,9 @@ export function PostpaidBillForm() {
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-black text-slate-400 uppercase tracking-wider">Payee UPI ID</span>
                           <div className="flex items-center gap-1">
-                            <span className="font-mono font-black text-indigo-600">s5698564172094253@slc</span>
+                            <span className="font-mono font-black text-indigo-600">jeevasuriya2007-5@okicici</span>
                             <button 
-                              onClick={() => copyToClipboard('s5698564172094253@slc', 'vpa')}
+                              onClick={() => copyToClipboard('jeevasuriya2007-5@okicici', 'vpa')}
                               className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
                             >
                               <Copy className="w-3.5 h-3.5" />
@@ -534,7 +534,7 @@ export function PostpaidBillForm() {
                       {/* QR code and direct pay link */}
                       <div className="bg-slate-50 border border-slate-150 rounded-2xl p-6 text-center space-y-4">
                         <QRCodeSVG 
-                          value={`upi://pay?pa=s5698564172094253@slc&pn=Jeevasurya%20Palanisamy&am=${billDetails.amount}&cu=INR`} 
+                          value={`upi://pay?pa=jeevasuriya2007-5@okicici&pn=Jeevasurya%20Palanisamy&am=${billDetails.amount}&cu=INR`} 
                           size={160} 
                           className="mx-auto rounded-xl p-2 border border-white bg-white shadow-xs" 
                         />
@@ -544,7 +544,7 @@ export function PostpaidBillForm() {
 
                         {isMobile && (
                           <a 
-                            href={`upi://pay?pa=s5698564172094253@slc&pn=Jeevasurya%20Palanisamy&am=${billDetails.amount}&cu=INR`}
+                            href={`upi://pay?pa=jeevasuriya2007-5@okicici&pn=Jeevasurya%20Palanisamy&am=${billDetails.amount}&cu=INR`}
                             className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10 active:scale-[0.98] transition-all select-none"
                           >
                             <Smartphone className="w-4 h-4" />

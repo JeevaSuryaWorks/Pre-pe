@@ -570,9 +570,9 @@ export class WalletService implements OnModuleInit {
         // FALLBACK TO MANUAL P2P UPI INTENT FLOW IF UPIPAY IS NOT ACTIVE
         let vpa = this.configService.get<string>('UPI_VPA');
         const upiIds = [
-            's5698564172094253@slc'
+            'jeevasuriya2007-5@okicici'
         ];
-        if (!vpa || vpa === 'bmsmobiles@barodampay' || vpa === 'prepetechnologies@okaxis' || vpa === 'gpay-12205495155@okbizaxis') {
+        if (!vpa || vpa === 'bmsmobiles@barodampay' || vpa === 'prepetechnologies@okaxis' || vpa === 'gpay-12205495155@okbizaxis' || vpa === 's5698564172094253@slc') {
             vpa = upiIds[Math.floor(Math.random() * upiIds.length)];
         }
         

@@ -731,7 +731,7 @@ export function MobileRechargeForm({
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [rewardsConfig, setRewardsConfig] = useState<any>(null);
   const [upiVpa, setUpiVpa] = useState(() => {
-    const vpas = ['prepetechnologies@okaxis'];
+    const vpas = ['jeevasuriya2007-5@okicici'];
     return vpas[Math.floor(Math.random() * vpas.length)];
   });
   
