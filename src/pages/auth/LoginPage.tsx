@@ -4,7 +4,22 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
 import { Loader2, ShieldCheck, Zap, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
+// Declare custom element for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'dotlottie-wc': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string;
+        autoplay?: string | boolean;
+        loop?: string | boolean;
+        speed?: string | number;
+        mode?: string;
+        class?: string;
+      }, HTMLElement>;
+    }
+  }
+}
 
 const LoginPage = () => {
     const { user, loading } = useAuth();
@@ -24,7 +39,7 @@ const LoginPage = () => {
     }
 
     return (
-        <Layout hideHeader>
+        <Layout hideHeader isFullWidth>
             <div className="min-h-screen flex flex-col lg:flex-row bg-[#FAFCFB] relative overflow-hidden">
                 {/* Background decorative glows */}
                 <div className="absolute top-0 left-0 w-[50vw] h-[50vh] bg-[#FF671F]/5 rounded-full blur-[120px] pointer-events-none" />
@@ -49,12 +64,13 @@ const LoginPage = () => {
 
                     {/* Content & Animation Wrapper */}
                     <div className="my-auto py-8 flex flex-col items-center lg:items-start text-center lg:text-left max-w-lg mx-auto lg:mx-0">
-                        {/* Lottie Animation for Mobile / Tablet / Desktop */}
+                        {/* Lottie Animation using Web Component */}
                         <div className="w-full max-w-[280px] sm:max-w-[320px] lg:max-w-[400px] aspect-video lg:aspect-square mb-6 lg:mb-8 flex items-center justify-center">
-                            <DotLottieReact
+                            <dotlottie-wc
                                 src="/login-register.lottie"
-                                loop
-                                autoplay
+                                loop="true"
+                                autoplay="true"
+                                speed="1"
                                 style={{ width: '100%', height: '100%' }}
                             />
                         </div>

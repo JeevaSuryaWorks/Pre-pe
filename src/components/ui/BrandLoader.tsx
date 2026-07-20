@@ -1,6 +1,21 @@
 import React from 'react';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { cn } from '@/lib/utils';
+
+// Declare JSX elements for TypeScript support of custom web components
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'dotlottie-wc': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string;
+        autoplay?: string | boolean;
+        loop?: string | boolean;
+        speed?: string | number;
+        mode?: string;
+        class?: string;
+      }, HTMLElement>;
+    }
+  }
+}
 
 // Lottie animation source (bundled locally for offline/Capacitor support)
 const LOTTIE_SRC = '/prepe-loader.lottie';
@@ -69,12 +84,12 @@ export const PrePeSpinner: React.FC<{ className?: string }> = ({ className }) =>
           />
         </svg>
       ) : (
-        // dotLottie animation for larger spinners
-        <DotLottieReact
+        // dotLottie animation using Web Component for larger spinners
+        <dotlottie-wc
           src={LOTTIE_SRC}
-          loop
-          autoplay
-          speed={1}
+          loop="true"
+          autoplay="true"
+          speed="1"
           style={{ width: '100%', height: '100%' }}
         />
       )}
@@ -118,13 +133,13 @@ export const BrandLoader: React.FC<BrandLoaderProps> = ({
       {/* Background radial glow aura */}
       <div className="absolute inset-[-18%] rounded-full bg-gradient-to-br from-teal-400/20 to-purple-500/20 blur-xl animate-[loader-glow-pulse_3s_ease-in-out_infinite]" />
       
-      {/* dotLottie Animation */}
-      <DotLottieReact
+      {/* dotLottie Web Component */}
+      <dotlottie-wc
         src={LOTTIE_SRC}
-        loop
-        autoplay
-        speed={1}
-        style={{ width: sizePxMap[size], height: sizePxMap[size] }}
+        loop="true"
+        autoplay="true"
+        speed="1"
+        style={{ width: `${sizePxMap[size]}px`, height: `${sizePxMap[size]}px` }}
       />
     </div>
     
