@@ -12,7 +12,7 @@ import { Loader2, ArrowRight, ShieldCheck, Wallet, AlertCircle, Info, Sparkles, 
 import { processRecharge } from '@/services/recharge.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { PrepeLoader } from "@/components/ui/PrepeLoader";
+import { BrandLoader } from "@/components/ui/BrandLoader";
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -354,7 +354,7 @@ export const DTHEnterDetails = () => {
         return (
             <Layout title="Enter Details" showBack>
                 <div className="flex flex-col items-center justify-center min-h-[65vh]">
-                    <PrepeLoader text="Syncing Gateway..." size="lg" />
+                    <BrandLoader message="Syncing Gateway..." size="lg" />
                 </div>
             </Layout>
         );
@@ -561,7 +561,7 @@ export const DTHEnterDetails = () => {
                             {/* Inline DTH Plans List */}
                             {plansLoading ? (
                                 <div className="py-8 bg-white/70 rounded-3xl p-5 border border-slate-100 shadow-sm">
-                                    <PrepeLoader text="Fetching Operator Plans..." size="md" />
+                                    <BrandLoader message="Fetching Operator Plans..." size="md" />
                                 </div>
                             ) : plansData && Object.keys(plansData).length > 0 ? (
                                 <div className="bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getOperators } from '@/services/operator.service';
 import type { Operator } from '@/types/recharge.types';
-import { PrepeLoader } from "@/components/ui/PrepeLoader";
+import { BrandLoader } from "@/components/ui/BrandLoader";
 
 // Animated space-themed DTH satellite signal banner
 const DTHSignalAnimation = () => {
@@ -196,7 +196,7 @@ export const DTHSelectProvider = () => {
 
                     {loading ? (
                         <div className="py-12 bg-white/60 backdrop-blur-md rounded-[32px] border border-slate-100/50 shadow-sm">
-                            <PrepeLoader text="Syncing Operators..." size="md" />
+                            <BrandLoader message="Syncing Operators..." size="md" />
                         </div>
                     ) : (
                         <>
