@@ -1,8 +1,9 @@
+import { useRef } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
-import { Loader2, ShieldCheck, Zap, Heart } from 'lucide-react';
+import { Loader2, ShieldCheck, Zap, Heart, ChevronDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 // Declare custom element for TypeScript
@@ -23,6 +24,11 @@ declare global {
 
 const RegisterPage = () => {
     const { user, loading } = useAuth();
+    const formSectionRef = useRef<HTMLDivElement>(null);
+
+    const handleScrollToForm = () => {
+        formSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     if (loading) {
         return (
@@ -109,14 +115,28 @@ const RegisterPage = () => {
                         </div>
                     </div>
 
-                    {/* Footer note */}
-                    <div className="text-xs text-slate-400 font-medium flex items-center justify-center lg:justify-start gap-1">
-                        Made with <Heart className="h-3 w-3 fill-red-500 text-red-500 animate-pulse" /> in India
+                    {/* Scroll Down Indicator (Mobile only) & Footer wrapper */}
+                    <div className="flex flex-col items-center lg:items-start gap-5 mt-8 lg:mt-0 relative z-20">
+                        <button 
+                            onClick={handleScrollToForm}
+                            className="mx-auto lg:hidden flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-slate-200/80 shadow-md hover:shadow-lg active:scale-95 transition-all group"
+                        >
+                            <span className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500 group-hover:text-[#FF671F] transition-colors">
+                                Scroll to Register
+                            </span>
+                            <div className="flex items-center justify-center rounded-full bg-slate-50 text-slate-400 group-hover:bg-[#FF671F]/10 group-hover:text-[#FF671F] transition-colors animate-bounce">
+                                <ChevronDown className="h-4 w-4" />
+                            </div>
+                        </button>
+
+                        <div className="text-xs text-slate-400 font-medium flex items-center justify-center lg:justify-start gap-1">
+                            Made with <Heart className="h-3 w-3 fill-red-500 text-red-500 animate-pulse" /> in India
+                        </div>
                     </div>
                 </div>
 
                 {/* Right Side: Form Card Section */}
-                <div className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative z-10">
+                <div ref={formSectionRef} className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative z-10">
                     <div className="w-full max-w-md space-y-6">
                         {/* Header for Mobile only (logo & welcome is inside the card on mobile or header) */}
                         <div className="text-center space-y-2 lg:hidden">
