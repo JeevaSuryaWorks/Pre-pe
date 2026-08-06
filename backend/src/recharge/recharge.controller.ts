@@ -100,4 +100,46 @@ export class RechargeController {
     async fetchBill(@Req() req: any, @Body() body: { operator_id: string, number: string, user_id: string }) {
         return this.rechargeService.fetchBillDetails(body.operator_id, body.number, body.user_id);
     }
+
+    @Post('operator-circle-detect')
+    @Post('operator-fetch-v2')
+    async detectOperator(@Body() body: { number: string }) {
+        const number = (body.number || (body as any).mobile_number || '').trim();
+        this.logger.log(`[RECHARGE:OPERATOR_LOOKUP:REQ] number=${number || 'N/A'}`);
+
+        const result = await this.rechargeService.fetchOperatorDetails(number);
+        this.logger.log(`[RECHARGE:OPERATOR_LOOKUP:RES] ${JSON.stringify(result)}`);
+        return result;
+    }
+
+    @Post('recharge-plans')
+    @Post('mobile-recharge-plans')
+    async rechargePlans(
+        @Body()
+        body: {
+            opid?: string | number;
+            circle_code?: string | number;
+            operator_id?: string | number;
+            circle_id?: string | number;
+            provider?: string;
+            circle_name?: string;
+        },
+    ) {
+        const opid = body.opid ?? body.operator_id;
+        const circleCode = body.circle_code ?? body.circle_id;
+
+        this.logger.log(
+            `[RECHARGE:PLAN_LOOKUP:REQ] provider=${body.provider || 'N/A'}, opid=${opid || 'N/A'}, circle_code=${circleCode || 'N/A'}, circle_name=${body.circle_name || 'N/A'}`,
+        );
+
+        const result = await this.rechargeService.fetchRechargePlans(
+            opid,
+            circleCode,
+            body.provider,
+            body.circle_name,
+        );
+
+        this.logger.log(`[RECHARGE:PLAN_LOOKUP:RES] ${JSON.stringify(result)}`);
+        return result;
+    }
 }
