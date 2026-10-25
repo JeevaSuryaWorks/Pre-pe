@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Prepe - Connection Offline</title>
+  <style>
+    :root {
+      --primary: #FF671F;
+      --secondary: #046A38;
+      --background: #f8f9fa;
+      --text-main: #1a1a1a;
+      --text-muted: #666;
+      --card-bg: #fff;
+      --card-border: rgba(0,0,0,0.08);
+      --card-shadow: 0 10px 30px rgba(0,0,0,0.04);
+      --btn-grad-start: #FF671F;
+      --btn-grad-end: #FF8C00;
+      --btn-shadow: 0 4px 15px rgba(255,103,31,0.3);
+      --status-bg: rgba(239,68,68,0.08);
+      --status-text: #ef4444;
+      --font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #090b0e;
+        --text-main: #f8f9fa;
+        --text-muted: #a0aec0;
+        --card-bg: rgba(255,255,255,0.03);
+        --card-border: rgba(255,255,255,0.08);
+        --card-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        --btn-shadow: 0 4px 20px rgba(255,103,31,0.4);
+        --status-bg: rgba(239,68,68,0.16);
+        --status-text: #fca5a5;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: var(--font-family);
+      background-color: var(--background);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom) 24px;
+      overflow: hidden;
+      position: relative;
+    }
+    .glow-s, .glow-g {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .glow-s { top: -50px; left: -50px; background-color: var(--primary); }
+    .glow-g { bottom: -50px; right: -50px; background-color: var(--secondary); }
+    .card {
+      width: 100%;
+      max-width: 380px;
+      padding: 40px 28px;
+      border-radius: 24px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      text-align: center;
+      z-index: 10;
+      animation: up 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes up {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .brand {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg,var(--primary),var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .ill {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 28px auto;
+    }
+    .wifi {
+      transform-origin: bottom center;
+      animation: pulse 2.5s infinite ease-in-out;
+      opacity: 0.25;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.25; stroke: var(--text-muted); }
+      50% { opacity: 1; stroke: var(--primary); }
+    }
+    .slash {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: slash 1s cubic-bezier(0.16,1,0.3,1) forwards;
+      animation-delay: 0.4s;
+    }
+    @keyframes slash { to { stroke-dashoffset: 0; } }
+    .title {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 100px;
+      background-color: var(--status-bg);
+      color: var(--status-text);
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; }
+    .badge.conn { background-color: rgba(255,103,31,0.1); color: var(--primary); }
+    .badge.conn .dot { animation: pDot 1s infinite alternate; }
+    @keyframes pDot {
+      from { opacity: 0.3; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1.2); }
+    }
+    .btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg,var(--btn-grad-start),var(--btn-grad-end));
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--btn-shadow);
+      transition: transform 0.2s cubic-bezier(0.175,0.885,0.32,1.275),box-shadow 0.2s ease,opacity 0.2s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:hover { opacity: 0.95; }
+    .btn.loading { pointer-events: none; opacity: 0.85; }
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s infinite linear;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer { font-size: 11px; color: var(--text-muted); margin-top: 24px; opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <div class="glow-s"></div>
+  <div class="glow-g"></div>
+  <div class="card">
+    <div class="header">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="url(#bGrad)"/>
+        <path d="M16 6L9 16.5H15V26L22 15.5H16V6Z" fill="#fff"/>
+        <defs>
+          <linearGradient id="bGrad" x1="0" y1="0" x2="32" y2="32">
+            <stop stop-color="#FF671F"/>
+            <stop offset="1" stop-color="#046A38"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span class="brand">Prepe</span>
+    </div>
+    <div class="ill">
+      <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <circle cx="50" cy="72" r="4.5" fill="var(--text-muted)" class="wifi" style="animation-delay:0s"/>
+        <path d="M39 62 A 15 15 0 0 1 61 62" fill="none" stroke="var(--text-muted)" stroke-width="4.5" stroke-linecap="round" class="wifi" style="animation-delay:0.2s"/>
+        <path d="M29 52 A 29 29 0 0 1 71 52" fill="none" stroke="var(--text-muted)" stroke-width="4.5" stroke-linecap="round" class="wifi" style="animation-delay:0.4s"/>
+        <path d="M19 42 A 43 43 0 0 1 81 42" fill="none" stroke="var(--text-muted)" stroke-width="4.5" stroke-linecap="round" class="wifi" style="animation-delay:0.6s"/>
+        <line x1="22" y1="22" x2="78" y2="78" stroke="#ef4444" stroke-width="5" stroke-linecap="round" class="slash"/>
+      </svg>
+    </div>
+    <h2 class="title">No Internet Connection</h2>
+    <p class="desc">Please check your cellular data or Wi-Fi settings and try again.</p>
+    <div class="badge" id="badge">
+      <div class="dot"></div>
+      <span id="state">Offline</span>
+    </div>
+    <button class="btn" id="btn" onclick="retry()">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnTxt">Try Again</span>
+    </button>
+    <div class="footer">Prepe Payments & Bill Dues</div>
+  </div>
+  <script>
+    function retry() {
+      const b = document.getElementById('btn'),
+            s = document.getElementById('spinner'),
+            t = document.getElementById('btnTxt'),
+            bg = document.getElementById('badge'),
+            st = document.getElementById('state');
+      b.classList.add('loading');
+      s.style.display = 'block';
+      t.textContent = 'Reconnecting...';
+      bg.classList.add('conn');
+      st.textContent = 'Connecting...';
+      setTimeout(() => {
+        if (window.median && window.median.webview && typeof window.median.webview.reload === 'function') {
+          window.median.webview.reload();
+        } else if (window.gonative && window.gonative.webview && typeof window.gonative.webview.reload === 'function') {
+          window.gonative.webview.reload();
+        } else {
+          window.location.href = '/';
+        }
+      }, 1200);
+    }
+  </script>
+</body>
+</html>
