@@ -358,6 +358,202 @@ export class RechargeService {
     return uuidRegex.test(uuid);
   }
 
+  private async callKwikProxy<T = any>(
+    context: string,
+    endpoint: string,
+    params: Record<string, string | number | undefined>,
+    method: 'GET' | 'POST' = 'POST',
+  ): Promise<T | null> {
+    const port = this.configService.get<string>('PORT') || '3000';
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([, value]) => value !== undefined && value !== null),
+    ) as Record<string, string | number>;
+
+    this.logger.log(`[RECHARGE:${context}:REQ] ${method} ${endpoint} -> ${JSON.stringify(cleanParams)}`);
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/kwik-proxy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint,
+          method,
+          params: cleanParams,
+        }),
+        // @ts-ignore
+        signal: AbortSignal.timeout(15000),
+      });
+
+      const parsed = await response.json();
+      this.logger.log(`[RECHARGE:${context}:RES] ${JSON.stringify(parsed)}`);
+      return parsed as T;
+    } catch (error: any) {
+      this.logger.warn(`[RECHARGE:${context}:ERROR] ${error.message}`);
+      return null;
+    }
+  }
+
+  async fetchOperatorDetails(number: string): Promise<{
+    success: boolean;
+    message: string;
+    details?: {
+      provider: string;
+      opid: string | number;
+      circle_code: string | number;
+      circle_name: string;
+    };
+    provider?: string;
+    opid?: string | number;
+    circle_code?: string | number;
+    circle_name?: string;
+    raw?: any;
+  }> {
+    const mobileNumber = (number || '').trim();
+
+    if (!mobileNumber) {
+      return {
+        success: false,
+        message: 'Mobile number is required',
+      };
+    }
+
+    this.logger.log(`[RECHARGE:OPERATOR_LOOKUP] Looking up operator for ${mobileNumber}`);
+
+    const parsed = await this.callKwikProxy<any>(
+      'OPERATOR_LOOKUP',
+      '/operator_fetch_v2.php',
+      { number: mobileNumber },
+      'POST',
+    );
+
+    if (!parsed) {
+      return {
+        success: false,
+        message: 'Unable to detect operator',
+      };
+    }
+
+    console.log('Operator API Response:', parsed);
+
+    const details = parsed.details || parsed.response?.details || parsed.data?.details || parsed;
+    const provider = details?.provider ?? parsed.provider ?? parsed.details?.provider;
+    const opid = details?.opid ?? parsed.opid ?? parsed.details?.opid;
+    const circleCode = details?.circle_code ?? parsed.circle_code ?? parsed.details?.circle_code;
+    const circleName = details?.circle_name ?? parsed.circle_name ?? parsed.details?.circle_name;
+    const success = parsed.success !== false && Boolean(provider || opid || circleCode || circleName);
+
+    if (!success) {
+      return {
+        success: false,
+        message: parsed.message || 'Unable to detect operator',
+        raw: parsed,
+      };
+    }
+
+    this.logger.log(
+      `[RECHARGE:OPERATOR_LOOKUP] Detected provider=${provider}, opid=${opid}, circle_code=${circleCode}, circle_name=${circleName}`,
+    );
+
+    return {
+      success: true,
+      message: parsed.message || 'Operator detected successfully',
+      details: {
+        provider,
+        opid,
+        circle_code: circleCode,
+        circle_name: circleName,
+      },
+      provider,
+      opid,
+      circle_code: circleCode,
+      circle_name: circleName,
+      raw: parsed,
+    };
+  }
+
+  async fetchRechargePlans(
+    opid: string | number,
+    circleCode: string | number,
+    provider?: string,
+    circleName?: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    provider?: string;
+    circle_name?: string;
+    circle_code?: string | number;
+    opid?: string | number;
+    plans?: any[];
+    raw?: any;
+  }> {
+    if (opid === undefined || opid === null || `${opid}`.trim() === '') {
+      return {
+        success: false,
+        message: 'Operator ID is required',
+      };
+    }
+
+    if (circleCode === undefined || circleCode === null || `${circleCode}`.trim() === '') {
+      return {
+        success: false,
+        message: 'Circle code is required',
+      };
+    }
+
+    this.logger.log(
+      `[RECHARGE:PLAN_LOOKUP] Fetching plans for provider=${provider || 'N/A'}, opid=${opid}, circle_code=${circleCode}, circle_name=${circleName || 'N/A'}`,
+    );
+
+    const parsed = await this.callKwikProxy<any>(
+      'PLAN_LOOKUP',
+      '/recharge_plans.php',
+      {
+        opid,
+        circle_code: circleCode,
+        state_code: circleCode,
+      },
+      'POST',
+    );
+
+    if (!parsed) {
+      return {
+        success: false,
+        message: 'Unable to fetch plans',
+      };
+    }
+
+    console.log('Plans API Response:', parsed);
+
+    const candidatePlans =
+      parsed.plans ||
+      parsed.plan_list ||
+      parsed.data ||
+      parsed.response?.plans ||
+      parsed.response?.plan_list ||
+      parsed.response?.data ||
+      [];
+    const plans = Array.isArray(candidatePlans)
+      ? candidatePlans
+      : Array.isArray(parsed)
+        ? parsed
+        : [];
+
+    this.logger.log(
+      `[RECHARGE:PLAN_LOOKUP] Received ${plans.length} plans for provider=${provider || 'N/A'}, opid=${opid}, circle_code=${circleCode}`,
+    );
+
+    return {
+      success: parsed.success !== false,
+      message: parsed.message || 'Plans fetched successfully',
+      provider: provider || parsed.provider,
+      circle_name: circleName || parsed.circle_name,
+      circle_code: circleCode,
+      opid,
+      plans,
+      raw: parsed,
+    };
+  }
+
   async callKwikApiDirectly(
     amount: number,
     mobileNumber: string,

@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as QRCode from 'qrcode';
 import pino from 'pino';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class WhatsappService implements OnModuleInit, OnModuleDestroy {
@@ -18,10 +19,33 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     private qrCodeBase64: string | null = null;
     private connectionStatus: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' = 'DISCONNECTED';
     private sessionDir = path.join(process.cwd(), 'sessions', 'whatsapp_session');
+    private hasLoggedDisabledMessage = false;
 
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private readonly configService: ConfigService,
+    ) {}
+
+    private isWhatsappEnabled(): boolean {
+        const enableWhatsapp = this.configService.get<string>('ENABLE_WHATSAPP');
+        return (enableWhatsapp || 'false').toLowerCase() === 'true';
+    }
+
+    private logDisabledOnce() {
+        if (this.hasLoggedDisabledMessage) {
+            return;
+        }
+
+        this.hasLoggedDisabledMessage = true;
+        this.logger.log('WhatsApp integration disabled by configuration.');
+    }
 
     async onModuleInit() {
+        if (!this.isWhatsappEnabled()) {
+            this.logDisabledOnce();
+            return;
+        }
+
         // Initialize after 3 seconds to let Nest.js start completely
         setTimeout(() => this.connectToWhatsApp(), 3000);
     }
@@ -37,6 +61,11 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     }
 
     async connectToWhatsApp() {
+        if (!this.isWhatsappEnabled()) {
+            this.logDisabledOnce();
+            return;
+        }
+
         this.logger.log('Initializing WhatsApp connection...');
         this.connectionStatus = 'CONNECTING';
 
@@ -76,6 +105,10 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
                     this.qrCodeBase64 = null;
 
                     if (shouldReconnect) {
+                        if (!this.isWhatsappEnabled()) {
+                            this.logDisabledOnce();
+                            return;
+                        }
                         setTimeout(() => this.connectToWhatsApp(), 5000);
                     } else {
                         this.logger.log('WhatsApp logged out. Clearing credentials...');
@@ -120,6 +153,11 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     }
 
     async sendWhatsAppMessage(phone: string, messageContent: string, transactionId?: string) {
+        if (!this.isWhatsappEnabled()) {
+            this.logDisabledOnce();
+            return { success: false, error: 'WhatsApp integration disabled by configuration.' };
+        }
+
         this.logger.log(`Queueing WhatsApp message to ${phone}`);
 
         // Clean phone number (keep only digits)
